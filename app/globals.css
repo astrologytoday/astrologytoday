@@ -31,7 +31,8 @@ a {
 }
 
 button,
-select {
+select,
+input {
   font: inherit;
 }
 
@@ -176,6 +177,156 @@ h2 {
   color: var(--muted);
 }
 
+.upload-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--muted);
+}
+
+.import-status {
+  margin-top: 14px;
+}
+
+.import-warnings {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.debug-panel {
+  margin-top: 18px;
+}
+
+.calibration-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid rgba(98, 84, 66, 0.12);
+  background: rgba(255, 251, 245, 0.82);
+}
+
+.calibration-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--muted);
+}
+
+.calibration-head strong {
+  color: var(--ink);
+}
+
+.calibration-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.calibration-row label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.calibration-row select {
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  border-radius: 12px;
+  background: white;
+  padding: 10px 12px;
+  color: var(--ink);
+}
+
+.calibration-readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.calibration-status {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.calibration-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.calibration-controls button {
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  border-radius: 999px;
+  background: white;
+  color: var(--ink);
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.debug-image-wrap {
+  position: relative;
+  margin-top: 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  background: rgba(255, 251, 245, 0.72);
+}
+
+.debug-image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.debug-box {
+  position: absolute;
+  border: 2px solid;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.debug-box span {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.debug-box-a {
+  border-color: rgba(37, 99, 235, 0.95);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.debug-box-a span {
+  background: rgba(37, 99, 235, 0.95);
+  color: white;
+}
+
+.debug-box-b {
+  border-color: rgba(249, 115, 22, 0.95);
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.debug-box-b span {
+  background: rgba(249, 115, 22, 0.95);
+  color: white;
+}
+
 .placement-list {
   display: grid;
   gap: 10px;
@@ -233,6 +384,23 @@ select {
 .section-copy {
   max-width: 430px;
   margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.download-button {
+  border: 1px solid rgba(98, 84, 66, 0.18);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8c6730 0%, #bb9556 100%);
+  color: #fffaf1;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .compatibility-scroll,
@@ -402,12 +570,16 @@ select {
 
 .modal-card {
   width: min(620px, 100%);
+  max-height: min(88vh, 980px);
   border-radius: 28px;
   padding: 24px;
+  overflow-y: auto;
   background: var(--panel-strong);
   border: 1px solid rgba(98, 84, 66, 0.22);
   box-shadow: 0 32px 90px rgba(28, 20, 9, 0.25);
   animation: lift-in 180ms ease;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-close {
@@ -435,6 +607,18 @@ select {
   border-radius: 999px;
   border: 1px solid rgba(98, 84, 66, 0.16);
   background: rgba(255, 251, 245, 0.8);
+}
+
+.person-chip[data-sex="male"] {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #163252;
+}
+
+.person-chip[data-sex="female"] {
+  background: #ffe4e6;
+  border-color: #f9a8d4;
+  color: #7a284d;
 }
 
 .modal-compare-grid {
@@ -529,6 +713,10 @@ select {
     align-items: start;
   }
 
+  .section-actions {
+    align-items: start;
+  }
+
   .report-meta {
     text-align: left;
   }
@@ -561,6 +749,10 @@ select {
   }
 
   .placement-row {
+    grid-template-columns: 1fr;
+  }
+
+  .calibration-row {
     grid-template-columns: 1fr;
   }
 
