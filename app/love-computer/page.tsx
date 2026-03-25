@@ -55,6 +55,17 @@ type WeightedPlacement = {
   weight: number;
 };
 
+type PlanetProfile = {
+  heading: string;
+  bullets: string[];
+};
+
+type SignProfile = {
+  dates: string;
+  tagline?: string;
+  bullets: string[];
+};
+
 const PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆"];
 const PRIMARY_PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄"];
 const GENERATIONAL_PLANETS: Planet[] = ["♅", "♆"];
@@ -70,6 +81,90 @@ const PLANET_LABELS: Record<Planet, string> = {
   "♄": "Saturn",
   "♅": "Uranus",
   "♆": "Neptune",
+};
+
+const PLANET_PROFILES: Record<Planet, PlanetProfile> = {
+  "☉": {
+    heading: "Core identity",
+    bullets: [
+      "Core identity and ego",
+      "How you shine and express yourself",
+      "Life purpose and main storyline",
+      "What you are proud of and want recognition for",
+    ],
+  },
+  "☽": {
+    heading: "Your emotional, feminine, nurturing side",
+    bullets: [
+      "Who you want to be and what you admire",
+      "Gut reactions and moods",
+      "Emotional instincts and private needs",
+    ],
+  },
+  "⥉": {
+    heading: "Perception and self-expression",
+    bullets: [
+      "How people first read you",
+      "Your style of self-expression",
+      "The tone you set when entering a room",
+    ],
+  },
+  "☿": {
+    heading: "Mind and communication",
+    bullets: [
+      "How you think, speak, and process",
+      "Your communication style",
+      "How you learn and make connections",
+    ],
+  },
+  "♀": {
+    heading: "Love energy",
+    bullets: [
+      "How you give and receive affection",
+      "Your tastes, attractions, and style of intimacy",
+      "What feels beautiful, romantic, and pleasurable",
+    ],
+  },
+  "♂": {
+    heading: "Drive and aggression",
+    bullets: [
+      "How you pursue what you want",
+      "Your anger style and competitive edge",
+      "Your stamina, sex drive, and force of action",
+    ],
+  },
+  "♃": {
+    heading: "Beliefs, worldview, and philosophy",
+    bullets: [
+      "The way you make meaning out of life",
+      "Your faith, ideals, and personal truth",
+      "Where you expand and look for possibility",
+    ],
+  },
+  "♄": {
+    heading: "Fears, insecurities, fun side",
+    bullets: [
+      "Where you feel pressure, fear, or inhibition",
+      "How you grow through responsibility",
+      "The serious edge that shapes your character",
+    ],
+  },
+  "♅": {
+    heading: "The generation",
+    bullets: [
+      "Collective traits shared with your age group",
+      "Where the generation rebels and breaks patterns",
+      "Long-wave social influence",
+    ],
+  },
+  "♆": {
+    heading: "The generation",
+    bullets: [
+      "Collective traits shared with your age group",
+      "Dreams, illusions, and spiritual tone of a generation",
+      "Long-wave cultural influence",
+    ],
+  },
 };
 
 const SIGNS: Sign[] = [
@@ -100,6 +195,89 @@ const SIGN_LABELS: Record<Sign, string> = {
   "♑︎": "Capricorn",
   "♒︎": "Aquarius",
   "♓︎": "Pisces",
+};
+
+const SIGN_DATES: Record<Sign, string> = {
+  "♈︎": "March 21-April 19",
+  "♉︎": "April 20-May 20",
+  "♊︎": "May 21-June 20",
+  "♋︎": "June 21-July 22",
+  "♌︎": "July 23-August 22",
+  "♍︎": "August 23-September 22",
+  "♎︎": "September 23-October 22",
+  "♏︎": "October 23-November 21",
+  "♐︎": "November 22-December 21",
+  "♑︎": "December 22-January 19",
+  "♒︎": "January 20-February 18",
+  "♓︎": "February 19-March 20",
+};
+
+const SIGN_PROFILES: Partial<Record<Sign, SignProfile>> = {
+  "♈︎": {
+    dates: SIGN_DATES["♈︎"],
+    bullets: [
+      "Direct, impulsive, action-oriented",
+      "Likes to start things and take the lead",
+      "Can be impatient or hot-headed",
+      "Quick to act and speak, they prefer to speak than listen",
+      "Quick of mind, quick to anger, and arrogant",
+      "Calculates risks with lightning speed and acts accordingly",
+      "Anxiety-prone",
+      "Generous",
+      "Frank and spontaneous",
+      "Emotionally immature",
+      "Can't hide if they don't like you",
+      "Makeup sex",
+      "Very independent, doesn't like taking others advice",
+      "Respect is very important to them",
+      "If they think you're up to no good, they'll cut you off quickly",
+      "Loyal",
+      "Hard-headed and stubborn",
+      "Loves to be in the spotlight, class or office clown",
+      "Falls for toxic people",
+      "Needs reciprocation",
+      "Very independent, doesn't wait for anybody",
+    ],
+  },
+  "♍︎": {
+    dates: SIGN_DATES["♍︎"],
+    tagline: "Analysis/Analyze",
+    bullets: [
+      "Analytical, detail-focused, practical",
+      "Likes fixing and improving including with their partners",
+      "Can be self-critical or anxious about imperfections",
+      "Service-oriented, likes being useful and supportive behind the scenes",
+      "Judgmental",
+      "Loves giving recommendations",
+      "Returns compliments",
+    ],
+  },
+  "♐︎": {
+    dates: SIGN_DATES["♐︎"],
+    tagline: "Wisdom/Idealize",
+    bullets: [
+      "Likes challenge and adventure",
+      "Seeks truth, freedom, and new experiences",
+      "Can be blunt, restless, or commitment-shy",
+      "Narcissist",
+      "Lacks self-awareness",
+      "Don't admit mistakes",
+      "Don't compromise",
+      "Optimistic to the point of overlooking practical details",
+      "Philosophical, always searching for a larger meaning or big-picture lesson",
+      "Loves travel, exploration, and breaking out of routines",
+      "No filter",
+      "Says what they think even when it is tactless or poorly timed",
+      "Tends to exaggerate stories or promises without fully following through",
+      "Values independence so much that they can sabotage closeness or stability",
+      "Can come off as morally superior or know-it-all when convinced they are right",
+      "FOMO",
+      "Loves instant gratification",
+      "Deals some low blows",
+      "Stirs the pot",
+      "You wanted someone so bad in your life but he broke your heart and went away and because of that you faced trauma",
+    ],
+  },
 };
 
 const SIGN_SHORT: Record<Sign, string> = {
@@ -287,6 +465,36 @@ function classifyRelation(a: Sign, b: Sign): RelationType {
   if (distance === 4) return "same-element";
   if (distance === 5) return "awkward";
   return "teamwork";
+}
+
+function genderGlyph(category: GenderCategory) {
+  switch (category) {
+    case "masculine":
+      return "♂";
+    case "feminine":
+      return "♀";
+    case "eunuch":
+      return "⚲";
+    case "hermaphrodite":
+      return "⚧";
+    case "virgin":
+      return "☿";
+  }
+}
+
+function getSignGenderText(sign: Sign) {
+  return SIGN_GENDERS[sign].map(genderGlyph).join("");
+}
+
+function getSignProfile(sign: Sign) {
+  const profile = SIGN_PROFILES[sign];
+
+  if (profile) return profile;
+
+  return {
+    dates: SIGN_DATES[sign],
+    bullets: ["Custom sign interpretation coming next."],
+  } satisfies SignProfile;
 }
 
 function getWeightedPlacements(values: PlacementMap) {
@@ -482,6 +690,48 @@ function buildSummaryRows(
     b: b[key] ?? 0,
     combined: combined[key] ?? 0,
   }));
+}
+
+function ModalDetail({
+  planet,
+  sign,
+}: {
+  planet: Planet;
+  sign: Sign;
+}) {
+  const planetProfile = PLANET_PROFILES[planet];
+  const signProfile = getSignProfile(sign);
+
+  return (
+    <div className="modal-detail">
+      <div className="modal-block">
+        <p className="modal-block-label">
+          {planet} {PLANET_LABELS[planet]}
+        </p>
+        <h3>{planetProfile.heading}</h3>
+        <ul className="modal-list">
+          {planetProfile.bullets.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="modal-divider">=</div>
+
+      <div className="modal-block">
+        <p className="modal-block-label">
+          {SIGN_LABELS[sign]} {getSignGenderText(sign)}
+          {signProfile.tagline ? ` (${signProfile.tagline})` : ""}
+        </p>
+        <p className="modal-date">{signProfile.dates}</p>
+        <ul className="modal-list">
+          {signProfile.bullets.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 export default function LoveComputerPage() {
@@ -702,7 +952,11 @@ export default function LoveComputerPage() {
               </span>
               <span>{selectedCell.symbol}</span>
             </div>
-            <p className="modal-copy">{selectedCell.note}</p>
+            <div className="modal-compare-grid">
+              <ModalDetail planet={selectedCell.aPlanet} sign={selectedCell.aSign} />
+              <div className="modal-cross">X</div>
+              <ModalDetail planet={selectedCell.bPlanet} sign={selectedCell.bSign} />
+            </div>
           </div>
         </div>
       ) : null}

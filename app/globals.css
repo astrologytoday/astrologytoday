@@ -437,6 +437,65 @@ select {
   background: rgba(255, 251, 245, 0.8);
 }
 
+.modal-compare-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.modal-cross,
+.modal-divider {
+  display: grid;
+  place-items: center;
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+  font-size: 1.8rem;
+  color: var(--accent);
+}
+
+.modal-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.modal-block {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(98, 84, 66, 0.14);
+  background: rgba(255, 251, 245, 0.78);
+}
+
+.modal-block-label {
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modal-block h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.modal-date {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.modal-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.modal-list li + li {
+  margin-top: 6px;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -507,5 +566,13 @@ select {
 
   .legend-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .modal-compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-cross {
+    order: 2;
   }
 }
