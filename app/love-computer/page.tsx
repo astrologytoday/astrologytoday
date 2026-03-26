@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Planet = "☉" | "☽" | "⥉" | "☿" | "♀" | "♂" | "♃" | "♄" | "♅" | "♆";
 type Sign =
@@ -29,6 +29,8 @@ type RelationType =
   | "teamwork"
   | "okay";
 
+type GridViewMode = "couple" | "partner-a" | "partner-b";
+
 type PlacementMap = Partial<Record<Planet, Sign | "">>;
 
 type GridCell = {
@@ -47,6 +49,13 @@ type DistributionRow = {
   a: number;
   b: number;
   combined: number;
+};
+
+type QualifierRow = {
+  label: string;
+  a: string;
+  b: string;
+  combined: string;
 };
 
 type WeightedPlacement = {
@@ -85,9 +94,31 @@ type DebugBox = {
   tone: "a" | "b";
 };
 
+type TextImportResult = {
+  personA: PlacementMap;
+  personB: PlacementMap;
+  warnings: string[];
+};
+
+type SavedChartRecord = {
+  id: string;
+  schemaVersion: 1;
+  storageScope: "local";
+  profileName: string;
+  sex: Sex;
+  placements: PlacementMap;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ModalNotesMap = Record<string, string>;
+
 const PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆"];
 const PRIMARY_PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄"];
+const SUMMARY_PERSONAL_PLANETS: Planet[] = ["☉", "☽", "☿", "♀", "♂", "♃", "♄"];
 const GENERATIONAL_PLANETS: Planet[] = ["♅", "♆"];
+const SUN_GROUP_PLANETS: Planet[] = ["☉", "♀", "♃"];
+const MOON_GROUP_PLANETS: Planet[] = ["☽", "♂", "♄"];
 
 const PLANET_LABELS: Record<Planet, string> = {
   "☉": "Sun",
@@ -100,6 +131,36 @@ const PLANET_LABELS: Record<Planet, string> = {
   "♄": "Saturn",
   "♅": "Uranus",
   "♆": "Neptune",
+};
+
+const TEXT_PLANET_TO_SYMBOL: Record<string, Planet | null> = {
+  Sun: "☉",
+  Moon: "☽",
+  Mercury: "☿",
+  Venus: "♀",
+  Mars: "♂",
+  Jupiter: "♃",
+  Saturn: "♄",
+  Uranus: "♅",
+  Neptune: "♆",
+  Ascendant: "⥉",
+  ASC: "⥉",
+  MC: null,
+};
+
+const TEXT_SIGN_TO_SYMBOL: Record<string, Sign> = {
+  Aries: "♈︎",
+  Taurus: "♉︎",
+  Gemini: "♊︎",
+  Cancer: "♋︎",
+  Leo: "♌︎",
+  Virgo: "♍︎",
+  Libra: "♎︎",
+  Scorpio: "♏︎",
+  Sagittarius: "♐︎",
+  Capricorn: "♑︎",
+  Aquarius: "♒︎",
+  Pisces: "♓︎",
 };
 
 const PLANET_PROFILES: Record<Planet, PlanetProfile> = {
@@ -157,15 +218,15 @@ const PLANET_PROFILES: Record<Planet, PlanetProfile> = {
     bullets: [
       "The way you make meaning out of life",
       "Your faith, ideals, and personal truth",
-      "Where you expand and look for possibility",
+      "How you socialize in a structured way",
     ],
   },
   "♄": {
     heading: "Fears, insecurities, fun side",
     bullets: [
       "Where you feel pressure, fear, or inhibition",
-      "How you grow through responsibility",
-      "The serious edge that shapes your character",
+      "Your discipline and how you regulate yourself",
+      "How you socialize in an unstructured way",
     ],
   },
   "♅": {
@@ -549,6 +610,16 @@ type SynastryOverrideMap = Partial<Record<Planet, SynastryRectOverride>>;
 
 const SYN_A_STORAGE_KEY = "love-computer-synastry-a";
 const SYN_B_STORAGE_KEY = "love-computer-synastry-b";
+const SAVED_CHARTS_STORAGE_KEY = "love-computer-saved-charts";
+const MODAL_NOTES_STORAGE_KEY = "love-computer-modal-notes";
+const NOTE_MARKER_STORAGE_KEY = "love-computer-note-marker-offset";
+const PAGE_NAV_ITEMS = [
+  { href: "#placements", symbol: "✎", label: "Placements" },
+  { href: "#saved-charts", symbol: "◉", label: "Saved Charts" },
+  { href: "#imports", symbol: "+", label: "Import Reports" },
+  { href: "#comparison-grid", symbol: "▤", label: "Comparison Grid" },
+  { href: "#summaries", symbol: "☯", label: "Elements And Gender" },
+] as const;
 
 const ASTROSEEK_SYN_A_OVERRIDES: SynastryOverrideMap = {
   "☉": { dx: -21 / 700, dy: 9 / 1275, scale: 1.1 },
@@ -672,6 +743,56 @@ const SIGN_GENDERS: Record<Sign, GenderCategory[]> = {
   "♓︎": ["feminine", "eunuch", "hermaphrodite"],
 };
 
+const SIGN_RULERS: Record<Sign, Planet[]> = {
+  "♈︎": ["♂"],
+  "♉︎": ["♀"],
+  "♊︎": ["☿"],
+  "♋︎": ["☽"],
+  "♌︎": ["☉"],
+  "♍︎": ["☿"],
+  "♎︎": ["♀"],
+  "♏︎": ["♂"],
+  "♐︎": ["♃"],
+  "♑︎": ["♄"],
+  "♒︎": ["♄", "♅"],
+  "♓︎": ["♃", "♆"],
+};
+
+const PLANET_QUALIFIERS: Record<Planet, string> = {
+  "☉": "self",
+  "☽": "dark side",
+  "⥉": "politics",
+  "☿": "mind",
+  "♀": "heart",
+  "♂": "drive",
+  "♃": "philosophy of life",
+  "♄": "discipline",
+  "♅": "generation",
+  "♆": "generation",
+};
+
+const SIGN_QUALIFIERS: Record<Sign, string> = {
+  "♈︎": "assertive",
+  "♉︎": "possessive",
+  "♊︎": "curious",
+  "♋︎": "emotional",
+  "♌︎": "magnetic",
+  "♍︎": "analytical",
+  "♎︎": "peacemaking",
+  "♏︎": "transformative",
+  "♐︎": "philosophical",
+  "♑︎": "entrepreneurial",
+  "♒︎": "unconventional",
+  "♓︎": "creative",
+};
+
+const ELEMENT_SYMBOLS: Record<Element, string> = {
+  fire: "🜂",
+  earth: "🜃",
+  air: "🜁",
+  water: "🜄",
+};
+
 const GENDER_LABELS: Record<GenderCategory, string> = {
   masculine: "Masculine ♂",
   feminine: "Feminine ♀",
@@ -767,6 +888,38 @@ const DISTRIBUTION_ORDER = {
   gender: ["masculine", "feminine", "eunuch", "hermaphrodite", "virgin"] as const,
 };
 
+const HEART_MULTIPLIER_POINTS: Record<RelationType, number> = {
+  "same-sign": 15,
+  "same-element": 15,
+  "elemental-harmony": 20,
+  teamwork: 30,
+  competing: -15,
+  awkward: -20,
+  okay: 0,
+};
+
+const NATURE_LABELS: Record<Element, Partial<Record<Element, string>>> = {
+  fire: { water: "Lonely", earth: "Assertive", air: "Brave" },
+  water: { fire: "Defensive", earth: "Naughty", air: "Mischievous" },
+  earth: { fire: "Modest", water: "Mild", air: "Gentle" },
+  air: { fire: "Timid", water: "Hasty", earth: "Happy & Naive" },
+};
+
+const ENERGY_COMBINATIONS: Record<string, { title: string; symbol: string }> = {
+  "feminine+hermaphrodite": { title: "Open Energy", symbol: "⚣" },
+  "hermaphrodite+masculine": { title: "Oppressed Energy", symbol: "☻" },
+  "eunuch+hermaphrodite": { title: "Chastised Energy", symbol: "⚲" },
+  "feminine+masculine": { title: "Harmonized Energy", symbol: "⚤" },
+  "feminine+feminine": { title: "Hyper-Feminine Energy", symbol: "♀" },
+  "masculine+masculine": { title: "Hyper-Masculine Energy", symbol: "♂" },
+  "feminine+virgin": { title: "Divine Feminine Energy", symbol: "✧" },
+  "masculine+virgin": { title: "Sacred Masculine Energy", symbol: "✦" },
+  "hermaphrodite+virgin": { title: "Unholy Energy", symbol: "⚝" },
+  "eunuch+virgin": { title: "Holy Energy", symbol: "✡" },
+  "eunuch+masculine": { title: "Chauvinist Energy", symbol: "⚦" },
+  "eunuch+feminine": { title: "Prudent Energy", symbol: "✟" },
+};
+
 function normalizeDistance(a: Sign, b: Sign) {
   const diff = Math.abs(SIGN_INDEX[a] - SIGN_INDEX[b]);
   return Math.min(diff, 12 - diff);
@@ -815,7 +968,7 @@ function getSignProfile(sign: Sign) {
 }
 
 function getWeightedPlacements(values: PlacementMap) {
-  const primary = PRIMARY_PLANETS.filter((planet) => values[planet]).map((planet) => ({
+  const primary = SUMMARY_PERSONAL_PLANETS.filter((planet) => values[planet]).map((planet) => ({
     planet,
     sign: values[planet] as Sign,
   }));
@@ -941,7 +1094,7 @@ function getSexDistribution(sex: Sex) {
 }
 
 function buildFinalGenderDistribution(values: PlacementMap, sex: Sex) {
-  const astrological = countsToPercentages(countGenderSymbols(PRIMARY_PLANETS, values));
+  const astrological = countsToPercentages(countGenderSymbols(SUMMARY_PERSONAL_PLANETS, values));
   const generational = countsToPercentages(countGenderSymbols(GENERATIONAL_PLANETS, values));
   const sexDistribution = getSexDistribution(sex);
 
@@ -994,6 +1147,18 @@ function buildGrid(personA: PlacementMap, personB: PlacementMap) {
   });
 }
 
+function pickVisiblePlanets(showGenerational: boolean) {
+  return showGenerational ? PLANETS : PRIMARY_PLANETS;
+}
+
+function filterPlacementMap(values: PlacementMap, visiblePlanets: Planet[]) {
+  const next: PlacementMap = {};
+  for (const planet of visiblePlanets) {
+    next[planet] = values[planet] ?? "";
+  }
+  return next;
+}
+
 function buildSummaryRows(
   labels: Record<string, string>,
   a: Record<string, number>,
@@ -1007,6 +1172,113 @@ function buildSummaryRows(
     b: b[key] ?? 0,
     combined: combined[key] ?? 0,
   }));
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function buildYinYangDistribution(elementDistribution: Record<Element, number>) {
+  return {
+    yin: elementDistribution.water + elementDistribution.earth,
+    yang: elementDistribution.fire + elementDistribution.air,
+  };
+}
+
+function buildYinYangRows(
+  a: Record<"yin" | "yang", number>,
+  b: Record<"yin" | "yang", number>,
+  combined: Record<"yin" | "yang", number>
+) {
+  return [
+    { label: "Yin", a: a.yin, b: b.yin, combined: combined.yin },
+    { label: "Yang", a: a.yang, b: b.yang, combined: combined.yang },
+  ] satisfies DistributionRow[];
+}
+
+function pickExtremeElement(distribution: Record<Element, number>, mode: "max" | "min") {
+  const ordered = DISTRIBUTION_ORDER.element.map((element) => ({
+    element,
+    value: distribution[element],
+  }));
+
+  return ordered.reduce((best, current) => {
+    if (mode === "max") return current.value > best.value ? current : best;
+    return current.value < best.value ? current : best;
+  }).element;
+}
+
+function getNatureQualifier(distribution: Record<Element, number>) {
+  const highest = pickExtremeElement(distribution, "max");
+  const lowest = pickExtremeElement(distribution, "min");
+  return NATURE_LABELS[highest][lowest] ?? "Balanced";
+}
+
+function buildQualifierRows(label: string, a: string, b: string, combined: string) {
+  return [{ label, a, b, combined }] satisfies QualifierRow[];
+}
+
+function sortGenderKey(a: GenderCategory, b: GenderCategory) {
+  return [a, b].sort().join("+");
+}
+
+function getEnergyPair(distribution: Record<GenderCategory, number>): [GenderCategory, GenderCategory] {
+  if (distribution.masculine > 60) return ["masculine", "masculine"];
+  if (distribution.feminine > 60) return ["feminine", "feminine"];
+
+  const all = DISTRIBUTION_ORDER.gender
+    .map((key) => ({ key, value: distribution[key] }))
+    .sort((a, b) => b.value - a.value);
+
+  const atypical = all.filter(
+    (item) => item.key === "eunuch" || item.key === "hermaphrodite" || item.key === "virgin"
+  );
+  const aboveTwenty = atypical.filter((item) => item.value > 20);
+
+  if (aboveTwenty.length >= 2) {
+    return [aboveTwenty[0].key, aboveTwenty[1].key];
+  }
+
+  const topTwo = all.slice(0, 2);
+  const topIsTypicalPair =
+    topTwo.every((item) => item.key === "masculine" || item.key === "feminine");
+  const aboveSeventeen = atypical.filter((item) => item.value >= 17);
+
+  if (topIsTypicalPair && aboveSeventeen.length > 0) {
+    const lead = distribution.masculine >= distribution.feminine ? "masculine" : "feminine";
+    return [lead, aboveSeventeen[0].key];
+  }
+
+  return [topTwo[0].key, topTwo[1].key];
+}
+
+function getEnergyQualifier(distribution: Record<GenderCategory, number>) {
+  const [first, second] = getEnergyPair(distribution);
+  const combo = ENERGY_COMBINATIONS[sortGenderKey(first, second)];
+
+  if (combo) return `${combo.title} ${combo.symbol}`;
+
+  return `${capitalize(first)} + ${capitalize(second)}`;
+}
+
+function buildHeartMultiplier(grid: GridCell[][]) {
+  const counts = Object.fromEntries(
+    (Object.keys(RELATION_STYLES) as RelationType[]).map((key) => [key, 0])
+  ) as Record<RelationType, number>;
+  let score = 100;
+
+  for (const row of grid) {
+    for (const cell of row) {
+      counts[cell.relation] += 1;
+      score += HEART_MULTIPLIER_POINTS[cell.relation];
+    }
+  }
+
+  return {
+    score,
+    multiplier: `${(score / 100).toFixed(2).replace(/\.00$/, "")}x`,
+    counts,
+  };
 }
 
 function ModalDetail({
@@ -1053,6 +1325,733 @@ function ModalDetail({
 
 function getChipTone(sex: Sex) {
   return sex === "male" ? "male" : "female";
+}
+
+function getCardPlanetLabel(planet: Planet) {
+  return planet === "⥉" ? "Rising" : PLANET_LABELS[planet];
+}
+
+function placementSignature(values: PlacementMap) {
+  return PLANETS.map((planet) => `${planet}:${values[planet] || "-"}`).join("|");
+}
+
+function normalizeSoloCellKey(cell: GridCell) {
+  const pair = [
+    { planet: cell.aPlanet, sign: cell.aSign },
+    { planet: cell.bPlanet, sign: cell.bSign },
+  ].sort((left, right) => PLANETS.indexOf(left.planet) - PLANETS.indexOf(right.planet));
+
+  return `${pair[0].planet}:${pair[0].sign}|${pair[1].planet}:${pair[1].sign}`;
+}
+
+function buildModalNoteKey(
+  cell: GridCell,
+  mode: GridViewMode,
+  personAName: string,
+  personA: PlacementMap,
+  personBName: string,
+  personB: PlacementMap
+) {
+  if (mode === "couple") {
+    return [
+      "couple",
+      personAName,
+      placementSignature(personA),
+      personBName,
+      placementSignature(personB),
+      `${cell.aPlanet}:${cell.aSign}|${cell.bPlanet}:${cell.bSign}`,
+    ].join("::");
+  }
+
+  const soloName = mode === "partner-a" ? personAName : personBName;
+  const soloPlacements = mode === "partner-a" ? personA : personB;
+
+  return ["solo", soloName, placementSignature(soloPlacements), normalizeSoloCellKey(cell)].join("::");
+}
+
+function getNoteMarkerRotation(noteKey: string) {
+  let hash = 0;
+  for (let index = 0; index < noteKey.length; index += 1) {
+    hash = (hash * 31 + noteKey.charCodeAt(index)) % 9973;
+  }
+
+  const normalized = (hash % 9) - 4;
+  return normalized * 0.6;
+}
+
+function getInteractionVerb(relation: RelationType) {
+  switch (relation) {
+    case "teamwork":
+      return "works well with";
+    case "awkward":
+      return "is awkward with";
+    case "competing":
+      return "is competing with";
+    case "elemental-harmony":
+      return "is harmonized with";
+    case "same-element":
+      return "works similarly to";
+    case "same-sign":
+      return "is similar to";
+    case "okay":
+      return "is okay with";
+  }
+}
+
+function getRelationStatus(relation: RelationType) {
+  switch (relation) {
+    case "same-sign":
+      return "very similar";
+    case "elemental-harmony":
+      return "harmonized";
+    case "same-element":
+      return "very defined";
+    case "awkward":
+      return "awkward";
+    case "teamwork":
+      return "bliss";
+    case "competing":
+      return "competing with each other";
+    case "okay":
+      return "fine together";
+  }
+}
+
+function getPlacementPhrase(sign: Sign, planet: Planet) {
+  return `${SIGN_LABELS[sign]} ${getCardPlanetLabel(planet)}`;
+}
+
+function getInteractionPlacementPhrase(sign: Sign, planet: Planet) {
+  return planet === "♃" ? "philosophy of life" : getPlacementPhrase(sign, planet);
+}
+
+function isSamePlanetPlacement(planet: Planet, sign: Sign) {
+  return SIGN_RULERS[sign].includes(planet);
+}
+
+function getGenerationWord(counterpartPlanet: Planet) {
+  return counterpartPlanet === "♃" ? "generations" : "generation";
+}
+
+function normalizeSinglePairKey(aPlanet: Planet, bPlanet: Planet) {
+  return [aPlanet, bPlanet]
+    .sort((left, right) => PLANETS.indexOf(left) - PLANETS.indexOf(right))
+    .join("|");
+}
+
+function ensureTerminalPunctuation(text: string) {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+function adjustSameElementInteractionText(text: string) {
+  return text.replace(/^How much\b/, "How");
+}
+
+function stripTerminalPunctuation(text: string) {
+  return text.replace(/[.!?]+$/, "");
+}
+
+function getPossessivePronoun(sex: Sex) {
+  return sex === "male" ? "his" : "her";
+}
+
+function getSubjectPronoun(sex: Sex) {
+  return sex === "male" ? "he" : "she";
+}
+
+function getObjectPronoun(sex: Sex) {
+  return sex === "male" ? "him" : "her";
+}
+
+function replaceLastOccurrence(text: string, search: string, replacement: string) {
+  const index = text.lastIndexOf(search);
+  if (index === -1) return text;
+  return `${text.slice(0, index)}${replacement}${text.slice(index + search.length)}`;
+}
+
+function normalizeSummaryText(text: string, relation: RelationType, mode: GridViewMode, name?: string, sex?: Sex) {
+  let normalized = stripTerminalPunctuation(text);
+
+  if (normalized.includes(" + ")) {
+    const [left, right] = normalized.split(" + ");
+    if (left && right) {
+      normalized = `${left} ${getInteractionVerb(relation)} ${right}`;
+    }
+  }
+
+  normalized = normalized.replace(/\btheir generation\b/g, "their generations");
+
+  return normalized;
+}
+
+function isGenerationalPlanet(planet: Planet) {
+  return GENERATIONAL_PLANETS.includes(planet);
+}
+
+function shouldOmitSummaryDescription(cell: GridCell) {
+  const isRisingGenerationalPair =
+    (cell.aPlanet === "⥉" && isGenerationalPlanet(cell.bPlanet)) ||
+    (cell.bPlanet === "⥉" && isGenerationalPlanet(cell.aPlanet));
+
+  return isRisingGenerationalPair && cell.relation !== "awkward";
+}
+
+function getSoloRisingGenerationSummaryText(cell: GridCell, name: string, sex: Sex) {
+  return `The way ${name} is perceived ${getInteractionVerb(cell.relation)} ${getPossessivePronoun(sex)} generation`;
+}
+
+function getSoloSummaryInteractionText(cell: GridCell, name: string, sex: Sex) {
+  const key = normalizeSinglePairKey(cell.aPlanet, cell.bPlanet);
+  const interaction = getInteractionVerb(cell.relation);
+  const possessive = getPossessivePronoun(sex);
+  const subject = getSubjectPronoun(sex);
+  const aIsGenerational = GENERATIONAL_PLANETS.includes(cell.aPlanet);
+  const bIsGenerational = GENERATIONAL_PLANETS.includes(cell.bPlanet);
+  const soloPlanet = aIsGenerational ? cell.bPlanet : cell.aPlanet;
+  const soloPlacement = aIsGenerational
+    ? getInteractionPlacementPhrase(cell.bSign, cell.bPlanet)
+    : getInteractionPlacementPhrase(cell.aSign, cell.aPlanet);
+
+  if (aIsGenerational && bIsGenerational) {
+    return `The generations are ${getRelationStatus(cell.relation)}`;
+  }
+
+  if (aIsGenerational || bIsGenerational) {
+    return `${name}'s ${soloPlacement} ${interaction} their ${getGenerationWord(soloPlanet)}`;
+  }
+
+  const templates: Partial<Record<string, string>> = {
+    "☉|☽": `${name}'s emotionality ${interaction} ${possessive} core self`,
+    "☉|⥉": `How ${name} is perceived ${interaction} how ${subject} really is`,
+    "☉|☿": `${name}'s mind ${interaction} ${possessive} ego`,
+    "☉|♀": `${name}'s heart ${interaction} ${possessive} ego`,
+    "☉|♂": `${name}'s drive ${interaction} ${possessive} ego`,
+    "☉|♃": `${name}'s philosophy of life ${interaction} ${possessive} core self`,
+    "☉|♄": `${name}'s ego ${interaction} ${possessive} level of emotional security`,
+    "☽|⥉": `${name}'s mood ${interaction} how others perceive ${name}`,
+    "☽|☿": `${name}'s dark side ${interaction} ${possessive} mind`,
+    "☽|♀": `${name}'s dark side ${interaction} ${possessive} heart`,
+    "☽|♃": `${name}'s magical side`,
+    "☽|♄": `${name}'s feminine side ${interaction} ${possessive} moods`,
+    "⥉|☿": `${name}'s mind ${interaction} ${possessive} desire`,
+    "⥉|♀": `${name}'s heart's desire`,
+    "⥉|♂": `${name}'s body's desire`,
+    "⥉|♃": `${name}'s politics`,
+    "⥉|♄": `${name}'s guilty pleasures`,
+    "☿|♀": `${name}'s mind ${interaction} ${possessive} interests`,
+    "☿|♂": `${name}'s mind ${interaction} ${possessive} drive`,
+    "☿|♃": `${name}'s mind ${interaction} ${possessive} morality`,
+    "☿|♄": `${name}'s social strategy + how ${subject} copes`,
+    "♀|♂": `${name}'s body ${interaction} ${possessive} heart`,
+    "♀|♃": `${name}'s heart ${interaction} ${possessive} philosophy of life`,
+    "♀|♄": `${name}'s heart ${interaction} ${possessive} rebellious side`,
+    "♂|♃": `${name}'s drive + how ${subject} seeks growth`,
+    "♂|♄": `How ${name} attracts the opposite sex`,
+    "♃|♄": `How ${name} socializes`,
+  };
+
+  return templates[key] ?? "This planetary interaction shapes how these two parts of you work together";
+}
+
+function cellHasSamePlanetQualifier(cell: GridCell) {
+  return isSamePlanetPlacement(cell.aPlanet, cell.aSign) || isSamePlanetPlacement(cell.bPlanet, cell.bSign);
+}
+
+function getMergedSymbolTail(cells: GridCell[]) {
+  const planets = Array.from(new Set(cells.flatMap((cell) => [cell.aPlanet, cell.bPlanet])));
+  return planets.sort((left, right) => PLANETS.indexOf(left) - PLANETS.indexOf(right)).join(" ");
+}
+
+function formatSummaryEntryLine(text: string, cells: GridCell[]) {
+  const symbols = getMergedSymbolTail(cells);
+  return symbols ? `= ${text} ${symbols}` : `= ${text}`;
+}
+
+function getSectionLetter(index: number) {
+  return String.fromCharCode("A".charCodeAt(0) + index);
+}
+
+function shouldWrapNotation(sideText: string) {
+  return sideText.includes(" + ");
+}
+
+function formatNotationSide(sign: Sign, planets: Planet[]) {
+  return `${sign} ${planets.join(" + ")}`;
+}
+
+function formatCombinedNotation(left: string, right: string) {
+  const leftText = shouldWrapNotation(left) ? `( ${left} )` : left;
+  const rightText = shouldWrapNotation(right) ? `( ${right} )` : right;
+  return `${leftText} + ${rightText}`;
+}
+
+function getSortedUniquePlanets(planets: Planet[]) {
+  return Array.from(new Set(planets)).sort((left, right) => PLANETS.indexOf(left) - PLANETS.indexOf(right));
+}
+
+function joinWithAnd(items: string[]) {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+}
+
+function formatSamePlanetSummary(sign: Sign, planets: Planet[], name: string) {
+  const relevantPlanets = getSortedUniquePlanets(planets).filter((planet) => !GENERATIONAL_PLANETS.includes(planet));
+  if (relevantPlanets.length === 0) return null;
+
+  const qualifiers = relevantPlanets.map((planet) => `${SIGN_QUALIFIERS[sign]} ${PLANET_QUALIFIERS[planet]}`);
+  const verb = relevantPlanets.length === 1 ? "is very pronounced" : "are very pronounced";
+
+  return [
+    `${sign} ${relevantPlanets.join(" + ")}`,
+    `= ${name}'s ${joinWithAnd(qualifiers)} ${verb} ${relevantPlanets.join(" ")}`,
+  ].join("\n");
+}
+
+function groupSummaryLines(
+  cells: GridCell[],
+  relation: RelationType,
+  mode: GridViewMode,
+  leftName: string,
+  rightName: string,
+  sex?: Sex
+) {
+  const textMap = new Map<string, GridCell[]>();
+
+  for (const cell of cells) {
+    if (shouldOmitSummaryDescription(cell)) continue;
+
+    const rawText =
+      mode !== "couple" &&
+      sex &&
+      ((cell.aPlanet === "⥉" && isGenerationalPlanet(cell.bPlanet)) ||
+        (cell.bPlanet === "⥉" && isGenerationalPlanet(cell.aPlanet)))
+        ? getSoloRisingGenerationSummaryText(cell, leftName, sex)
+        : mode === "couple"
+          ? getCoupleInteractionText(cell, leftName, rightName)
+          : sex
+            ? getSoloSummaryInteractionText(cell, leftName, sex)
+            : getSingleInteractionText(cell, leftName);
+    const text = normalizeSummaryText(rawText, relation, mode, leftName, sex);
+    const existing = textMap.get(text);
+    if (existing) {
+      existing.push(cell);
+    } else {
+      textMap.set(text, [cell]);
+    }
+  }
+
+  return Array.from(textMap.entries()).map(([text, groupedCells]) => formatSummaryEntryLine(text, groupedCells));
+}
+
+function buildSoloRelationSummary(
+  relation: RelationType,
+  placements: PlacementMap,
+  name: string,
+  sex: Sex
+) {
+  const grid = buildGrid(placements, placements);
+  const cells = grid.flat().filter((cell) => cell.relation === relation && !isMirroredDuplicateCell(cell));
+
+  if (relation === "teamwork" && cells.length === 0) {
+    return ["TEAM WORK", "= NO TEAM WORK ENTRIES"].join("\n");
+  }
+
+  if (cells.length === 0) return "";
+
+  if (relation === "same-sign") {
+    const groups = new Map<Sign, GridCell[]>();
+    for (const cell of cells) {
+      const list = groups.get(cell.aSign) ?? [];
+      list.push(cell);
+      groups.set(cell.aSign, list);
+    }
+
+    return Array.from(groups.entries())
+      .map(([sign, signCells]) => {
+        const planets = getSortedUniquePlanets(signCells.flatMap((cell) => [cell.aPlanet, cell.bPlanet]));
+        const lines = groupSummaryLines(signCells, relation, "partner-a", name, name, sex);
+        return [`${sign} ${planets.join(" + ")}`, ...lines].join("\n");
+      })
+      .join("\n\n");
+  }
+
+  if (relation === "same-element" || relation === "elemental-harmony" || relation === "awkward" || relation === "competing") {
+    const groups = new Map<string, GridCell[]>();
+    for (const cell of cells) {
+      const key = `${cell.aSign}|${cell.bSign}`;
+      const list = groups.get(key) ?? [];
+      list.push(cell);
+      groups.set(key, list);
+    }
+
+    return Array.from(groups.entries())
+      .map(([key, pairCells]) => {
+        const [leftSignRaw, rightSignRaw] = key.split("|");
+        const leftSign = leftSignRaw as Sign;
+        const rightSign = rightSignRaw as Sign;
+        const leftPlanets = getSortedUniquePlanets(pairCells.map((cell) => cell.aPlanet));
+        const rightPlanets = getSortedUniquePlanets(pairCells.map((cell) => cell.bPlanet));
+        const notation = formatCombinedNotation(
+          formatNotationSide(leftSign, leftPlanets),
+          formatNotationSide(rightSign, rightPlanets)
+        );
+        const lines = groupSummaryLines(pairCells, relation, "partner-a", name, name, sex);
+        return [notation, ...lines].join("\n");
+      })
+      .join("\n\n");
+  }
+
+  if (relation === "teamwork") {
+    const lines = groupSummaryLines(cells, relation, "partner-a", name, name, sex);
+    return lines.join("\n");
+  }
+
+  return groupSummaryLines(cells, relation, "partner-a", name, name, sex).join("\n");
+}
+
+function buildSamePlanetSection(placements: PlacementMap, name: string) {
+  const groups = new Map<Sign, Planet[]>();
+
+  for (const planet of PLANETS) {
+    const sign = placements[planet];
+    if (!sign) continue;
+    if (!SIGN_RULERS[sign].includes(planet)) continue;
+
+    const planets = groups.get(sign) ?? [];
+    planets.push(planet);
+    groups.set(sign, planets);
+  }
+
+  const lines = Array.from(groups.entries())
+    .map(([sign, planets]) => formatSamePlanetSummary(sign, planets, name))
+    .filter((value): value is string => Boolean(value));
+
+  if (lines.length === 0) return "";
+
+  return ["SAME PLANET ⊛", ...lines].join("\n");
+}
+
+function buildSoloSummarySection(name: string, placements: PlacementMap, sex: Sex) {
+  const relationOrder: RelationType[] = ["same-sign", "same-element", "elemental-harmony", "teamwork", "awkward", "competing"];
+  const blocks: string[] = [];
+
+  blocks.push(`${name.toUpperCase()} REPORT`);
+
+  const sameSignBlock = buildSoloRelationSummary("same-sign", placements, name, sex);
+  if (sameSignBlock) blocks.push(`SAME SIGN ${RELATION_STYLES["same-sign"].symbol}\n${sameSignBlock}`);
+
+  const samePlanetBlock = buildSamePlanetSection(placements, name);
+  if (samePlanetBlock) blocks.push(samePlanetBlock);
+
+  for (const relation of relationOrder.filter((item) => item !== "same-sign")) {
+    const block = buildSoloRelationSummary(relation, placements, name, sex);
+    if (!block) continue;
+
+    if (relation === "same-element") {
+      const elements = Array.from(
+        new Set(
+          buildGrid(placements, placements)
+            .flat()
+            .filter((cell) => cell.relation === relation && !isMirroredDuplicateCell(cell))
+            .flatMap((cell) => [ELEMENTS[cell.aSign], ELEMENTS[cell.bSign]])
+        )
+      ) as Element[];
+      blocks.push(`SAME ELEMENT ${elements.map((element) => ELEMENT_SYMBOLS[element]).join("")}\n${block}`);
+    } else if (relation === "teamwork") {
+      blocks.push(block);
+    } else {
+      blocks.push(`${RELATION_STYLES[relation].label.toUpperCase()} ${RELATION_STYLES[relation].symbol}\n${block}`);
+    }
+  }
+
+  return blocks.join("\n\n");
+}
+
+function buildCoupleRelationSummary(relation: RelationType, personA: PlacementMap, personB: PlacementMap, personAName: string, personBName: string) {
+  const cells = buildGrid(personA, personB).flat().filter((cell) => cell.relation === relation);
+
+  if (relation === "teamwork" && cells.length === 0) {
+    return ["TEAM WORK", "= NO TEAM WORK ENTRIES"].join("\n");
+  }
+
+  if (cells.length === 0) return "";
+
+  if (relation === "same-sign") {
+    const groups = new Map<Sign, GridCell[]>();
+    for (const cell of cells) {
+      const list = groups.get(cell.aSign) ?? [];
+      list.push(cell);
+      groups.set(cell.aSign, list);
+    }
+
+    return Array.from(groups.entries())
+      .map(([sign, signCells]) => {
+        const leftPlanets = getSortedUniquePlanets(signCells.map((cell) => cell.aPlanet));
+        const rightPlanets = getSortedUniquePlanets(signCells.map((cell) => cell.bPlanet));
+        const notation = formatCombinedNotation(formatNotationSide(sign, leftPlanets), formatNotationSide(sign, rightPlanets));
+        const lines = groupSummaryLines(signCells, relation, "couple", personAName, personBName);
+        return [notation, ...lines].join("\n");
+      })
+      .join("\n\n");
+  }
+
+  if (relation === "same-element" || relation === "elemental-harmony" || relation === "awkward" || relation === "competing" || relation === "teamwork") {
+    const groups = new Map<string, GridCell[]>();
+    for (const cell of cells) {
+      const key = `${cell.aSign}|${cell.bSign}`;
+      const list = groups.get(key) ?? [];
+      list.push(cell);
+      groups.set(key, list);
+    }
+
+    return Array.from(groups.entries())
+      .map(([key, pairCells]) => {
+        const [leftSignRaw, rightSignRaw] = key.split("|");
+        const leftSign = leftSignRaw as Sign;
+        const rightSign = rightSignRaw as Sign;
+        const leftPlanets = getSortedUniquePlanets(pairCells.map((cell) => cell.aPlanet));
+        const rightPlanets = getSortedUniquePlanets(pairCells.map((cell) => cell.bPlanet));
+        const notation = formatCombinedNotation(
+          formatNotationSide(leftSign, leftPlanets),
+          formatNotationSide(rightSign, rightPlanets)
+        );
+        const lines = groupSummaryLines(pairCells, relation, "couple", personAName, personBName);
+        return [notation, ...lines].join("\n");
+      })
+      .join("\n\n");
+  }
+
+  return groupSummaryLines(cells, relation, "couple", personAName, personBName).join("\n");
+}
+
+function buildCoupleSummarySection(personAName: string, personA: PlacementMap, personBName: string, personB: PlacementMap) {
+  const relationOrder: RelationType[] = ["same-sign", "same-element", "elemental-harmony", "teamwork", "awkward", "competing"];
+  const blocks = ["COUPLE REPORT"];
+
+  for (const relation of relationOrder) {
+    const block = buildCoupleRelationSummary(relation, personA, personB, personAName, personBName);
+    if (!block) continue;
+
+    if (relation === "same-element") {
+      const elements = Array.from(
+        new Set(
+          buildGrid(personA, personB)
+            .flat()
+            .filter((cell) => cell.relation === relation)
+            .flatMap((cell) => [ELEMENTS[cell.aSign], ELEMENTS[cell.bSign]])
+        )
+      ) as Element[];
+      blocks.push(`SAME ELEMENT ${elements.map((element) => ELEMENT_SYMBOLS[element]).join("")}\n${block}`);
+    } else if (relation === "teamwork") {
+      blocks.push(block);
+    } else {
+      blocks.push(`${RELATION_STYLES[relation].label.toUpperCase()} ${RELATION_STYLES[relation].symbol}\n${block}`);
+    }
+  }
+
+  return blocks.join("\n\n");
+}
+
+function buildMiniSummaryReport(options: {
+  personAName: string;
+  personA: PlacementMap;
+  personASex: Sex;
+  personBName: string;
+  personB: PlacementMap;
+  personBSex: Sex;
+}) {
+  return [
+    `A. ${buildSoloSummarySection(options.personAName, options.personA, options.personASex)}`,
+    `B. ${buildSoloSummarySection(options.personBName, options.personB, options.personBSex)}`,
+    `C. ${buildCoupleSummarySection(options.personAName, options.personA, options.personBName, options.personB)}`,
+  ].join("\n\n\n");
+}
+
+function getCoupleInteractionText(cell: GridCell, leftName: string, rightName: string) {
+  const interaction = getInteractionVerb(cell.relation);
+  const leftPlacement = getInteractionPlacementPhrase(cell.aSign, cell.aPlanet);
+  const rightPlacement = getInteractionPlacementPhrase(cell.bSign, cell.bPlanet);
+  const normalizedKey = normalizeSinglePairKey(cell.aPlanet, cell.bPlanet);
+
+  const aIsGenerational = GENERATIONAL_PLANETS.includes(cell.aPlanet);
+  const bIsGenerational = GENERATIONAL_PLANETS.includes(cell.bPlanet);
+
+  if (aIsGenerational && bIsGenerational) {
+    return `The generations are ${getRelationStatus(cell.relation)}.`;
+  }
+
+  if (!aIsGenerational && bIsGenerational) {
+    return `${leftName}'s ${leftPlacement} ${interaction} ${rightName}'s ${getGenerationWord(cell.aPlanet)}.`;
+  }
+
+  if (aIsGenerational && !bIsGenerational) {
+    return `${rightName}'s ${rightPlacement} ${interaction} ${leftName}'s ${getGenerationWord(cell.bPlanet)}.`;
+  }
+
+  const getRole = (planet: Planet) => {
+    if (cell.aPlanet === planet) {
+      return {
+        name: leftName,
+        placement: leftPlacement,
+      };
+    }
+
+    return {
+      name: rightName,
+      placement: rightPlacement,
+    };
+  };
+
+  const sun = getRole("☉");
+  const moon = getRole("☽");
+  const rising = getRole("⥉");
+  const mercury = getRole("☿");
+  const venus = getRole("♀");
+  const mars = getRole("♂");
+  const jupiter = getRole("♃");
+  const saturn = getRole("♄");
+
+  const templates: Partial<Record<string, string>> = {
+    "☉|☉": `${rightName}'s identity ${interaction} ${leftName}'s identity`,
+    "☉|☽": `${moon.name}'s emotional and/or nurturing side ${interaction} ${sun.name}'s identity`,
+    "☉|☿": `How ${mercury.name} thinks about ${sun.name}`,
+    "☉|⥉": `How ${sun.name} perceives ${rising.name}`,
+    "☉|♀": `How much ${venus.name} loves ${sun.name}`,
+    "☉|♂": `How driven or aggressive ${mars.name} is towards ${sun.name}`,
+    "☉|♃": `How ${jupiter.name} socializes with ${sun.name} in a structured way`,
+    "☉|♄": `How secure ${sun.name} makes ${saturn.name} feel`,
+    "☽|☽": `${rightName}'s emotionality ${interaction} ${leftName}'s emotionality`,
+    "☽|☿": `What ${mercury.name} thinks about ${moon.name}'s dark side and feminine side`,
+    "☽|⥉": `${moon.name}'s gut reactions towards ${rising.name}`,
+    "☽|♀": `How much ${venus.name} loves ${moon.name}'s feminine side and nurturing side`,
+    "☽|♂": `${moon.name}'s sensitivity level ${interaction} ${mars.name}'s aggression level`,
+    "☽|♃": `How ${moon.name} feels when socializing with ${jupiter.name} in a structured way`,
+    "☽|♄": `How ${moon.name} feels when socializing with ${saturn.name} in an unstructured way`,
+    "⥉|⥉": `How much ${leftName} and ${rightName} like each other at first`,
+    "⥉|☿": `What ${mercury.name} thinks about ${rising.name} at first`,
+    "⥉|♀": `How much ${venus.name} loves ${rising.name} at first`,
+    "⥉|♂": `On first interactions, ${mars.name} believes their aggression level ${interaction} with ${rising.name}`,
+    "⥉|♃": `How ${rising.name} feels about ${jupiter.name}'s worldview, politics, or philosophy`,
+    "⥉|♄": `How judged ${saturn.name} initially feels by ${rising.name}`,
+    "☿|☿": `${rightName}'s mind ${interaction} ${leftName}'s mind`,
+    "☿|♀": `How much ${venus.name} loves ${mercury.name}'s mind`,
+    "☿|♂": `What ${mercury.name} thinks about ${mars.name}'s drive and aggression`,
+    "☿|♃": `What ${mercury.name} thinks about ${jupiter.name}'s philosophy or worldview`,
+    "☿|♄": `How judged ${saturn.name} feels by ${mercury.name}`,
+    "♀|♀": `How much ${leftName} and ${rightName} love each other`,
+    "♀|♂": `How much ${venus.name} loves ${mars.name}'s drive`,
+    "♀|♃": `How much ${venus.name} loves ${jupiter.name}'s worldview or philosophy`,
+    "♀|♄": `How much ${venus.name} loves ${saturn.name}'s dark and fun side`,
+    "♂|♂": `${leftName}'s aggression level ${interaction} with ${rightName}'s`,
+    "♂|♃": `How attracted ${mars.name} is to ${jupiter.name} in a structured setting`,
+    "♂|♄": `How attracted ${mars.name} is to ${saturn.name} in an unstructured setting`,
+    "♃|♃": `${rightName}'s philosophy of life ${interaction} ${leftName}'s`,
+    "♃|♄": `${jupiter.name}'s morality ${interaction} ${saturn.name}'s`,
+    "♄|♄": `How ${leftName} and ${rightName} socialize in an unstructured setting`,
+  };
+
+  const sameSignTemplates: Partial<Record<string, string>> = {
+    "☉|☉": "The way their identities mirror each other",
+    "☉|☽": `The way ${moon.name}'s emotional and nurturing side relates to ${sun.name}'s identity`,
+    "☉|☿": `The way ${mercury.name} thinks about ${sun.name}`,
+    "☉|⥉": `The way ${sun.name} perceives ${rising.name}`,
+    "☉|♀": `The way ${venus.name} loves ${sun.name}`,
+    "☉|♂": `The way ${mars.name} directs drive or aggression toward ${sun.name}`,
+    "☉|♃": `The way ${jupiter.name} socializes with ${sun.name} in a structured way`,
+    "☉|♄": `The way ${sun.name} makes ${saturn.name} feel secure`,
+    "☽|☽": "The way their emotional worlds mirror each other",
+    "☽|☿": `The way ${mercury.name} thinks about ${moon.name}'s dark and feminine side`,
+    "☽|⥉": `The way ${moon.name} instinctively reacts to ${rising.name}`,
+    "☽|♀": `The way ${venus.name} loves ${moon.name}'s feminine and nurturing side`,
+    "☽|♂": `The way ${moon.name}'s sensitivity meets ${mars.name}'s aggression`,
+    "☽|♃": `The way ${moon.name} feels when socializing with ${jupiter.name} in a structured way`,
+    "☽|♄": `The way ${moon.name} feels when socializing with ${saturn.name} in an unstructured way`,
+    "⥉|⥉": "The way they like each other at first",
+    "⥉|☿": `The way ${mercury.name} thinks about ${rising.name} at first`,
+    "⥉|♀": `The way ${venus.name} loves ${rising.name} at first`,
+    "⥉|♂": `The way ${mars.name} experiences their aggression in relation to ${rising.name} on first meeting`,
+    "⥉|♃": `The way ${rising.name} feels about ${jupiter.name}'s worldview, politics, or philosophy`,
+    "⥉|♄": `The way ${saturn.name} initially feels judged by ${rising.name}`,
+    "☿|☿": "The way their minds mirror each other",
+    "☿|♀": `The way ${venus.name} loves ${mercury.name}'s mind`,
+    "☿|♂": `What ${mercury.name} thinks about ${mars.name}'s drive and aggression`,
+    "☿|♃": `The way ${mercury.name} thinks about ${jupiter.name}'s philosophy or worldview`,
+    "☿|♄": `The way ${saturn.name} feels judged by ${mercury.name}`,
+    "♀|♀": "The way they love each other",
+    "♀|♂": `The way ${venus.name} loves ${mars.name}'s drive`,
+    "♀|♃": `The way ${venus.name} loves ${jupiter.name}'s worldview or philosophy`,
+    "♀|♄": `The way ${venus.name} loves ${saturn.name}'s dark and fun side`,
+    "♂|♂": "The way their aggression mirrors each other",
+    "♂|♃": `The way ${mars.name} is attracted to ${jupiter.name} in a structured setting`,
+    "♂|♄": `The way ${mars.name} is attracted to ${saturn.name} in an unstructured setting`,
+    "♃|♃": "The way their philosophies of life mirror each other",
+    "♃|♄": `The way ${jupiter.name}'s morality relates to ${saturn.name}'s`,
+    "♄|♄": "The way they socialize in an unstructured setting",
+  };
+
+  const text =
+    (cell.relation === "same-sign" ? sameSignTemplates[normalizedKey] : undefined) ??
+    templates[normalizedKey] ??
+    `${leftName}'s ${leftPlacement} ${interaction} ${rightName}'s ${rightPlacement}`;
+
+  const adjustedText =
+    cell.relation === "same-element" ? adjustSameElementInteractionText(text) : text;
+
+  return ensureTerminalPunctuation(adjustedText);
+}
+
+function getSingleInteractionText(cell: GridCell, soloName: string) {
+  const key = normalizeSinglePairKey(cell.aPlanet, cell.bPlanet);
+  const interaction = getInteractionVerb(cell.relation);
+  const aIsGenerational = GENERATIONAL_PLANETS.includes(cell.aPlanet);
+  const bIsGenerational = GENERATIONAL_PLANETS.includes(cell.bPlanet);
+  const soloPlanet = aIsGenerational ? cell.bPlanet : cell.aPlanet;
+  const soloPlacement = aIsGenerational
+    ? getInteractionPlacementPhrase(cell.bSign, cell.bPlanet)
+    : getInteractionPlacementPhrase(cell.aSign, cell.aPlanet);
+
+  if (aIsGenerational && bIsGenerational) {
+    return `The generations are ${getRelationStatus(cell.relation)}.`;
+  }
+
+  if (aIsGenerational || bIsGenerational) {
+    return `${soloName}'s ${soloPlacement} ${interaction} their ${getGenerationWord(soloPlanet)}.`;
+  }
+
+  const templates: Partial<Record<string, string>> = {
+    "☉|☽": `Your emotionality ${interaction} your core self`,
+    "☉|⥉": `How you are perceived ${interaction} how you really are`,
+    "☉|☿": `Your mind ${interaction} your ego`,
+    "☉|♀": `Your heart ${interaction} your ego`,
+    "☉|♂": `Your drive ${interaction} your ego`,
+    "☉|♃": `Your philosophy of life ${interaction} your core self`,
+    "☉|♄": `Your ego ${interaction} your level of emotional security`,
+    "☽|⥉": `Your mood ${interaction} how others perceive you`,
+    "☽|☿": `Your dark side ${interaction} your mind`,
+    "☽|♀": `Your dark side ${interaction} your heart`,
+    "☽|♂": "Your sex drive",
+    "☽|♃": "Your magical side",
+    "☽|♄": `Your feminine side ${interaction} your moods`,
+    "⥉|☿": `Your mind ${interaction} your desire`,
+    "⥉|♀": "Your heart's desire",
+    "⥉|♂": "Your body's desire",
+    "⥉|♃": "Your politics",
+    "⥉|♄": "Your guilty pleasures",
+    "☿|♀": `Your mind ${interaction} your interests`,
+    "☿|♂": `Your mind ${interaction} your drive`,
+    "☿|♃": `Your mind ${interaction} your morality`,
+    "☿|♄": "Your social strategy + how you cope",
+    "♀|♂": `Your body ${interaction} your heart`,
+    "♀|♃": `Your heart ${interaction} your philosophy of life`,
+    "♀|♄": `Your heart ${interaction} your rebellious side`,
+    "♂|♃": "Your drive + how you seek growth",
+    "♂|♄": "How you attract the opposite sex",
+    "♃|♄": "How you socialize",
+  };
+
+  const text = templates[key] ?? "This planetary interaction shapes how these two parts of you work together";
+  return ensureTerminalPunctuation(text);
 }
 
 function buildSynastryDebugBoxes(
@@ -1346,6 +2345,67 @@ async function parseAstroSeekSynastryFile(
   return { personA, personB, warnings };
 }
 
+function parseAstroSeekTextExport(text: string): TextImportResult {
+  const personA: PlacementMap = {};
+  const personB: PlacementMap = {};
+  const warnings: string[] = [];
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const pattern =
+    /^(Sun|Moon|Mercury|Venus|Mars|Jupiter|Saturn|Uranus|Neptune|Ascendant|ASC|MC)\s+in\s+(Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces)\b.*?\b(Sun|Moon|Mercury|Venus|Mars|Jupiter|Saturn|Uranus|Neptune|Ascendant|ASC|MC)\s+in\s+(Aries|Taurus|Gemini|Cancer|Leo|Virgo|Libra|Scorpio|Sagittarius|Capricorn|Aquarius|Pisces)\b/i;
+
+  for (const line of lines) {
+    const match = line.match(pattern);
+    if (!match) continue;
+
+    const [, rawAPlanet, rawASign, rawBPlanet, rawBSign] = match;
+    const aPlanet = TEXT_PLANET_TO_SYMBOL[rawAPlanet];
+    const bPlanet = TEXT_PLANET_TO_SYMBOL[rawBPlanet];
+    const aSign = TEXT_SIGN_TO_SYMBOL[rawASign];
+    const bSign = TEXT_SIGN_TO_SYMBOL[rawBSign];
+
+    if (aPlanet) {
+      if (personA[aPlanet] && personA[aPlanet] !== aSign) {
+        warnings.push(
+          `Conflicting text export values for Person A ${PLANET_LABELS[aPlanet]}. Keeping ${SIGN_LABELS[personA[aPlanet] as Sign]}.`
+        );
+      } else {
+        personA[aPlanet] = aSign;
+      }
+    }
+
+    if (bPlanet) {
+      if (personB[bPlanet] && personB[bPlanet] !== bSign) {
+        warnings.push(
+          `Conflicting text export values for Person B ${PLANET_LABELS[bPlanet]}. Keeping ${SIGN_LABELS[personB[bPlanet] as Sign]}.`
+        );
+      } else {
+        personB[bPlanet] = bSign;
+      }
+    }
+  }
+
+  if (Object.keys(personA).length === 0 && Object.keys(personB).length === 0) {
+    throw new Error("No placements were detected in the pasted export.");
+  }
+
+  const missingA = PLANETS.filter((planet) => !personA[planet]);
+  const missingB = PLANETS.filter((planet) => !personB[planet]);
+
+  if (missingA.length > 0) {
+    warnings.push(`Text import did not find ${missingA.map((planet) => PLANET_LABELS[planet]).join(", ")} for Person A.`);
+  }
+
+  if (missingB.length > 0) {
+    warnings.push(`Text import did not find ${missingB.map((planet) => PLANET_LABELS[planet]).join(", ")} for Person B.`);
+  }
+
+  return { personA, personB, warnings };
+}
+
 
 function formatBullets(lines: string[]) {
   return lines.map((line) => `- ${line}`).join("\n");
@@ -1369,23 +2429,109 @@ function buildEntityReport(planet: Planet, sign: Sign) {
   ].join("\n");
 }
 
-function buildCellReport(cell: GridCell, personAName: string, personBName: string) {
+function buildCombinedEntityReport(planets: Planet[], sign: Sign) {
+  const uniquePlanets = getSortedUniquePlanets(planets);
+  const planetHeadings = uniquePlanets.map((planet) => PLANET_PROFILES[planet].heading).join(" + ");
+  const mergedPlanetBullets = Array.from(
+    new Set(uniquePlanets.flatMap((planet) => PLANET_PROFILES[planet].bullets))
+  );
+  const signProfile = getSignProfile(sign);
+  const signHeading = `${SIGN_LABELS[sign]} ${getSignGenderText(sign)}${
+    signProfile.tagline ? ` (${signProfile.tagline})` : ""
+  }`;
+
+  return [
+    planetHeadings,
+    "=",
+    signHeading,
+    signProfile.dates,
+    formatBullets(mergedPlanetBullets),
+    "=",
+    formatBullets(signProfile.bullets),
+  ].join("\n");
+}
+
+function buildCellReport(
+  cell: GridCell,
+  personAName: string,
+  personBName: string,
+  interactionText: string,
+  note?: string
+) {
+  const normalizedNote = note?.trim();
+  const isSharedPlacement = cell.aPlanet === cell.bPlanet && cell.aSign === cell.bSign;
+  const isSharedSign = cell.aSign === cell.bSign;
+  const sharedName = personAName === personBName ? personAName : `${personAName} + ${personBName}`;
+
   return [
     `${cell.symbol} ${cell.title}`,
     `${cell.aPlanet} ${PLANET_LABELS[cell.aPlanet]} ${cell.aSign} x ${cell.bPlanet} ${PLANET_LABELS[cell.bPlanet]} ${cell.bSign}`,
     "",
-    personAName,
-    buildEntityReport(cell.aPlanet, cell.aSign),
+    "Planetary Interaction",
+    interactionText,
+    ...(normalizedNote ? ["", "Notes", normalizedNote] : []),
     "",
-    "X",
-    "",
-    personBName,
-    buildEntityReport(cell.bPlanet, cell.bSign),
+    ...(isSharedPlacement
+      ? [`${personAName} + ${personBName}`, buildEntityReport(cell.aPlanet, cell.aSign)]
+      : isSharedSign
+        ? [sharedName, buildCombinedEntityReport([cell.aPlanet, cell.bPlanet], cell.aSign)]
+      : [
+          personAName,
+          buildEntityReport(cell.aPlanet, cell.aSign),
+          "",
+          "X",
+          "",
+          personBName,
+          buildEntityReport(cell.bPlanet, cell.bSign),
+        ]),
   ].join("\n");
 }
 
-function buildDownloadReport(grid: GridCell[][], personAName: string, personBName: string) {
-  const order: RelationType[] = [
+function formatDistributionTable(
+  title: string,
+  rows: DistributionRow[],
+  labels?: { a?: string; b?: string; combined?: string; note?: string }
+) {
+  const headerA = labels?.a ?? "Partner A";
+  const headerB = labels?.b ?? "Partner B";
+  const headerCombined = labels?.combined ?? "Together";
+  const lines = [
+    title.toUpperCase(),
+    "-".repeat(48),
+    [("Type").padEnd(18), headerA.padStart(10), headerB.padStart(10), headerCombined.padStart(10)].join(" "),
+    ...rows.map((row) =>
+      [row.label.padEnd(18), `${row.a}%`.padStart(10), `${row.b}%`.padStart(10), `${row.combined}%`.padStart(10)].join(
+        " "
+      )
+    ),
+  ];
+
+  if (labels?.note) {
+    lines.push("", labels.note);
+  }
+
+  return lines.join("\n");
+}
+
+function formatQualifierSection(title: string, rows: QualifierRow[]) {
+  const row = rows[0];
+  if (!row) return `${title.toUpperCase()}\n${"-".repeat(48)}\nNo data available.`;
+
+  return [
+    title.toUpperCase(),
+    "-".repeat(48),
+    `Partner A ${row.label}: ${row.a}`,
+    `Partner B ${row.label}: ${row.b}`,
+    `Relationship ${row.label}: ${row.combined}`,
+  ].join("\n");
+}
+
+function formatHeartMultiplierSection(heartMultiplier: {
+  score: number;
+  multiplier: string;
+  counts: Record<RelationType, number>;
+}) {
+  const orderedRelations: RelationType[] = [
     "same-sign",
     "same-element",
     "elemental-harmony",
@@ -1395,30 +2541,256 @@ function buildDownloadReport(grid: GridCell[][], personAName: string, personBNam
     "okay",
   ];
 
+  return [
+    "HEART MULTIPLIER",
+    "-".repeat(48),
+    `Score: ${heartMultiplier.score}`,
+    `Multiplier: ${heartMultiplier.multiplier}`,
+    "",
+    "Counts",
+    ...orderedRelations.map((relation) => {
+      const item = RELATION_STYLES[relation];
+      return `${item.label}: ${heartMultiplier.counts[relation]}`;
+    }),
+  ].join("\n");
+}
+
+function buildCalculationReport(options: {
+  elementRows: DistributionRow[];
+  modalityRows: DistributionRow[];
+  genderRows: DistributionRow[];
+  yinYangRows: DistributionRow[];
+  natureRows: QualifierRow[];
+  energyRows: QualifierRow[];
+  astrologicalGenderA: Record<GenderCategory, number>;
+  astrologicalGenderB: Record<GenderCategory, number>;
+  generationalGenderA: Record<GenderCategory, number>;
+  generationalGenderB: Record<GenderCategory, number>;
+  heartMultiplier: {
+    score: number;
+    multiplier: string;
+    counts: Record<RelationType, number>;
+  };
+}) {
+  const astrologicalGenderCombined = combineDistributions(
+    options.astrologicalGenderA,
+    options.astrologicalGenderB,
+    DISTRIBUTION_ORDER.gender
+  );
+  const generationalGenderCombined = combineDistributions(
+    options.generationalGenderA,
+    options.generationalGenderB,
+    DISTRIBUTION_ORDER.gender
+  );
+
+  const astrologicalGenderRows = buildSummaryRows(
+    GENDER_LABELS,
+    options.astrologicalGenderA,
+    options.astrologicalGenderB,
+    astrologicalGenderCombined,
+    DISTRIBUTION_ORDER.gender
+  );
+  const generationalGenderRows = buildSummaryRows(
+    GENDER_LABELS,
+    options.generationalGenderA,
+    options.generationalGenderB,
+    generationalGenderCombined,
+    DISTRIBUTION_ORDER.gender
+  );
+
+  return [
+    "CALCULATIONS",
+    "=".repeat(48),
+    formatDistributionTable("Element", options.elementRows),
+    formatDistributionTable("Modality", options.modalityRows),
+    formatDistributionTable("Final Gender Expression", options.genderRows),
+    formatDistributionTable("Astrological Gender Expression", astrologicalGenderRows),
+    formatDistributionTable("Generational Gender Expression", generationalGenderRows),
+    formatDistributionTable("Yin Yang", options.yinYangRows),
+    formatQualifierSection("Nature", options.natureRows),
+    formatQualifierSection("Energy", options.energyRows),
+    formatHeartMultiplierSection(options.heartMultiplier),
+  ].join("\n\n");
+}
+
+function formatShortReportDate(date: Date) {
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear() % 100;
+  return `${day}/${month}/${year}`;
+}
+
+function formatSavedTimestamp(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+function createSavedChartRecord(name: string, sex: Sex, placements: PlacementMap): SavedChartRecord {
+  const now = new Date().toISOString();
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return {
+    id,
+    schemaVersion: 1,
+    storageScope: "local",
+    profileName: name.trim() || "Unnamed Chart",
+    sex,
+    placements: { ...placements },
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function createEmptyPlacementMap(): PlacementMap {
+  return PLANETS.reduce<PlacementMap>((accumulator, planet) => {
+    accumulator[planet] = "";
+    return accumulator;
+  }, {});
+}
+
+function isMirroredDuplicateCell(cell: GridCell) {
+  return PLANETS.indexOf(cell.bPlanet) <= PLANETS.indexOf(cell.aPlanet);
+}
+
+function shouldHideSoloGridCell(mode: GridViewMode, cell: GridCell) {
+  const aIndex = PLANETS.indexOf(cell.aPlanet);
+  const bIndex = PLANETS.indexOf(cell.bPlanet);
+
+  if (aIndex === bIndex) return true;
+  if (mode === "partner-a") return bIndex < aIndex;
+  if (mode === "partner-b") return bIndex > aIndex;
+  return false;
+}
+
+function buildDownloadReport(
+  grid: GridCell[][],
+  personAName: string,
+  personBName: string,
+  options?: {
+    omitSamePlanetComparisons?: boolean;
+    omitMirroredComparisons?: boolean;
+    singleReportName?: string;
+    mode?: GridViewMode;
+    originalPersonAName?: string;
+    originalPersonA?: PlacementMap;
+    originalPersonASex?: Sex;
+    originalPersonBName?: string;
+    originalPersonB?: PlacementMap;
+    originalPersonBSex?: Sex;
+    modalNotes?: ModalNotesMap;
+    calculations?: string;
+  }
+) {
+  const order: RelationType[] = [
+    "same-sign",
+    "same-element",
+    "elemental-harmony",
+    "competing",
+    "awkward",
+    "teamwork",
+  ];
+
   const sections = order
     .map((relation) => {
-      const cells = grid.flat().filter((cell) => cell.relation === relation);
+      const cells = grid.flat().filter((cell) => {
+        if (cell.relation !== relation) return false;
+        if (options?.omitSamePlanetComparisons && cell.aPlanet === cell.bPlanet) return false;
+        if (options?.omitMirroredComparisons && isMirroredDuplicateCell(cell)) return false;
+        return true;
+      });
       if (cells.length === 0) return null;
 
       const heading = RELATION_STYLES[relation];
+      const sectionIndex = order.indexOf(relation) + (options?.singleReportName ? 1 : 3);
 
       return [
-        `${heading.label.toUpperCase()} ${heading.symbol}`,
+        `${getSectionLetter(sectionIndex)}. ${heading.label.toUpperCase()} ${heading.symbol}`,
         "=".repeat(48),
         cells
-          .map((cell) => buildCellReport(cell, personAName, personBName))
+          .map((cell) => {
+            const noteKey =
+              options?.mode &&
+              options.originalPersonAName &&
+              options.originalPersonA &&
+              options.originalPersonBName &&
+              options.originalPersonB
+                ? buildModalNoteKey(
+                    cell,
+                    options.mode,
+                    options.originalPersonAName,
+                    options.originalPersonA,
+                    options.originalPersonBName,
+                    options.originalPersonB
+                  )
+                : "";
+            const note = noteKey ? options?.modalNotes?.[noteKey] : "";
+            const interactionText =
+              options?.mode === "couple"
+                ? getCoupleInteractionText(cell, personAName, personBName)
+                : getSingleInteractionText(cell, personAName);
+
+            return buildCellReport(cell, personAName, personBName, interactionText, note);
+          })
           .join("\n\n" + "-".repeat(48) + "\n\n"),
       ].join("\n");
     })
     .filter(Boolean)
     .join("\n\n\n");
 
+  if (options?.singleReportName) {
+    const soloSummary =
+      options.mode === "partner-b" &&
+      options.originalPersonB &&
+      options.originalPersonBName &&
+      options.originalPersonBSex
+        ? `A. ${buildSoloSummarySection(
+            options.originalPersonBName,
+            options.originalPersonB,
+            options.originalPersonBSex
+          )}`
+        : options.originalPersonA && options.originalPersonAName && options.originalPersonASex
+          ? `A. ${buildSoloSummarySection(
+              options.originalPersonAName,
+              options.originalPersonA,
+              options.originalPersonASex
+            )}`
+          : "";
+
+    return [
+      `${options.singleReportName} Report ${formatShortReportDate(new Date())}`,
+      "",
+      ...(soloSummary ? [soloSummary, ""] : []),
+      sections,
+      ...(options.calculations ? ["", "", options.calculations] : []),
+    ].join("\n");
+  }
+
+  const summary =
+    options?.originalPersonA &&
+    options.originalPersonASex &&
+    options.originalPersonB &&
+    options.originalPersonBSex
+      ? buildMiniSummaryReport({
+          personAName: options.originalPersonAName ?? personAName,
+          personA: options.originalPersonA,
+          personASex: options.originalPersonASex,
+          personBName: options.originalPersonBName ?? personBName,
+          personB: options.originalPersonB,
+          personBSex: options.originalPersonBSex,
+        })
+      : "";
+
   return [
     "LOVE COMPUTER REPORT",
     `Generated: ${new Date().toLocaleString()}`,
     `${personAName} x ${personBName}`,
     "",
+    ...(summary ? [summary, ""] : []),
     sections,
+    ...(options?.calculations ? ["", "", options.calculations] : []),
   ].join("\n");
 }
 
@@ -1435,6 +2807,7 @@ export default function LoveComputerPage() {
   const [importWarnings, setImportWarnings] = useState<string[]>([]);
   const [debugImageUrl, setDebugImageUrl] = useState<string | null>(null);
   const [uploadedSynastryFile, setUploadedSynastryFile] = useState<File | null>(null);
+  const [textImportValue, setTextImportValue] = useState("");
   const [synastryOverridesA, setSynastryOverridesA] = useState<SynastryOverrideMap>(() => ({
     ...ASTROSEEK_SYN_A_OVERRIDES,
   }));
@@ -1444,6 +2817,20 @@ export default function LoveComputerPage() {
   const [debugSide, setDebugSide] = useState<"a" | "b">("a");
   const [debugPlanet, setDebugPlanet] = useState<Planet>("☉");
   const [calibrationStatus, setCalibrationStatus] = useState("Calibration is currently using the locked-in defaults.");
+  const [gridViewMode, setGridViewMode] = useState<GridViewMode>("couple");
+  const [showGenerationalPlanets, setShowGenerationalPlanets] = useState(true);
+  const [focusedRows, setFocusedRows] = useState<Planet[]>([]);
+  const [focusedCols, setFocusedCols] = useState<Planet[]>([]);
+  const [focusedRelations, setFocusedRelations] = useState<RelationType[]>([]);
+  const [noteMarkerOffset, setNoteMarkerOffset] = useState({ x: 0, y: 0 });
+  const [savedCharts, setSavedCharts] = useState<SavedChartRecord[]>([]);
+  const [modalNotes, setModalNotes] = useState<ModalNotesMap>({});
+  const [noteExpanded, setNoteExpanded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("Charts are stored locally in this browser for now.");
+  const [loadPrimarySelection, setLoadPrimarySelection] = useState("");
+  const [loadComparisonSelection, setLoadComparisonSelection] = useState("");
+  const [deleteChartSelection, setDeleteChartSelection] = useState("");
+  const backdropPointerStartedRef = useRef(false);
 
   useEffect(() => {
     if (!selectedCell) return;
@@ -1457,8 +2844,22 @@ export default function LoveComputerPage() {
   }, [selectedCell]);
 
   useEffect(() => {
+    setNoteExpanded(false);
+  }, [selectedCell]);
+
+  useEffect(() => {
+    setSelectedCell(null);
+    setFocusedRows([]);
+    setFocusedCols([]);
+    setFocusedRelations([]);
+  }, [gridViewMode, showGenerationalPlanets]);
+
+  useEffect(() => {
     const storedA = window.localStorage.getItem(SYN_A_STORAGE_KEY);
     const storedB = window.localStorage.getItem(SYN_B_STORAGE_KEY);
+    const storedCharts = window.localStorage.getItem(SAVED_CHARTS_STORAGE_KEY);
+    const storedModalNotes = window.localStorage.getItem(MODAL_NOTES_STORAGE_KEY);
+    const storedNoteMarkerOffset = window.localStorage.getItem(NOTE_MARKER_STORAGE_KEY);
 
     if (storedA) {
       try {
@@ -1479,11 +2880,56 @@ export default function LoveComputerPage() {
     if (storedA || storedB) {
       setCalibrationStatus("Saved calibration loaded from this browser.");
     }
+
+    if (storedCharts) {
+      try {
+        setSavedCharts(JSON.parse(storedCharts) as SavedChartRecord[]);
+        setSaveStatus("Saved charts loaded from this browser.");
+      } catch {
+        window.localStorage.removeItem(SAVED_CHARTS_STORAGE_KEY);
+      }
+    }
+
+    if (storedModalNotes) {
+      try {
+        setModalNotes(JSON.parse(storedModalNotes) as ModalNotesMap);
+      } catch {
+        window.localStorage.removeItem(MODAL_NOTES_STORAGE_KEY);
+      }
+    }
+
+    if (storedNoteMarkerOffset) {
+      try {
+        setNoteMarkerOffset(JSON.parse(storedNoteMarkerOffset) as { x: number; y: number });
+      } catch {
+        window.localStorage.removeItem(NOTE_MARKER_STORAGE_KEY);
+      }
+    }
+
   }, []);
 
-  const grid = useMemo(() => buildGrid(personA, personB), [personA, personB]);
-  const rows = PLANETS.filter((planet) => personA[planet]);
-  const cols = PLANETS.filter((planet) => personB[planet]);
+  const visiblePlanets = useMemo(
+    () => pickVisiblePlanets(showGenerationalPlanets),
+    [showGenerationalPlanets]
+  );
+
+  const gridPersonA = useMemo(() => {
+    if (gridViewMode === "partner-b") return filterPlacementMap(personB, visiblePlanets);
+    return filterPlacementMap(personA, visiblePlanets);
+  }, [gridViewMode, personA, personB, visiblePlanets]);
+
+  const gridPersonB = useMemo(() => {
+    if (gridViewMode === "partner-a") return filterPlacementMap(personA, visiblePlanets);
+    if (gridViewMode === "partner-b") return filterPlacementMap(personB, visiblePlanets);
+    return filterPlacementMap(personB, visiblePlanets);
+  }, [gridViewMode, personA, personB, visiblePlanets]);
+
+  const gridLeftName = gridViewMode === "partner-b" ? personBName : personAName;
+  const gridTopName = gridViewMode === "partner-a" ? personAName : personBName;
+
+  const grid = useMemo(() => buildGrid(gridPersonA, gridPersonB), [gridPersonA, gridPersonB]);
+  const rows = visiblePlanets.filter((planet) => gridPersonA[planet]);
+  const cols = visiblePlanets.filter((planet) => gridPersonB[planet]);
 
   const elementA = useMemo(() => buildElementDistribution(personA), [personA]);
   const elementB = useMemo(() => buildElementDistribution(personB), [personB]);
@@ -1505,6 +2951,14 @@ export default function LoveComputerPage() {
     () => combineDistributions(genderA.final, genderB.final, DISTRIBUTION_ORDER.gender),
     [genderA, genderB]
   );
+  const yinYangA = useMemo(() => buildYinYangDistribution(elementA), [elementA]);
+  const yinYangB = useMemo(() => buildYinYangDistribution(elementB), [elementB]);
+  const yinYangCombined = useMemo(
+    () => combineDistributions(yinYangA, yinYangB, ["yin", "yang"] as const),
+    [yinYangA, yinYangB]
+  );
+  const relationshipGrid = useMemo(() => buildGrid(personA, personB), [personA, personB]);
+  const heartMultiplier = useMemo(() => buildHeartMultiplier(relationshipGrid), [relationshipGrid]);
 
   const elementRows = buildSummaryRows(
     { fire: "Fire", earth: "Earth", air: "Air", water: "Water" },
@@ -1529,11 +2983,76 @@ export default function LoveComputerPage() {
     genderCombined,
     DISTRIBUTION_ORDER.gender
   );
+  const yinYangRows = buildYinYangRows(yinYangA, yinYangB, yinYangCombined);
+  const natureRows = buildQualifierRows(
+    "Nature",
+    getNatureQualifier(elementA),
+    getNatureQualifier(elementB),
+    getNatureQualifier(elementCombined)
+  );
+  const energyRows = buildQualifierRows(
+    "Energy",
+    getEnergyQualifier(genderA.final),
+    getEnergyQualifier(genderB.final),
+    getEnergyQualifier(genderCombined)
+  );
 
   const debugBoxes = useMemo(
     () => buildSynastryDebugBoxes(synastryOverridesA, synastryOverridesB),
     [synastryOverridesA, synastryOverridesB]
   );
+
+  const alphabetizedSavedCharts = useMemo(
+    () =>
+      [...savedCharts].sort((a, b) =>
+        a.profileName.localeCompare(b.profileName, undefined, { sensitivity: "base" })
+      ),
+    [savedCharts]
+  );
+  const primaryDropdownCharts = useMemo(
+    () =>
+      alphabetizedSavedCharts.filter(
+        (record) => record.profileName.localeCompare(personAName, undefined, { sensitivity: "base" }) !== 0
+      ),
+    [alphabetizedSavedCharts, personAName]
+  );
+  const comparisonDropdownCharts = useMemo(
+    () =>
+      alphabetizedSavedCharts.filter(
+        (record) => record.profileName.localeCompare(personBName, undefined, { sensitivity: "base" }) !== 0
+      ),
+    [alphabetizedSavedCharts, personBName]
+  );
+  const selectedCellNoteKey = useMemo(() => {
+    if (!selectedCell) return "";
+    return buildModalNoteKey(selectedCell, gridViewMode, personAName, personA, personBName, personB);
+  }, [selectedCell, gridViewMode, personAName, personA, personBName, personB]);
+  const selectedCellNote = selectedCellNoteKey ? modalNotes[selectedCellNoteKey] ?? "" : "";
+  const selectedCellHasNote = selectedCellNote.trim().length > 0;
+  const shouldShowExpandedNote = noteExpanded || selectedCellHasNote;
+  const selectedLeftHasSamePlanetStar = selectedCell
+    ? isSamePlanetPlacement(selectedCell.aPlanet, selectedCell.aSign)
+    : false;
+  const selectedRightHasSamePlanetStar = selectedCell
+    ? isSamePlanetPlacement(selectedCell.bPlanet, selectedCell.bSign)
+    : false;
+  const selectedInteractionText = useMemo(() => {
+    if (!selectedCell) return "";
+    if (gridViewMode === "couple") {
+      return getCoupleInteractionText(selectedCell, gridLeftName, gridTopName);
+    }
+    return getSingleInteractionText(selectedCell, gridLeftName);
+  }, [selectedCell, gridViewMode, gridLeftName, gridTopName]);
+
+  const updateSelectedCellNote = (value: string) => {
+    if (!selectedCellNoteKey) return;
+    const next = {
+      ...modalNotes,
+      [selectedCellNoteKey]: value,
+    };
+    setModalNotes(next);
+    window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(next));
+  };
 
   const selectedOverride =
     (debugSide === "a" ? synastryOverridesA : synastryOverridesB)[debugPlanet] ?? { dx: 0, dy: 0, scale: 1 };
@@ -1599,8 +3118,8 @@ export default function LoveComputerPage() {
 
     try {
       const result = await parseAstroSeekSynastryFile(file, synastryOverridesA, synastryOverridesB);
-      setPersonA((current) => ({ ...current, ...result.personA }));
-      setPersonB((current) => ({ ...current, ...result.personB }));
+      setPersonA({ ...createEmptyPlacementMap(), ...result.personA });
+      setPersonB({ ...createEmptyPlacementMap(), ...result.personB });
       setImportWarnings(result.warnings);
       setImportStatus(
         result.warnings.length > 0
@@ -1618,7 +3137,33 @@ export default function LoveComputerPage() {
   };
 
   const downloadReport = () => {
-    const report = buildDownloadReport(grid, personAName, personBName);
+    const calculations = buildCalculationReport({
+      elementRows,
+      modalityRows,
+      genderRows,
+      yinYangRows,
+      natureRows,
+      energyRows,
+      astrologicalGenderA: genderA.astrological,
+      astrologicalGenderB: genderB.astrological,
+      generationalGenderA: genderA.generational,
+      generationalGenderB: genderB.generational,
+      heartMultiplier,
+    });
+    const report = buildDownloadReport(grid, gridLeftName, gridTopName, {
+      omitSamePlanetComparisons: gridViewMode !== "couple",
+      omitMirroredComparisons: gridViewMode !== "couple",
+      singleReportName: gridViewMode === "couple" ? undefined : gridLeftName,
+      mode: gridViewMode,
+      originalPersonAName: personAName,
+      originalPersonA: personA,
+      originalPersonASex: personASex,
+      originalPersonBName: personBName,
+      originalPersonB: personB,
+      originalPersonBSex: personBSex,
+      modalNotes,
+      calculations,
+    });
     const blob = new Blob([report], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -1647,8 +3192,166 @@ export default function LoveComputerPage() {
     event.target.value = "";
   };
 
+  const handleTextImport = () => {
+    if (!textImportValue.trim()) {
+      setImportStatus("Paste an Astro-Seek text export first.");
+      return;
+    }
+
+    setImportWarnings([]);
+    setDebugImageUrl(null);
+    setUploadedSynastryFile(null);
+
+    try {
+      const result = parseAstroSeekTextExport(textImportValue);
+      setPersonA({ ...createEmptyPlacementMap(), ...result.personA });
+      setPersonB({ ...createEmptyPlacementMap(), ...result.personB });
+      setImportWarnings(result.warnings);
+      setImportStatus(
+        result.warnings.length > 0
+          ? "Text export imported with a few missing or conflicting placements. Please review the filled signs."
+          : "Text export imported successfully."
+      );
+    } catch (error) {
+      setImportStatus(
+        error instanceof Error ? `Text import failed: ${error.message}` : "Text import failed unexpectedly."
+      );
+      setImportWarnings([]);
+    }
+  };
+
+  const persistSavedCharts = (next: SavedChartRecord[]) => {
+    setSavedCharts(next);
+    window.localStorage.setItem(SAVED_CHARTS_STORAGE_KEY, JSON.stringify(next));
+  };
+
+  const saveChart = (name: string, sex: Sex, placements: PlacementMap) => {
+    const record = createSavedChartRecord(name, sex, placements);
+    const next = [record, ...savedCharts];
+    persistSavedCharts(next);
+    setSaveStatus(`${record.profileName} saved locally.`);
+  };
+
+  const loadSavedChart = (target: "a" | "b", record: SavedChartRecord) => {
+    if (target === "a") {
+      setPersonAName(record.profileName);
+      setPersonASex(record.sex);
+      setPersonA({ ...record.placements });
+    } else {
+      setPersonBName(record.profileName);
+      setPersonBSex(record.sex);
+      setPersonB({ ...record.placements });
+    }
+    setSaveStatus(`${record.profileName} loaded into ${target === "a" ? "Primary" : "Comparison"} Chart.`);
+  };
+
+  const deleteSavedChart = (id: string) => {
+    const next = savedCharts.filter((record) => record.id !== id);
+    persistSavedCharts(next);
+    setSaveStatus("Saved chart removed from this browser.");
+  };
+
+  const handleLoadSavedChart = (target: "a" | "b", id: string) => {
+    const record = savedCharts.find((item) => item.id === id);
+    if (!record) return;
+    loadSavedChart(target, record);
+    if (target === "a") {
+      setLoadPrimarySelection("");
+    } else {
+      setLoadComparisonSelection("");
+    }
+  };
+
+  const handleDeleteSavedChart = (id: string) => {
+    if (!id) return;
+    deleteSavedChart(id);
+    setDeleteChartSelection("");
+  };
+
+  const hasAxisFocus = focusedRows.length > 0 || focusedCols.length > 0;
+  const hasRelationFocus = focusedRelations.length > 0;
+  const hasFocusMode = hasAxisFocus || hasRelationFocus;
+
+  const toggleFocusGroup = (group: "sun" | "moon") => {
+    const sourcePlanets = group === "sun" ? SUN_GROUP_PLANETS : MOON_GROUP_PLANETS;
+    const nextRows = rows.filter((planet) => sourcePlanets.includes(planet));
+    const nextCols = cols.filter((planet) => sourcePlanets.includes(planet));
+    const sameRows =
+      focusedRows.length === nextRows.length && focusedRows.every((planet) => nextRows.includes(planet));
+    const sameCols =
+      focusedCols.length === nextCols.length && focusedCols.every((planet) => nextCols.includes(planet));
+
+    if (sameRows && sameCols) {
+      setFocusedRows([]);
+      setFocusedCols([]);
+      return;
+    }
+
+    setFocusedRows(nextRows);
+    setFocusedCols(nextCols);
+  };
+
+  const toggleFocusedAxis = (type: "row" | "col", planet: Planet) => {
+    if (type === "row") {
+      setFocusedRows((current) => {
+        const exists = current.includes(planet);
+        if (exists && current.length === 1 && focusedCols.length === 0) return [];
+        if (exists) return current.filter((item) => item !== planet);
+        return [...current, planet];
+      });
+      return;
+    }
+
+    setFocusedCols((current) => {
+      const exists = current.includes(planet);
+      if (exists && current.length === 1 && focusedRows.length === 0) return [];
+      if (exists) return current.filter((item) => item !== planet);
+      return [...current, planet];
+    });
+  };
+
+  const toggleFocusedRelation = (relation: RelationType) => {
+    setFocusedRelations((current) =>
+      current.includes(relation) ? current.filter((item) => item !== relation) : [...current, relation]
+    );
+  };
+
+  const resetSectionToggles = () => {
+    setSelectedCell(null);
+    setGridViewMode("couple");
+    setShowGenerationalPlanets(true);
+    setFocusedRows([]);
+    setFocusedCols([]);
+    setFocusedRelations([]);
+  };
+
+  const handlePageJump = (href: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    resetSectionToggles();
+
+    const target = document.querySelector(href);
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <main className="report-shell">
+      <nav className="page-jump-nav" aria-label="Page sections">
+        {PAGE_NAV_ITEMS.map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="page-jump-link"
+            title={item.label}
+            aria-label={item.label}
+            onClick={handlePageJump(item.href)}
+          >
+            <span>{item.symbol}</span>
+          </a>
+        ))}
+      </nav>
+
       <section className="report-header">
         <div>
           <p className="eyebrow">The Grand Counsel of Paizen</p>
@@ -1657,11 +3360,11 @@ export default function LoveComputerPage() {
         <div className="report-meta">
           <p>AstrologyToday.ca</p>
           <p>Love Computer Prototype</p>
-          <p>Session I</p>
+          <p>Version 1.0</p>
         </div>
       </section>
 
-      <section className="report-top-grid">
+      <section id="placements" className="report-top-grid">
         <PlacementCard
           title={personAName}
           subtitle="Primary chart"
@@ -1671,6 +3374,7 @@ export default function LoveComputerPage() {
           values={personA}
           onSexChange={setPersonASex}
           onChange={setPersonA}
+          onSave={() => saveChart(personAName, personASex, personA)}
         />
         <PlacementCard
           title={personBName}
@@ -1681,11 +3385,97 @@ export default function LoveComputerPage() {
           values={personB}
           onSexChange={setPersonBSex}
           onChange={setPersonB}
+          onSave={() => saveChart(personBName, personBSex, personB)}
         />
         <CompatibilityTable />
       </section>
 
-      <section className="logic-card">
+      <section id="saved-charts" className="logic-card">
+        <div className="logic-copy">
+          <p className="eyebrow">Saved Charts</p>
+          <h2>Local Archive</h2>
+          <p>
+            Save any Primary or Comparison chart now, then load it back into either side later. This is
+            browser-local today, but the record structure is ready to migrate into account storage when
+            we add logins.
+          </p>
+          <p className="section-copy">{saveStatus}</p>
+        </div>
+        <div className="logic-copy">
+          {savedCharts.length > 0 ? (
+            <div className="saved-chart-panel">
+              <div className="saved-chart-loaders compact">
+                <label>
+                  Load to Primary
+                  <select
+                    value={loadPrimarySelection}
+                    onChange={(event) => {
+                      const id = event.target.value;
+                      setLoadPrimarySelection(id);
+                      if (id) handleLoadSavedChart("a", id);
+                    }}
+                    >
+                      <option value="">{personAName}</option>
+                    {primaryDropdownCharts.map((record) => (
+                      <option key={record.id} value={record.id}>
+                        {record.profileName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Load to Comparison
+                  <select
+                    value={loadComparisonSelection}
+                    onChange={(event) => {
+                      const id = event.target.value;
+                      setLoadComparisonSelection(id);
+                      if (id) handleLoadSavedChart("b", id);
+                    }}
+                    >
+                      <option value="">{personBName}</option>
+                    {comparisonDropdownCharts.map((record) => (
+                      <option key={record.id} value={record.id}>
+                        {record.profileName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Manage Saved Charts
+                  <div className="saved-chart-manage">
+                    <select
+                      value={deleteChartSelection}
+                      onChange={(event) => setDeleteChartSelection(event.target.value)}
+                    >
+                      <option value="">Choose a saved chart</option>
+                      {alphabetizedSavedCharts.map((record) => (
+                        <option key={record.id} value={record.id}>
+                          {record.profileName}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSavedChart(deleteChartSelection)}
+                      disabled={!deleteChartSelection}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </label>
+              </div>
+              <p className="saved-chart-count">
+                {savedCharts.length} saved {savedCharts.length === 1 ? "chart" : "charts"} available in this browser.
+              </p>
+            </div>
+          ) : (
+            <p className="section-copy">No saved charts yet. Use Save Chart on either card to start building your archive.</p>
+          )}
+        </div>
+      </section>
+
+      <section id="imports" className="logic-card">
         <div className="logic-copy">
           <p className="eyebrow">Import Astro-Seek</p>
           <h2>Report Upload</h2>
@@ -1697,6 +3487,19 @@ export default function LoveComputerPage() {
             <span>Astro-Seek Image</span>
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAstroSeekUpload} />
           </label>
+          <label className="upload-field">
+            <span>Astro-Seek Text Export</span>
+            <textarea
+              className="import-textarea"
+              value={textImportValue}
+              onChange={(event) => setTextImportValue(event.target.value)}
+              placeholder="Paste the Astro-Seek synastry text export here..."
+              rows={10}
+            />
+          </label>
+          <button type="button" className="import-action" onClick={handleTextImport}>
+            Import Pasted Text
+          </button>
           <p className="import-status">{isImporting ? "Importing..." : importStatus}</p>
           {importWarnings.length > 0 ? (
             <ul className="import-warnings">
@@ -1704,104 +3507,6 @@ export default function LoveComputerPage() {
                 <li key={warning}>{warning}</li>
               ))}
             </ul>
-          ) : null}
-          {debugImageUrl ? (
-            <div className="debug-panel">
-              <p className="eyebrow">Debugger</p>
-              <p className="section-copy">
-                These are the exact synastry table boxes the parser is sampling right now.
-              </p>
-              <div className="calibration-panel">
-                <div className="calibration-head">
-                  <strong>Fine-Tune Controls</strong>
-                  <span>
-                    Editing {debugSide === "a" ? personAName : personBName} {debugPlanet}
-                  </span>
-                </div>
-                <div className="calibration-row">
-                  <label>
-                    Side
-                    <select value={debugSide} onChange={(e) => setDebugSide(e.target.value as "a" | "b")}>
-                      <option value="a">{personAName}</option>
-                      <option value="b">{personBName}</option>
-                    </select>
-                  </label>
-                  <label>
-                    Planet
-                    <select value={debugPlanet} onChange={(e) => setDebugPlanet(e.target.value as Planet)}>
-                      {PLANETS.map((planet) => (
-                        <option key={planet} value={planet}>
-                          {planet} {PLANET_LABELS[planet]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-                <div className="calibration-readout">
-                  <span>X: {selectedXPx}px</span>
-                  <span>Y: {selectedYPx}px</span>
-                  <span>Size: {selectedScale.toFixed(2)}x</span>
-                </div>
-                <p className="calibration-status">{calibrationStatus}</p>
-                <div className="calibration-controls">
-                  <button type="button" onClick={() => nudgeSelected(0, -1)}>
-                    Up
-                  </button>
-                  <button type="button" onClick={() => nudgeSelected(-1, 0)}>
-                    Left
-                  </button>
-                  <button type="button" onClick={() => nudgeSelected(1, 0)}>
-                    Right
-                  </button>
-                  <button type="button" onClick={() => nudgeSelected(0, 1)}>
-                    Down
-                  </button>
-                  <button type="button" onClick={() => resizeSelected(-0.05)}>
-                    Smaller
-                  </button>
-                  <button type="button" onClick={() => resizeSelected(0.05)}>
-                    Bigger
-                  </button>
-                  <button type="button" onClick={saveCurrentCalibration}>
-                    Save Current Calibration
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (uploadedSynastryFile) {
-                        void runSynastryImport(uploadedSynastryFile);
-                      }
-                    }}
-                    disabled={!uploadedSynastryFile || isImporting}
-                  >
-                    Re-Analyze
-                  </button>
-                  <button type="button" onClick={resetSelected}>
-                    Reset Selected
-                  </button>
-                  <button type="button" onClick={resetAllCalibration}>
-                    Reset All
-                  </button>
-                </div>
-              </div>
-              <div className="debug-image-wrap">
-                <img src={debugImageUrl} alt="Astro-Seek debug upload" className="debug-image" />
-                {debugBoxes.map((box) => (
-                  <div
-                    key={box.key}
-                    className={`debug-box debug-box-${box.tone}`}
-                    style={{
-                      left: `${box.rect.x * 100}%`,
-                      top: `${box.rect.y * 100}%`,
-                      width: `${box.rect.w * 100}%`,
-                      height: `${box.rect.h * 100}%`,
-                    }}
-                  >
-                    <span>{box.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           ) : null}
         </div>
         <div className="logic-copy">
@@ -1815,20 +3520,47 @@ export default function LoveComputerPage() {
         </div>
       </section>
 
-      <section className="chart-card">
+      <section
+        id="comparison-grid"
+        className="chart-card"
+        style={
+          {
+            ["--note-marker-shift-x" as string]: `${noteMarkerOffset.x}px`,
+            ["--note-marker-shift-y" as string]: `${noteMarkerOffset.y}px`,
+          } as React.CSSProperties
+        }
+      >
         <div className="section-heading">
           <div>
             <p className="eyebrow">Planet To Planet Chart</p>
             <h2>Comparison Grid</h2>
           </div>
           <div className="section-actions">
-            <p className="section-copy">
-              Click any symbol to open a note popup. Person A runs down the left side and Person B
-              runs across the top.
-            </p>
-            <button type="button" className="download-button" onClick={downloadReport}>
-              Download Text Report
-            </button>
+            <div className="grid-toggles">
+              <label>
+                <select value={gridViewMode} onChange={(event) => setGridViewMode(event.target.value as GridViewMode)}>
+                  <option value="couple">Couple</option>
+                  <option value="partner-a">{personAName} Only</option>
+                  <option value="partner-b">{personBName} Only</option>
+                </select>
+              </label>
+              <label className="grid-toggle-check">
+                <input
+                  type="checkbox"
+                  checked={showGenerationalPlanets}
+                  onChange={(event) => setShowGenerationalPlanets(event.target.checked)}
+                />
+                <span>Show Generational Planets</span>
+              </label>
+            </div>
+            <div className="grid-action-row">
+              <p className="section-copy">
+                Click any symbol to open a note card.
+              </p>
+              <button type="button" className="download-button" onClick={downloadReport}>
+                Download Text Report
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1838,11 +3570,26 @@ export default function LoveComputerPage() {
               <tr>
                 <th>A ↓ / B →</th>
                 {cols.map((planet) => (
-                  <th key={planet}>
-                    <div className="axis-symbol">{planet}</div>
-                    <div className="axis-subcopy">
-                      {PLANET_LABELS[planet]} {personB[planet]}
-                    </div>
+                <th
+                  key={planet}
+                  className={
+                      hasAxisFocus
+                        ? focusedCols.includes(planet)
+                          ? "axis-th-focused"
+                          : "axis-th-dimmed"
+                        : undefined
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="axis-focus-button"
+                      onClick={() => toggleFocusedAxis("col", planet)}
+                    >
+                      <div className="axis-symbol">{planet}</div>
+                      <div className="axis-subcopy">
+                        {PLANET_LABELS[planet]} {gridPersonB[planet]}
+                      </div>
+                    </button>
                   </th>
                 ))}
               </tr>
@@ -1853,20 +3600,54 @@ export default function LoveComputerPage() {
 
                 return (
                   <tr key={rowPlanet}>
-                    <th>
-                      <div className="axis-symbol">{rowPlanet}</div>
-                      <div className="axis-subcopy">
-                        {PLANET_LABELS[rowPlanet]} {personA[rowPlanet]}
-                      </div>
+                    <th
+                      className={
+                        hasAxisFocus
+                          ? focusedRows.includes(rowPlanet)
+                            ? "axis-th-focused"
+                            : "axis-th-dimmed"
+                          : undefined
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="axis-focus-button"
+                        onClick={() => toggleFocusedAxis("row", rowPlanet)}
+                      >
+                        <div className="axis-symbol">{rowPlanet}</div>
+                        <div className="axis-subcopy">
+                          {PLANET_LABELS[rowPlanet]} {gridPersonA[rowPlanet]}
+                        </div>
+                      </button>
                     </th>
                     {row.map((cell) => {
+                      if (gridViewMode !== "couple" && shouldHideSoloGridCell(gridViewMode, cell)) {
+                        return <td key={`${cell.aPlanet}-${cell.bPlanet}`} className="chart-cell-empty" />;
+                      }
+
                       const style = RELATION_STYLES[cell.relation];
+                      const cellNoteKey = buildModalNoteKey(
+                        cell,
+                        gridViewMode,
+                        personAName,
+                        personA,
+                        personBName,
+                        personB
+                      );
+                      const hasSavedNote = (modalNotes[cellNoteKey] ?? "").trim().length > 0;
+                      const noteRotation = getNoteMarkerRotation(cellNoteKey);
+                      const hasSamePlanetStar = cellHasSamePlanetQualifier(cell);
+                      const isFocused =
+                        !hasFocusMode ||
+                        focusedRows.includes(cell.aPlanet) ||
+                        focusedCols.includes(cell.bPlanet) ||
+                        focusedRelations.includes(cell.relation);
 
                       return (
                         <td key={`${cell.aPlanet}-${cell.bPlanet}`}>
                           <button
                             type="button"
-                            className="chart-cell"
+                            className={`chart-cell${isFocused ? "" : " chart-cell-dimmed"}`}
                             onClick={() => setSelectedCell(cell)}
                             style={{
                               background: style.bg,
@@ -1874,6 +3655,20 @@ export default function LoveComputerPage() {
                               borderColor: style.border,
                             }}
                           >
+                            {hasSamePlanetStar ? (
+                              <span className="chart-cell-star-marker" aria-hidden="true">
+                                ✦
+                              </span>
+                            ) : null}
+                            {hasSavedNote ? (
+                              <span
+                                className={`chart-cell-note-marker${hasSamePlanetStar ? " chart-cell-note-marker-shifted" : ""}`}
+                                aria-hidden="true"
+                                style={{ ["--note-marker-rotation" as string]: `${noteRotation}deg` }}
+                              >
+                                <img src="/sticky-note.png" alt="" />
+                              </span>
+                            ) : null}
                             <span className="chart-symbol">{cell.symbol}</span>
                             <span className="chart-pair">
                               {cell.aSign} × {cell.bSign}
@@ -1888,60 +3683,191 @@ export default function LoveComputerPage() {
             </tbody>
           </table>
         </div>
+
+        <div className="grid-filter-row">
+          <div className="relation-filter-bar" aria-label="Relation filters">
+            {(Object.keys(RELATION_STYLES) as RelationType[]).map((relation) => {
+              const style = RELATION_STYLES[relation];
+              const isActive = focusedRelations.includes(relation);
+
+              return (
+                <button
+                  type="button"
+                  key={relation}
+                  className={`legend-item relation-filter-button${isActive ? " is-active" : ""}`}
+                  onClick={() => toggleFocusedRelation(relation)}
+                >
+                  <span
+                    className="compatibility-symbol"
+                    style={{
+                      background: style.bg,
+                      color: style.text,
+                      borderColor: style.border,
+                    }}
+                  >
+                    {style.symbol}
+                  </span>
+                  <span>{style.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="grid-focus-shortcuts">
+            <button
+              type="button"
+              className={
+                focusedRows.length === rows.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
+                focusedCols.length === cols.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
+                focusedRows.every((planet) => SUN_GROUP_PLANETS.includes(planet)) &&
+                focusedCols.every((planet) => SUN_GROUP_PLANETS.includes(planet))
+                  ? "focus-shortcut-button is-active"
+                  : "focus-shortcut-button"
+              }
+              onClick={() => toggleFocusGroup("sun")}
+              aria-label="Focus Sun, Venus, and Jupiter"
+              title="Focus Sun, Venus, and Jupiter"
+            >
+              ☉
+            </button>
+            <button
+              type="button"
+              className={
+                focusedRows.length === rows.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
+                focusedCols.length === cols.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
+                focusedRows.every((planet) => MOON_GROUP_PLANETS.includes(planet)) &&
+                focusedCols.every((planet) => MOON_GROUP_PLANETS.includes(planet))
+                  ? "focus-shortcut-button is-active"
+                  : "focus-shortcut-button"
+              }
+              onClick={() => toggleFocusGroup("moon")}
+              aria-label="Focus Moon, Mars, and Saturn"
+              title="Focus Moon, Mars, and Saturn"
+            >
+              ☽
+            </button>
+          </div>
+        </div>
       </section>
 
-      <section className="summary-grid">
-        <SummaryCard title="Element" copy="Weighted 90/10 across personal and generational planets." rows={elementRows} />
-        <SummaryCard title="Modality" copy="Weighted with the same personal-versus-generational split." rows={modalityRows} />
+      <section id="summaries" className="summary-grid">
+        <SummaryCard
+          title="Element"
+          copy="Weighted 90/10 across personal and generational planets. ASC is excluded."
+          rows={elementRows}
+        />
+        <SummaryCard
+          title="Modality"
+          copy="Weighted with the same personal-versus-generational split. ASC is excluded."
+          rows={modalityRows}
+        />
         <SummaryCard
           title="Gender Expression"
-          copy="Final score = 65% astrological + 20% generation + 15% sex."
+          copy="Final score = 65% astrological + 20% generation + 15% sex. ASC is excluded."
           rows={genderRows}
         />
       </section>
 
-      <section className="logic-card">
-        <div className="logic-copy">
-          <p className="eyebrow">Calculation Notes</p>
-          <h2>What Is Live Right Now</h2>
-          <p>
-            Element and modality now use your weighted 90/10 logic, and gender expression uses the
-            65/20/15 formula with rounded whole-number output. Moon and ASC are naturally skipped
-            whenever they are left unknown.
-          </p>
-        </div>
-        <div className="logic-copy">
-          <p className="eyebrow">Next Layer</p>
-          <h2>Ready For Your Text Rules</h2>
-          <p>
-            The modal content is still placeholder interpretation text. Once you send the exact
-            meaning for each connection box, I can wire those explanations into the popup system.
-          </p>
-        </div>
+      <section className="summary-grid summary-grid-secondary">
+        <SummaryCard
+          title="Yin Yang"
+          copy="Yin = water + earth. Yang = fire + air. Built from the same weighted element totals."
+          rows={yinYangRows}
+          symbol="☯︎"
+        />
+        <QualifierCard
+          title="Nature"
+          copy="Based on each chart's highest element versus lowest element."
+          rows={natureRows}
+          labels={["Partner A Nature", "Partner B Nature", "Relationship Nature"]}
+        />
+        <QualifierCard
+          title="Energy"
+          copy="Built from the two most relevant gender-expression energies using your threshold rules."
+          rows={energyRows}
+          labels={["Partner A Energy", "Partner B Energy", "Relationship Energy"]}
+        />
       </section>
 
       {selectedCell ? (
-        <div className="modal-backdrop" onClick={() => setSelectedCell(null)} role="presentation">
-          <div className="modal-card" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
-            <button type="button" className="modal-close" onClick={() => setSelectedCell(null)}>
-              Close
-            </button>
-            <p className="eyebrow">Connection Detail</p>
-            <h2>{selectedCell.title}</h2>
-            <div className="modal-tags">
-              <span className="person-chip" data-sex={getChipTone(personASex)}>
-                {personAName}: {selectedCell.aPlanet} {PLANET_LABELS[selectedCell.aPlanet]} {selectedCell.aSign}
-              </span>
-              <span className="person-chip" data-sex={getChipTone(personBSex)}>
-                {personBName}: {selectedCell.bPlanet} {PLANET_LABELS[selectedCell.bPlanet]} {selectedCell.bSign}
-              </span>
-              <span>{selectedCell.symbol}</span>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            backdropPointerStartedRef.current = event.target === event.currentTarget;
+          }}
+          onClick={(event) => {
+            if (backdropPointerStartedRef.current && event.target === event.currentTarget) {
+              setSelectedCell(null);
+            }
+            backdropPointerStartedRef.current = false;
+          }}
+          role="presentation"
+        >
+          <div className="modal-layout" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-card" role="dialog" aria-modal="true">
+              <button type="button" className="modal-close" onClick={() => setSelectedCell(null)}>
+                Close
+              </button>
+              <p className="eyebrow">Connection Detail</p>
+              <h2>{selectedCell.title}</h2>
+              <div className="modal-tags">
+                <span
+                  className="person-chip"
+                  data-sex={getChipTone(gridViewMode === "partner-b" ? personBSex : personASex)}
+                >
+                  {SIGN_LABELS[selectedCell.aSign]} {getCardPlanetLabel(selectedCell.aPlanet)} {selectedCell.aPlanet}
+                  {selectedLeftHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
+                </span>
+                <span
+                  className="person-chip"
+                  data-sex={getChipTone(gridViewMode === "partner-a" ? personASex : personBSex)}
+                >
+                  {SIGN_LABELS[selectedCell.bSign]} {getCardPlanetLabel(selectedCell.bPlanet)} {selectedCell.bPlanet}
+                  {selectedRightHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
+                </span>
+                <span>{selectedCell.symbol}</span>
+              </div>
+              <div className="modal-interaction-card">
+                <p className="modal-block-label">Planetary Interaction</p>
+                <p>{selectedInteractionText}</p>
+              </div>
+              <div className="modal-compare-grid">
+                <ModalDetail planet={selectedCell.aPlanet} sign={selectedCell.aSign} />
+                <div className="modal-cross" aria-hidden="true" />
+                <ModalDetail planet={selectedCell.bPlanet} sign={selectedCell.bSign} />
+              </div>
             </div>
-            <div className="modal-compare-grid">
-              <ModalDetail planet={selectedCell.aPlanet} sign={selectedCell.aSign} />
-              <div className="modal-cross">X</div>
-              <ModalDetail planet={selectedCell.bPlanet} sign={selectedCell.bSign} />
-            </div>
+            <aside
+              className={`sticky-note-wrap${shouldShowExpandedNote ? " is-open" : ""}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="sticky-note-tab"
+                onClick={() => setNoteExpanded((current) => !current)}
+                aria-expanded={noteExpanded}
+                aria-label="Open notes"
+              >
+                <span className="sticky-note-tab-label" aria-hidden="true" />
+              </button>
+              {shouldShowExpandedNote ? (
+                <div className="sticky-note-pad">
+                  <div className="sticky-note-head">
+                    <p className="sticky-note-label" aria-hidden="true" />
+                    {!selectedCellHasNote ? (
+                      <button type="button" className="sticky-note-close" onClick={() => setNoteExpanded(false)}>
+                        X
+                      </button>
+                    ) : null}
+                  </div>
+                  <textarea
+                    value={selectedCellNote}
+                    onChange={(event) => updateSelectedCellNote(event.target.value)}
+                    placeholder="Write notes here..."
+                  />
+                </div>
+              ) : null}
+            </aside>
           </div>
         </div>
       ) : null}
@@ -1958,6 +3884,7 @@ function PlacementCard({
   onNameChange,
   onSexChange,
   onChange,
+  onSave,
 }: {
   title: string;
   subtitle: string;
@@ -1967,12 +3894,16 @@ function PlacementCard({
   onNameChange: (next: string) => void;
   onSexChange: (next: Sex) => void;
   onChange: (next: PlacementMap) => void;
+  onSave: () => void;
 }) {
   return (
     <section className="placement-card">
       <p className="eyebrow">{subtitle}</p>
       <h2>{title}</h2>
       <p className="card-copy">Leave Moon or ASC blank if birth time is unknown.</p>
+      <button type="button" className="card-save-button" onClick={onSave}>
+        Save Chart
+      </button>
 
       <label className="sex-row">
         <span>Name</span>
@@ -2076,7 +4007,7 @@ function CompatibilityTable() {
           const style = RELATION_STYLES[relation];
 
           return (
-            <div key={relation} className="legend-item">
+            <div key={relation} className="legend-item legend-item-static">
               <span
                 className="compatibility-symbol"
                 style={{
@@ -2092,6 +4023,7 @@ function CompatibilityTable() {
           );
         })}
       </div>
+
     </section>
   );
 }
@@ -2100,20 +4032,25 @@ function SummaryCard({
   title,
   copy,
   rows,
+  symbol,
 }: {
   title: string;
   copy: string;
   rows: DistributionRow[];
+  symbol?: string;
 }) {
   return (
     <section className="summary-card">
       <p className="eyebrow">{title}</p>
-      <h2>{title}</h2>
+      <h2>
+        {symbol ? <span className="summary-title-symbol">{symbol}</span> : null}
+        {title}
+      </h2>
       <p>{copy}</p>
       <div className="summary-table">
         <div className="summary-head">Type</div>
-        <div className="summary-head">A</div>
-        <div className="summary-head">B</div>
+        <div className="summary-head">Partner A</div>
+        <div className="summary-head">Partner B</div>
         <div className="summary-head">Together</div>
         {rows.map((row) => (
           <SummaryRow key={row.label} row={row} />
@@ -2131,5 +4068,41 @@ function SummaryRow({ row }: { row: DistributionRow }) {
       <div>{row.b}%</div>
       <div>{row.combined}%</div>
     </>
+  );
+}
+
+function QualifierCard({
+  title,
+  copy,
+  rows,
+  labels,
+}: {
+  title: string;
+  copy: string;
+  rows: QualifierRow[];
+  labels: [string, string, string];
+}) {
+  const row = rows[0] ?? { label: title, a: "—", b: "—", combined: "—" };
+
+  return (
+    <section className="summary-card">
+      <p className="eyebrow">{title}</p>
+      <h2>{title}</h2>
+      <p>{copy}</p>
+      <div className="qualifier-stack">
+        <div className="qualifier-line">
+          <span>{labels[0]}:</span>
+          <strong>{row.a}</strong>
+        </div>
+        <div className="qualifier-line">
+          <span>{labels[1]}:</span>
+          <strong>{row.b}</strong>
+        </div>
+        <div className="qualifier-line">
+          <span>{labels[2]}:</span>
+          <strong>{row.combined}</strong>
+        </div>
+      </div>
+    </section>
   );
 }
