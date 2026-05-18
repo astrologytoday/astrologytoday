@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import LocalePreferenceSync from "../components/shared/LocalePreferenceSync";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AstrologyToday",
+  title: "Astrology Today",
   description: "Love Computer",
+  icons: {
+    icon: "/astrologytoday-emblem.png",
+    shortcut: "/astrologytoday-emblem.png",
+    apple: "/astrologytoday-emblem.png",
+  },
 };
 
 export default function RootLayout({
@@ -14,7 +20,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={null}>
+          <LocalePreferenceSync />
+        </Suspense>
+        {children}
+      </body>
     </html>
   );
 }

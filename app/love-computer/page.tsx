@@ -58,6 +58,24 @@ type QualifierRow = {
   combined: string;
 };
 
+type RootPowerDefinition = {
+  planet: Planet;
+  text: string;
+};
+
+type RootPowerMatch = RootPowerDefinition & {
+  sign: Sign;
+};
+
+type DayOfWeek = "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
+type ClockMode = "day" | "night";
+type HousePlanet = "☉" | "☽" | "☿" | "♂" | "♀" | "♄" | "♃" | "♆" | "♅";
+type HouseAssignment = {
+  sign: Sign | "";
+  planetA: HousePlanet | "";
+  planetB: HousePlanet | "";
+};
+
 type WeightedPlacement = {
   planet: Planet;
   sign: Sign;
@@ -102,18 +120,26 @@ type TextImportResult = {
 
 type SavedChartRecord = {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   storageScope: "local";
   profileName: string;
   sex: Sex;
   placements: PlacementMap;
+  houses: HouseAssignment[];
   createdAt: string;
   updatedAt: string;
 };
 
+type SaveFlashState = {
+  target: "a" | "b";
+  kind: "saved" | "taken";
+} | null;
+
 type ModalNotesMap = Record<string, string>;
 
 const PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆"];
+const HOUSE_PLANETS: HousePlanet[] = ["☉", "☽", "☿", "♂", "♀", "♄", "♃", "♆", "♅"];
+const HOUSE_CARD_PLANETS: HousePlanet[] = ["☉", "☽", "☿", "♀", "♂", "♃", "♄", "♆", "♅"];
 const PRIMARY_PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄"];
 const SUMMARY_PERSONAL_PLANETS: Planet[] = ["☉", "☽", "☿", "♀", "♂", "♃", "♄"];
 const GENERATIONAL_PLANETS: Planet[] = ["♅", "♆"];
@@ -613,6 +639,8 @@ const SYN_B_STORAGE_KEY = "love-computer-synastry-b";
 const SAVED_CHARTS_STORAGE_KEY = "love-computer-saved-charts";
 const MODAL_NOTES_STORAGE_KEY = "love-computer-modal-notes";
 const NOTE_MARKER_STORAGE_KEY = "love-computer-note-marker-offset";
+const REPORT_SKIN_STORAGE_KEY = "love-computer-report-skin";
+const CLOCK_CALCULATOR_STORAGE_KEY = "love-computer-clock-calculator";
 const PAGE_NAV_ITEMS = [
   { href: "#placements", symbol: "✎", label: "Placements" },
   { href: "#saved-charts", symbol: "◉", label: "Saved Charts" },
@@ -713,6 +741,149 @@ const ELEMENTS: Record<Sign, Element> = {
   "♓︎": "water",
 };
 
+const ROOTS_OF_POWER_TABLE: Record<Sign, RootPowerDefinition[]> = {
+  "♈︎": [
+    { planet: "☉", text: "Established Strength [Virtue]" },
+    { planet: "♀", text: "Perfected Work [Completion]" },
+    { planet: "♂", text: "Lord of Dominion" },
+  ],
+  "♉︎": [
+    { planet: "☽", text: "Material Success [Success]" },
+    { planet: "☿", text: "Material Trouble [Worry]" },
+    { planet: "♄", text: "Success Unfulfilled [Failure]" },
+  ],
+  "♊︎": [
+    { planet: "☉", text: "Ruin" },
+    { planet: "♂", text: "Despair and Cruelty [Cruelty]" },
+    { planet: "♃", text: "Shortened Force [Interference]" },
+  ],
+  "♋︎": [
+    { planet: "☽", text: "Blended Pleasure [Luxury]" },
+    { planet: "☿", text: "Abundance" },
+    { planet: "♀", text: "Lord of Love" },
+  ],
+  "♌︎": [
+    { planet: "♂", text: "Valour" },
+    { planet: "♃", text: "Victory" },
+    { planet: "♄", text: "Strife" },
+  ],
+  "♍︎": [
+    { planet: "☉", text: "Prudence" },
+    { planet: "☿", text: "Wealth" },
+    { planet: "♀", text: "Material Gain [Gain]" },
+  ],
+  "♎︎": [
+    { planet: "☽", text: "The Lord of Peace Restored [Peace]" },
+    { planet: "♃", text: "Rest from Strife [Truce]" },
+    { planet: "♄", text: "Sorrow" },
+  ],
+  "♏︎": [
+    { planet: "☉", text: "Pleasure" },
+    { planet: "♀", text: "Illusionary Success [Debauch]" },
+    { planet: "♂", text: "Loss in Pleasure [Disappointment]" },
+  ],
+  "♐︎": [
+    { planet: "☽", text: "Great Strength [Strength]" },
+    { planet: "☿", text: "Swiftness" },
+    { planet: "♄", text: "Oppression" },
+  ],
+  "♑︎": [
+    { planet: "☉", text: "Earthly Power [Power]" },
+    { planet: "♂", text: "Material Works [Works]" },
+    { planet: "♃", text: "The Lord of Harmonious Change [Change]" },
+  ],
+  "♒︎": [
+    { planet: "☽", text: "Unstable Effort [Futility]" },
+    { planet: "☿", text: "Earned Success [Science]" },
+    { planet: "♀", text: "Defeat" },
+  ],
+  "♓︎": [
+    { planet: "♂", text: "Perfected Success [Satiety]" },
+    { planet: "♃", text: "Material Happiness [Happiness]" },
+    { planet: "♄", text: "Abandoned Success [Indolence]" },
+  ],
+};
+
+const ROOTS_ELEMENT_LABELS: Record<Element, string> = {
+  air: "Roots of the Air",
+  water: "Roots of the Water",
+  earth: "Roots of the Earth",
+  fire: "Roots of the Fire",
+};
+
+const ROOTS_ELEMENT_ORDER: Element[] = ["air", "water", "earth", "fire"];
+
+const ROOTS_TABLE_ORDER: Sign[] = [
+  "♈︎",
+  "♉︎",
+  "♊︎",
+  "♋︎",
+  "♌︎",
+  "♍︎",
+  "♎︎",
+  "♏︎",
+  "♐︎",
+  "♑︎",
+  "♒︎",
+  "♓︎",
+];
+
+const HOUSE_COPY = [
+  "Self, Mask, Impression",
+  "Money, Stuff, Self-Worth",
+  "Mind, Words, Siblings",
+  "Home, Roots",
+  "Fun, Creativity",
+  "Health, Daily Habits, Routine",
+  "Relationships, Partnership",
+  "Intensity, Shadow",
+  "Beliefs, Travel, Expansion",
+  "Career, Reputation, Public Role",
+  "Friends, Community, Future Goals",
+  "Subconscious, Isolation",
+] as const;
+
+const DEFAULT_HOUSE_ASSIGNMENTS: HouseAssignment[] = SIGNS.map((sign) => ({
+  sign,
+  planetA: "",
+  planetB: "",
+}));
+
+const DAYS_OF_WEEK: DayOfWeek[] = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
+
+const DAY_RULERS: Record<DayOfWeek, Planet> = {
+  Sunday: "☉",
+  Monday: "☽",
+  Tuesday: "♂",
+  Wednesday: "☿",
+  Thursday: "♃",
+  Friday: "♀",
+  Saturday: "♄",
+};
+
+const PLANETARY_HOUR_ORDER: Planet[] = ["♄", "♃", "♂", "☉", "♀", "☿", "☽"];
+
+const PLANETARY_HOUR_WORDS: Record<Planet, string> = {
+  "☉": "Strength",
+  "♀": "Happiness",
+  "☿": "Mind",
+  "☽": "Intuition",
+  "♄": "Pressure",
+  "♃": "Wealth",
+  "♂": "Aggression",
+  "⥉": "",
+  "♅": "",
+  "♆": "",
+};
+
 const MODALITIES: Record<Sign, Modality> = {
   "♈︎": "cardinal",
   "♉︎": "fixed",
@@ -758,6 +929,75 @@ const SIGN_RULERS: Record<Sign, Planet[]> = {
   "♓︎": ["♃", "♆"],
 };
 
+const EVOLVED_SELF_PLANETS: Planet[] = ["☉", "☽", "☿", "♀", "♂", "♃", "♄"];
+
+const EVOLVED_SELF_TRAITS: Record<
+  Sign,
+  {
+    phrase: string;
+    usesAt: boolean;
+    starseedName: string;
+  }
+> = {
+  "♈︎": { phrase: "asserting", usesAt: true, starseedName: "Aries" },
+  "♉︎": { phrase: "keeping possessions", usesAt: true, starseedName: "Taurus" },
+  "♊︎": { phrase: "communicating", usesAt: true, starseedName: "Gemini" },
+  "♋︎": { phrase: "emoting", usesAt: true, starseedName: "Cancer" },
+  "♌︎": { phrase: "radiating", usesAt: true, starseedName: "Leo" },
+  "♍︎": { phrase: "analyzing", usesAt: true, starseedName: "Virgo" },
+  "♎︎": { phrase: "relating", usesAt: true, starseedName: "Libra" },
+  "♏︎": { phrase: "transforming", usesAt: true, starseedName: "Scorpio" },
+  "♐︎": { phrase: "crusading", usesAt: true, starseedName: "Sagittarius" },
+  "♑︎": { phrase: "entrepreneurship", usesAt: true, starseedName: "Capricorn" },
+  "♒︎": { phrase: "innovating", usesAt: true, starseedName: "Aquarius" },
+  "♓︎": { phrase: "intuition", usesAt: false, starseedName: "Pisces" },
+};
+
+const EVOLVED_SELF_COMPETING: Record<Sign, Sign[]> = {
+  "♈︎": ["♑︎", "♋︎"],
+  "♉︎": ["♌︎", "♒︎"],
+  "♊︎": ["♓︎", "♍︎"],
+  "♋︎": ["♈︎", "♎︎"],
+  "♌︎": ["♏︎", "♉︎"],
+  "♍︎": ["♊︎", "♐︎"],
+  "♎︎": ["♑︎", "♋︎"],
+  "♏︎": ["♌︎", "♒︎"],
+  "♐︎": ["♓︎", "♍︎"],
+  "♑︎": ["♈︎", "♎︎"],
+  "♒︎": ["♏︎", "♉︎"],
+  "♓︎": ["♊︎", "♐︎"],
+};
+
+const EVOLVED_SELF_AWKWARD: Record<Sign, Sign[]> = {
+  "♈︎": ["♍︎", "♏︎"],
+  "♉︎": ["♎︎", "♐︎"],
+  "♊︎": ["♏︎", "♑︎"],
+  "♋︎": ["♐︎", "♒︎"],
+  "♌︎": ["♑︎", "♓︎"],
+  "♍︎": ["♈︎", "♒︎"],
+  "♎︎": ["♓︎", "♉︎"],
+  "♏︎": ["♈︎", "♊︎"],
+  "♐︎": ["♉︎", "♋︎"],
+  "♑︎": ["♊︎", "♌︎"],
+  "♒︎": ["♋︎", "♍︎"],
+  "♓︎": ["♎︎", "♌︎"],
+};
+
+const EVOLVED_SELF_QUALITY_LABELS = [
+  "Very poor",
+  "Poor",
+  "O.K.",
+  "Good",
+  "Great",
+  "Excellent",
+  "Godmind",
+] as const;
+
+const NEW_SIGNS: Sign[] = ["♓︎", "♐︎", "♌︎", "♋︎", "♎︎", "♉︎"];
+const OLD_SIGNS: Sign[] = ["♒︎", "♑︎", "♈︎", "♏︎", "♊︎", "♍︎"];
+const NEW_PLACEMENTS: Planet[] = ["♃", "☉", "☽", "♀"];
+const OLD_PLACEMENTS: Planet[] = ["♄", "☿", "♂"];
+
 const PLANET_QUALIFIERS: Record<Planet, string> = {
   "☉": "self",
   "☽": "dark side",
@@ -774,16 +1014,89 @@ const PLANET_QUALIFIERS: Record<Planet, string> = {
 const SIGN_QUALIFIERS: Record<Sign, string> = {
   "♈︎": "assertive",
   "♉︎": "possessive",
-  "♊︎": "curious",
+  "♊︎": "well-spoken",
   "♋︎": "emotional",
-  "♌︎": "magnetic",
+  "♌︎": "inspiring",
   "♍︎": "analytical",
-  "♎︎": "peacemaking",
-  "♏︎": "transformative",
-  "♐︎": "philosophical",
+  "♎︎": "objective",
+  "♏︎": "transformational",
+  "♐︎": "liberating",
   "♑︎": "entrepreneurial",
-  "♒︎": "unconventional",
-  "♓︎": "creative",
+  "♒︎": "innovative",
+  "♓︎": "intuitive",
+};
+
+const CHART_SUMMARY_PLANET_WORDS: Record<Planet, string> = {
+  "☉": "Ego",
+  "☽": "Emotion",
+  "⥉": "Perception",
+  "☿": "Mind",
+  "♀": "Heart",
+  "♂": "Drive",
+  "♃": "Philosophy",
+  "♄": "Discipline",
+  "♅": "Generation",
+  "♆": "Generation",
+};
+
+const CHART_SUMMARY_SIGN_WORDS: Record<Sign, string> = {
+  "♈︎": "assertive",
+  "♉︎": "possessive",
+  "♊︎": "well-spoken",
+  "♋︎": "emotional",
+  "♌︎": "inspiring",
+  "♍︎": "analytical",
+  "♎︎": "relating",
+  "♏︎": "transformational",
+  "♐︎": "liberating",
+  "♑︎": "entrepreneurial",
+  "♒︎": "innovative",
+  "♓︎": "intuitive",
+};
+
+const UNEVOLVED_RISING_WORDS: Record<Sign, string> = {
+  "♈︎": "impulsive",
+  "♉︎": "lazy",
+  "♊︎": "nosy",
+  "♋︎": "faux-naif",
+  "♌︎": "self absorbed",
+  "♍︎": "pseudo-intellectual",
+  "♎︎": "phony",
+  "♏︎": "sly",
+  "♐︎": "loudly stupid",
+  "♑︎": "negging",
+  "♒︎": "pretentious",
+  "♓︎": "delusional",
+};
+
+const UNEVOLVED_SUN_WORDS: Record<Sign, string> = {
+  "♈︎": "rabid chihuahua",
+  "♉︎": "gold digger",
+  "♊︎": "two-faced meddler",
+  "♋︎": "hangry toddler",
+  "♌︎": "bratty drama queen",
+  "♍︎": "obnoxious wiseacre",
+  "♎︎": "manipulative mean-girl",
+  "♏︎": "sadistic puppet-master",
+  "♐︎": "sanctimonious preacher",
+  "♑︎": "coldhearted strategist",
+  "♒︎": "arrogant ghoster",
+  "♓︎": "whiny escapist",
+};
+
+const UNEVOLVED_MOON_WORDS: Record<Sign, string> = {
+  "♈︎": "to be put in a strait jacket",
+  "♉︎": "to stop treating people like possessions",
+  "♊︎": "to get their shit together",
+  "♋︎": "anger management therapy",
+  "♌︎": "to realize the world doesn't revolve around them",
+  "♍︎": "some fucking xanax",
+  "♎︎": 'to add the word "honesty" to their vocabulary',
+  "♏︎": "to learn to feel empathy for others than themselves",
+  "♐︎": "to shut the fuck up sometimes",
+  "♑︎": "laxatives for that emotional constipation",
+  "♒︎": "to stop gaslighting everyone (especially themselves)",
+  "♓︎": "a reality check",
 };
 
 const ELEMENT_SYMBOLS: Record<Element, string> = {
@@ -888,13 +1201,15 @@ const DISTRIBUTION_ORDER = {
   gender: ["masculine", "feminine", "eunuch", "hermaphrodite", "virgin"] as const,
 };
 
-const HEART_MULTIPLIER_POINTS: Record<RelationType, number> = {
-  "same-sign": 15,
-  "same-element": 15,
-  "elemental-harmony": 20,
-  teamwork: 30,
-  competing: -15,
-  awkward: -20,
+const ROMANTIC_MATCH_TARGET_PLANETS: Planet[] = ["☉", "☽", "☿", "♀", "♂", "♄", "♃"];
+
+const ROMANTIC_MATCH_POINTS: Record<RelationType, number> = {
+  "same-sign": 2,
+  "same-element": 1,
+  "elemental-harmony": 3,
+  teamwork: 3,
+  competing: -2,
+  awkward: -1,
   okay: 0,
 };
 
@@ -1148,7 +1463,7 @@ function buildGrid(personA: PlacementMap, personB: PlacementMap) {
 }
 
 function pickVisiblePlanets(showGenerational: boolean) {
-  return showGenerational ? PLANETS : PRIMARY_PLANETS;
+  return showGenerational ? PLANETS : PRIMARY_PLANETS.filter((planet) => planet !== "⥉");
 }
 
 function filterPlacementMap(values: PlacementMap, visiblePlanets: Planet[]) {
@@ -1261,23 +1576,55 @@ function getEnergyQualifier(distribution: Record<GenderCategory, number>) {
   return `${capitalize(first)} + ${capitalize(second)}`;
 }
 
-function buildHeartMultiplier(grid: GridCell[][]) {
-  const counts = Object.fromEntries(
-    (Object.keys(RELATION_STYLES) as RelationType[]).map((key) => [key, 0])
-  ) as Record<RelationType, number>;
-  let score = 100;
+function formatMultiplierNumber(value: number) {
+  return value.toFixed(2).replace(/\.?0+$/, "");
+}
 
-  for (const row of grid) {
-    for (const cell of row) {
-      counts[cell.relation] += 1;
-      score += HEART_MULTIPLIER_POINTS[cell.relation];
-    }
+function scoreRomanticBaseAgainstPartner(
+  sourcePlacements: PlacementMap,
+  partnerPlacements: PlacementMap,
+  basePlanet: "♀" | "♂"
+) {
+  const baseSign = sourcePlacements[basePlanet];
+  if (!baseSign) return 0;
+
+  let score = 0;
+
+  for (const targetPlanet of ROMANTIC_MATCH_TARGET_PLANETS) {
+    const partnerSign = partnerPlacements[targetPlanet];
+    if (!partnerSign) continue;
+
+    const relation = classifyRelation(baseSign as Sign, partnerSign as Sign);
+    score += ROMANTIC_MATCH_POINTS[relation];
   }
 
+  return score;
+}
+
+function buildRomanticMatchMultiplier(personA: PlacementMap, personB: PlacementMap) {
+  const aLoveScore = scoreRomanticBaseAgainstPartner(personA, personB, "♀");
+  const bLoveScore = scoreRomanticBaseAgainstPartner(personB, personA, "♀");
+  const aSexScore = scoreRomanticBaseAgainstPartner(personA, personB, "♂");
+  const bSexScore = scoreRomanticBaseAgainstPartner(personB, personA, "♂");
+
+  const loveMatch = (aLoveScore + bLoveScore) / 2;
+  const sexMatch = (aSexScore + bSexScore) / 2;
+  const aRomanticMatch = (aLoveScore + aSexScore) / 2;
+  const bRomanticMatch = (bLoveScore + bSexScore) / 2;
+  const romanticMatch = (loveMatch + sexMatch) / 2;
+
   return {
-    score,
-    multiplier: `${(score / 100).toFixed(2).replace(/\.00$/, "")}x`,
-    counts,
+    aLoveScore,
+    bLoveScore,
+    loveMatch,
+    aSexScore,
+    bSexScore,
+    sexMatch,
+    aRomanticMatch,
+    bRomanticMatch,
+    romanticMatch,
+    aMultiplier: `${formatMultiplierNumber(aRomanticMatch)}x`,
+    bMultiplier: `${formatMultiplierNumber(bRomanticMatch)}x`,
   };
 }
 
@@ -1429,6 +1776,15 @@ function isSamePlanetPlacement(planet: Planet, sign: Sign) {
   return SIGN_RULERS[sign].includes(planet);
 }
 
+function isOldNewPlacementMismatch(planet: Planet, sign: Sign) {
+  const signIsNew = NEW_SIGNS.includes(sign);
+  const signIsOld = OLD_SIGNS.includes(sign);
+  const planetIsNew = NEW_PLACEMENTS.includes(planet);
+  const planetIsOld = OLD_PLACEMENTS.includes(planet);
+
+  return (signIsNew && planetIsOld) || (signIsOld && planetIsNew);
+}
+
 function getGenerationWord(counterpartPlanet: Planet) {
   return counterpartPlanet === "♃" ? "generations" : "generation";
 }
@@ -1557,6 +1913,13 @@ function cellHasSamePlanetQualifier(cell: GridCell) {
   return isSamePlanetPlacement(cell.aPlanet, cell.aSign) || isSamePlanetPlacement(cell.bPlanet, cell.bSign);
 }
 
+function cellHasOldNewQualifier(cell: GridCell) {
+  return (
+    isOldNewPlacementMismatch(cell.aPlanet, cell.aSign) ||
+    isOldNewPlacementMismatch(cell.bPlanet, cell.bSign)
+  );
+}
+
 function getMergedSymbolTail(cells: GridCell[]) {
   const planets = Array.from(new Set(cells.flatMap((cell) => [cell.aPlanet, cell.bPlanet])));
   return planets.sort((left, right) => PLANETS.indexOf(left) - PLANETS.indexOf(right)).join(" ");
@@ -1606,6 +1969,168 @@ function formatSamePlanetSummary(sign: Sign, planets: Planet[], name: string) {
     `${sign} ${relevantPlanets.join(" + ")}`,
     `= ${name}'s ${joinWithAnd(qualifiers)} ${verb} ${relevantPlanets.join(" ")}`,
   ].join("\n");
+}
+
+function buildChartSummarySection(placements: PlacementMap) {
+  const order: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄"];
+  const lines = order
+    .map((planet) => {
+      const sign = placements[planet];
+      if (!sign) return null;
+      return `${CHART_SUMMARY_PLANET_WORDS[planet]} = ${CHART_SUMMARY_SIGN_WORDS[sign]}`;
+    })
+    .filter((value): value is string => Boolean(value));
+
+  const uranusSign = placements["♅"];
+  const neptuneSign = placements["♆"];
+  if (uranusSign && neptuneSign) {
+    lines.push(
+      `Generation = ${CHART_SUMMARY_SIGN_WORDS[uranusSign]}-${CHART_SUMMARY_SIGN_WORDS[neptuneSign]}`
+    );
+  }
+
+  if (lines.length === 0) return "";
+
+  return ["CHART SUMMARY", ...lines].join("\n");
+}
+
+function formatPercent(value: number) {
+  return `${Math.round(value)}%`;
+}
+
+function buildChaoticMetricsSection(cells: GridCell[]) {
+  const tensionCells = cells.filter(
+    (cell) => cell.relation === "awkward" || cell.relation === "competing"
+  );
+  const harmonyCells = cells.filter(
+    (cell) => cell.relation === "elemental-harmony" || cell.relation === "teamwork"
+  );
+
+  const chaoticTension =
+    tensionCells.length === 0
+      ? 0
+      : (tensionCells.filter((cell) => cellHasOldNewQualifier(cell)).length / tensionCells.length) * 100;
+  const chaoticHarmony =
+    harmonyCells.length === 0
+      ? 0
+      : (harmonyCells.filter((cell) => cellHasOldNewQualifier(cell)).length / harmonyCells.length) * 100;
+  const orderedHarmony = Math.max(0, 100 - Math.round(chaoticTension) - Math.round(chaoticHarmony));
+
+  return [
+    "CHAOTIC METRICS",
+    `Chaotic tension: ${formatPercent(chaoticTension)}`,
+    `Chaotic harmony: ${formatPercent(chaoticHarmony)}`,
+    `Ordered harmony: ${orderedHarmony}%`,
+  ].join("\n");
+}
+
+function getIndefiniteArticle(phrase: string) {
+  return /^[aeiou]/i.test(phrase.trim()) ? "An" : "A";
+}
+
+function buildUnevolvedSelfSection(placements: PlacementMap) {
+  const rising = placements["⥉"];
+  const sun = placements["☉"];
+  const moon = placements["☽"];
+
+  const descriptorParts = [
+    rising ? UNEVOLVED_RISING_WORDS[rising] : "",
+    sun ? UNEVOLVED_SUN_WORDS[sun] : "",
+  ].filter(Boolean);
+  const moonWord = moon ? UNEVOLVED_MOON_WORDS[moon] : "";
+
+  if (descriptorParts.length === 0 && !moonWord) return "";
+
+  const descriptor = descriptorParts.join(" ");
+  const article = descriptor ? getIndefiniteArticle(descriptorParts[0]) : "";
+  const sentenceParts = [
+    "Unevolved self:",
+    descriptor ? `${article} ${descriptor}` : "",
+    moonWord ? `who needs ${moonWord}` : "",
+  ].filter(Boolean);
+
+  return sentenceParts.join(" ");
+}
+
+function getEvolvedSelfBaseScore(sunSign: Sign | "") {
+  return (targetSign: Sign) => {
+    if (!sunSign) return 0;
+    if (EVOLVED_SELF_AWKWARD[sunSign].includes(targetSign)) return -2;
+    if (EVOLVED_SELF_COMPETING[sunSign].includes(targetSign)) return -1;
+    return 0;
+  };
+}
+
+function getEvolvedSelfQualityLabel(score: number) {
+  if (score <= -2) return EVOLVED_SELF_QUALITY_LABELS[0];
+  if (score === -1) return EVOLVED_SELF_QUALITY_LABELS[1];
+  if (score === 0) return EVOLVED_SELF_QUALITY_LABELS[2];
+  if (score === 1) return EVOLVED_SELF_QUALITY_LABELS[3];
+  if (score === 2) return EVOLVED_SELF_QUALITY_LABELS[4];
+  if (score === 3) return EVOLVED_SELF_QUALITY_LABELS[5];
+  return EVOLVED_SELF_QUALITY_LABELS[6];
+}
+
+function formatEvolvedSelfLine(sign: Sign, score: number) {
+  const quality = getEvolvedSelfQualityLabel(score);
+  const trait = EVOLVED_SELF_TRAITS[sign];
+  return trait.usesAt ? `${quality} at ${trait.phrase}` : `${quality} ${trait.phrase}`;
+}
+
+function buildEvolvedSelfSection(placements: PlacementMap, name: string) {
+  const sunSign = placements["☉"] ?? "";
+  const getBaseScore = getEvolvedSelfBaseScore(sunSign);
+  const scoredSigns = (Object.keys(SIGN_INDEX) as Sign[]).map((sign) => {
+    const matchingPlanets = EVOLVED_SELF_PLANETS.filter((planet) => placements[planet] === sign);
+    const bonusPoints = matchingPlanets.filter((planet) => isSamePlanetPlacement(planet, sign)).length;
+    const score = getBaseScore(sign) + matchingPlanets.length + bonusPoints;
+
+    return {
+      sign,
+      score,
+      line: formatEvolvedSelfLine(sign, score),
+      starseed: score >= 5 ? `${name} is a ${EVOLVED_SELF_TRAITS[sign].starseedName} starseed.` : null,
+    };
+  });
+
+  const orderedLines = scoredSigns
+    .sort((left, right) => {
+      if (right.score !== left.score) return right.score - left.score;
+      return SIGN_INDEX[left.sign] - SIGN_INDEX[right.sign];
+    })
+    .map((entry) => entry.line);
+
+  const starseedLines = scoredSigns
+    .filter((entry) => Boolean(entry.starseed))
+    .sort((left, right) => SIGN_INDEX[left.sign] - SIGN_INDEX[right.sign])
+    .map((entry) => entry.starseed as string);
+
+  const tail = starseedLines.length > 0 ? ["", ...starseedLines] : [];
+  return ["EVOLVED SELF", ...orderedLines, ...tail].join("\n");
+}
+
+function formatQualifiedPlanetPhrase(sign: Sign, planet: Planet) {
+  return `${SIGN_QUALIFIERS[sign]} ${PLANET_QUALIFIERS[planet]}`;
+}
+
+function buildQualifiedReportLine(
+  cells: GridCell[],
+  mode: GridViewMode,
+  leftName: string,
+  rightName: string
+) {
+  const leftEntries = getSortedUniquePlanets(cells.map((cell) => cell.aPlanet)).map((planet) =>
+    formatQualifiedPlanetPhrase(cells.find((cell) => cell.aPlanet === planet)?.aSign as Sign, planet)
+  );
+  const rightEntries = getSortedUniquePlanets(cells.map((cell) => cell.bPlanet)).map((planet) =>
+    formatQualifiedPlanetPhrase(cells.find((cell) => cell.bPlanet === planet)?.bSign as Sign, planet)
+  );
+
+  if (mode === "couple") {
+    return `= ${leftName}'s ${joinWithAnd(leftEntries)} + ${rightName}'s ${joinWithAnd(rightEntries)}`;
+  }
+
+  return `= ${leftName}'s ${joinWithAnd(leftEntries)} + ${leftName}'s ${joinWithAnd(rightEntries)}`;
 }
 
 function groupSummaryLines(
@@ -1671,7 +2196,8 @@ function buildSoloRelationSummary(
       .map(([sign, signCells]) => {
         const planets = getSortedUniquePlanets(signCells.flatMap((cell) => [cell.aPlanet, cell.bPlanet]));
         const lines = groupSummaryLines(signCells, relation, "partner-a", name, name, sex);
-        return [`${sign} ${planets.join(" + ")}`, ...lines].join("\n");
+        const qualifierLine = buildQualifiedReportLine(signCells, "partner-a", name, name);
+        return [`${sign} ${planets.join(" + ")}`, qualifierLine, ...lines].join("\n");
       })
       .join("\n\n");
   }
@@ -1697,7 +2223,8 @@ function buildSoloRelationSummary(
           formatNotationSide(rightSign, rightPlanets)
         );
         const lines = groupSummaryLines(pairCells, relation, "partner-a", name, name, sex);
-        return [notation, ...lines].join("\n");
+        const qualifierLine = buildQualifiedReportLine(pairCells, "partner-a", name, name);
+        return [notation, qualifierLine, ...lines].join("\n");
       })
       .join("\n\n");
   }
@@ -1737,6 +2264,15 @@ function buildSoloSummarySection(name: string, placements: PlacementMap, sex: Se
   const blocks: string[] = [];
 
   blocks.push(`${name.toUpperCase()} REPORT`);
+
+  const chartSummaryBlock = buildChartSummarySection(placements);
+  if (chartSummaryBlock) blocks.push(chartSummaryBlock);
+
+  const unevolvedSelfBlock = buildUnevolvedSelfSection(placements);
+  if (unevolvedSelfBlock) blocks.push(unevolvedSelfBlock);
+
+  const evolvedSelfBlock = buildEvolvedSelfSection(placements, name);
+  if (evolvedSelfBlock) blocks.push(evolvedSelfBlock);
 
   const sameSignBlock = buildSoloRelationSummary("same-sign", placements, name, sex);
   if (sameSignBlock) blocks.push(`SAME SIGN ${RELATION_STYLES["same-sign"].symbol}\n${sameSignBlock}`);
@@ -1791,7 +2327,8 @@ function buildCoupleRelationSummary(relation: RelationType, personA: PlacementMa
         const rightPlanets = getSortedUniquePlanets(signCells.map((cell) => cell.bPlanet));
         const notation = formatCombinedNotation(formatNotationSide(sign, leftPlanets), formatNotationSide(sign, rightPlanets));
         const lines = groupSummaryLines(signCells, relation, "couple", personAName, personBName);
-        return [notation, ...lines].join("\n");
+        const qualifierLine = buildQualifiedReportLine(signCells, "couple", personAName, personBName);
+        return [notation, qualifierLine, ...lines].join("\n");
       })
       .join("\n\n");
   }
@@ -1817,7 +2354,8 @@ function buildCoupleRelationSummary(relation: RelationType, personA: PlacementMa
           formatNotationSide(rightSign, rightPlanets)
         );
         const lines = groupSummaryLines(pairCells, relation, "couple", personAName, personBName);
-        return [notation, ...lines].join("\n");
+        const qualifierLine = buildQualifiedReportLine(pairCells, "couple", personAName, personBName);
+        return [notation, qualifierLine, ...lines].join("\n");
       })
       .join("\n\n");
   }
@@ -1827,7 +2365,25 @@ function buildCoupleRelationSummary(relation: RelationType, personA: PlacementMa
 
 function buildCoupleSummarySection(personAName: string, personA: PlacementMap, personBName: string, personB: PlacementMap) {
   const relationOrder: RelationType[] = ["same-sign", "same-element", "elemental-harmony", "teamwork", "awkward", "competing"];
-  const blocks = ["COUPLE REPORT"];
+  const romanticMatch = buildRomanticMatchMultiplier(personA, personB);
+  const blocks = [
+    "COUPLE REPORT",
+    [
+      "ROMANTIC MATCH MULTIPLIER",
+      `${personAName} -> ${personBName} Love Match: ${formatMultiplierNumber(romanticMatch.aLoveScore)}`,
+      `${personBName} -> ${personAName} Love Match: ${formatMultiplierNumber(romanticMatch.bLoveScore)}`,
+      `Love Match Average: ${formatMultiplierNumber(romanticMatch.loveMatch)}`,
+      "",
+      `${personAName} -> ${personBName} Sex Match: ${formatMultiplierNumber(romanticMatch.aSexScore)}`,
+      `${personBName} -> ${personAName} Sex Match: ${formatMultiplierNumber(romanticMatch.bSexScore)}`,
+      `Sex Match Average: ${formatMultiplierNumber(romanticMatch.sexMatch)}`,
+      "",
+      `${personAName} -> ${personBName} Romantic Match: ${formatMultiplierNumber(romanticMatch.aRomanticMatch)}`,
+      `${personAName} -> ${personBName} Romantic Multiplier: ${romanticMatch.aMultiplier}`,
+      `${personBName} -> ${personAName} Romantic Match: ${formatMultiplierNumber(romanticMatch.bRomanticMatch)}`,
+      `${personBName} -> ${personAName} Romantic Multiplier: ${romanticMatch.bMultiplier}`,
+    ].join("\n"),
+  ];
 
   for (const relation of relationOrder) {
     const block = buildCoupleRelationSummary(relation, personA, personB, personAName, personBName);
@@ -2041,11 +2597,11 @@ function getSingleInteractionText(cell: GridCell, soloName: string) {
     "☿|♀": `Your mind ${interaction} your interests`,
     "☿|♂": `Your mind ${interaction} your drive`,
     "☿|♃": `Your mind ${interaction} your morality`,
-    "☿|♄": "Your social strategy + how you cope",
+    "☿|♄": "How you cope",
     "♀|♂": `Your body ${interaction} your heart`,
     "♀|♃": `Your heart ${interaction} your philosophy of life`,
     "♀|♄": `Your heart ${interaction} your rebellious side`,
-    "♂|♃": "Your drive + how you seek growth",
+    "♂|♃": "How you seek growth",
     "♂|♄": "How you attract the opposite sex",
     "♃|♄": "How you socialize",
   };
@@ -2469,7 +3025,7 @@ function buildCellReport(
     "",
     "Planetary Interaction",
     interactionText,
-    ...(normalizedNote ? ["", "Notes", normalizedNote] : []),
+    ...(normalizedNote ? ["", `NOTE: ${normalizedNote}`] : []),
     "",
     ...(isSharedPlacement
       ? [`${personAName} + ${personBName}`, buildEntityReport(cell.aPlanet, cell.aSign)]
@@ -2526,36 +3082,44 @@ function formatQualifierSection(title: string, rows: QualifierRow[]) {
   ].join("\n");
 }
 
-function formatHeartMultiplierSection(heartMultiplier: {
-  score: number;
-  multiplier: string;
-  counts: Record<RelationType, number>;
-}) {
-  const orderedRelations: RelationType[] = [
-    "same-sign",
-    "same-element",
-    "elemental-harmony",
-    "competing",
-    "awkward",
-    "teamwork",
-    "okay",
-  ];
-
+function formatRomanticMatchSection(
+  personAName: string,
+  personBName: string,
+  romanticMatch: {
+    aLoveScore: number;
+    bLoveScore: number;
+    loveMatch: number;
+    aSexScore: number;
+    bSexScore: number;
+    sexMatch: number;
+    aRomanticMatch: number;
+    bRomanticMatch: number;
+    romanticMatch: number;
+    aMultiplier: string;
+    bMultiplier: string;
+  }
+) {
   return [
-    "HEART MULTIPLIER",
+    "ROMANTIC MATCH MULTIPLIER",
     "-".repeat(48),
-    `Score: ${heartMultiplier.score}`,
-    `Multiplier: ${heartMultiplier.multiplier}`,
+    `${personAName} -> ${personBName} Love Match: ${formatMultiplierNumber(romanticMatch.aLoveScore)}`,
+    `${personBName} -> ${personAName} Love Match: ${formatMultiplierNumber(romanticMatch.bLoveScore)}`,
+    `Love Match Average: ${formatMultiplierNumber(romanticMatch.loveMatch)}`,
     "",
-    "Counts",
-    ...orderedRelations.map((relation) => {
-      const item = RELATION_STYLES[relation];
-      return `${item.label}: ${heartMultiplier.counts[relation]}`;
-    }),
+    `${personAName} -> ${personBName} Sex Match: ${formatMultiplierNumber(romanticMatch.aSexScore)}`,
+    `${personBName} -> ${personAName} Sex Match: ${formatMultiplierNumber(romanticMatch.bSexScore)}`,
+    `Sex Match Average: ${formatMultiplierNumber(romanticMatch.sexMatch)}`,
+    "",
+    `${personAName} -> ${personBName} Romantic Match: ${formatMultiplierNumber(romanticMatch.aRomanticMatch)}`,
+    `${personAName} -> ${personBName} Romantic Multiplier: ${romanticMatch.aMultiplier}`,
+    `${personBName} -> ${personAName} Romantic Match: ${formatMultiplierNumber(romanticMatch.bRomanticMatch)}`,
+    `${personBName} -> ${personAName} Romantic Multiplier: ${romanticMatch.bMultiplier}`,
   ].join("\n");
 }
 
 function buildCalculationReport(options: {
+  personAName: string;
+  personBName: string;
   elementRows: DistributionRow[];
   modalityRows: DistributionRow[];
   genderRows: DistributionRow[];
@@ -2566,10 +3130,18 @@ function buildCalculationReport(options: {
   astrologicalGenderB: Record<GenderCategory, number>;
   generationalGenderA: Record<GenderCategory, number>;
   generationalGenderB: Record<GenderCategory, number>;
-  heartMultiplier: {
-    score: number;
-    multiplier: string;
-    counts: Record<RelationType, number>;
+  romanticMatch: {
+    aLoveScore: number;
+    bLoveScore: number;
+    loveMatch: number;
+    aSexScore: number;
+    bSexScore: number;
+    sexMatch: number;
+    aRomanticMatch: number;
+    bRomanticMatch: number;
+    romanticMatch: number;
+    aMultiplier: string;
+    bMultiplier: string;
   };
 }) {
   const astrologicalGenderCombined = combineDistributions(
@@ -2609,7 +3181,7 @@ function buildCalculationReport(options: {
     formatDistributionTable("Yin Yang", options.yinYangRows),
     formatQualifierSection("Nature", options.natureRows),
     formatQualifierSection("Energy", options.energyRows),
-    formatHeartMultiplierSection(options.heartMultiplier),
+    formatRomanticMatchSection(options.personAName, options.personBName, options.romanticMatch),
   ].join("\n\n");
 }
 
@@ -2620,12 +3192,68 @@ function formatShortReportDate(date: Date) {
   return `${day}/${month}/${year}`;
 }
 
+function buildRootsOfPowerMatches(values: PlacementMap) {
+  const grouped: Record<Element, RootPowerMatch[]> = {
+    air: [],
+    water: [],
+    earth: [],
+    fire: [],
+  };
+
+  for (const planet of SUMMARY_PERSONAL_PLANETS) {
+    const sign = values[planet];
+    if (!sign) continue;
+    const match = ROOTS_OF_POWER_TABLE[sign].find((entry) => entry.planet === planet);
+    if (!match) continue;
+    grouped[ELEMENTS[sign]].push({ ...match, sign });
+  }
+
+  for (const element of ROOTS_ELEMENT_ORDER) {
+    grouped[element].sort((a, b) => {
+      const signDelta = SIGN_INDEX[a.sign] - SIGN_INDEX[b.sign];
+      if (signDelta !== 0) return signDelta;
+      return SUMMARY_PERSONAL_PLANETS.indexOf(a.planet) - SUMMARY_PERSONAL_PLANETS.indexOf(b.planet);
+    });
+  }
+
+  return grouped;
+}
+
+function formatClockTime(totalMinutes: number) {
+  const minutesInDay = 24 * 60;
+  const normalized = ((totalMinutes % minutesInDay) + minutesInDay) % minutesInDay;
+  const hour24 = Math.floor(normalized / 60);
+  const minute = normalized % 60;
+  const meridiem = hour24 >= 12 ? "P.M." : "A.M.";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${meridiem}`;
+}
+
+function buildPlanetaryHourSequence(day: DayOfWeek, mode: ClockMode) {
+  const dayRuler = DAY_RULERS[day];
+  const startIndex = PLANETARY_HOUR_ORDER.indexOf(dayRuler);
+  const offset = mode === "day" ? 0 : 12;
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const planet = PLANETARY_HOUR_ORDER[(startIndex + offset + index) % PLANETARY_HOUR_ORDER.length];
+    return {
+      planet,
+      label: PLANETARY_HOUR_WORDS[planet],
+    };
+  });
+}
+
 function formatSavedTimestamp(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
-function createSavedChartRecord(name: string, sex: Sex, placements: PlacementMap): SavedChartRecord {
+function createSavedChartRecord(
+  name: string,
+  sex: Sex,
+  placements: PlacementMap,
+  houses: HouseAssignment[]
+): SavedChartRecord {
   const now = new Date().toISOString();
   const id =
     typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -2634,14 +3262,35 @@ function createSavedChartRecord(name: string, sex: Sex, placements: PlacementMap
 
   return {
     id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     storageScope: "local",
     profileName: name.trim() || "Unnamed Chart",
     sex,
     placements: { ...placements },
+    houses: houses.map((item) => ({ ...item })),
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function normalizeHouseAssignments(value: unknown) {
+  if (!Array.isArray(value) || value.length !== 12) {
+    return DEFAULT_HOUSE_ASSIGNMENTS.map((item) => ({ ...item }));
+  }
+
+  return value.map((item, index) => {
+    const fallback = DEFAULT_HOUSE_ASSIGNMENTS[index];
+    if (!item || typeof item !== "object") return { ...fallback };
+    const candidate = item as Partial<HouseAssignment> & { planet?: HousePlanet | "" };
+    const normalizePlanet = (planet: HousePlanet | "" | undefined, fallbackPlanet: HousePlanet | "") =>
+      planet === "" ? "" : planet && HOUSE_PLANETS.includes(planet) ? planet : fallbackPlanet;
+
+    return {
+      sign: candidate.sign === "" ? "" : candidate.sign && SIGNS.includes(candidate.sign) ? candidate.sign : fallback.sign,
+      planetA: normalizePlanet(candidate.planetA ?? candidate.planet, fallback.planetA),
+      planetB: normalizePlanet(candidate.planetB, fallback.planetB),
+    };
+  });
 }
 
 function createEmptyPlacementMap(): PlacementMap {
@@ -2693,52 +3342,73 @@ function buildDownloadReport(
     "teamwork",
   ];
 
-  const sections = order
-    .map((relation) => {
-      const cells = grid.flat().filter((cell) => {
-        if (cell.relation !== relation) return false;
-        if (options?.omitSamePlanetComparisons && cell.aPlanet === cell.bPlanet) return false;
-        if (options?.omitMirroredComparisons && isMirroredDuplicateCell(cell)) return false;
-        return true;
-      });
-      if (cells.length === 0) return null;
+  const buildRelationSections = ({
+    grid,
+    leftName,
+    rightName,
+    mode,
+    originalPersonAName,
+    originalPersonA,
+    originalPersonBName,
+    originalPersonB,
+    omitSamePlanetComparisons,
+    omitMirroredComparisons,
+    sectionOffset,
+  }: {
+    grid: GridCell[][];
+    leftName: string;
+    rightName: string;
+    mode: GridViewMode;
+    originalPersonAName: string;
+    originalPersonA: PlacementMap;
+    originalPersonBName: string;
+    originalPersonB: PlacementMap;
+    omitSamePlanetComparisons?: boolean;
+    omitMirroredComparisons?: boolean;
+    sectionOffset?: number;
+  }) =>
+    order
+      .map((relation) => {
+        const cells = grid.flat().filter((cell) => {
+          if (cell.relation !== relation) return false;
+          if (omitSamePlanetComparisons && cell.aPlanet === cell.bPlanet) return false;
+          if (omitMirroredComparisons && isMirroredDuplicateCell(cell)) return false;
+          return true;
+        });
+        if (cells.length === 0) return null;
 
-      const heading = RELATION_STYLES[relation];
-      const sectionIndex = order.indexOf(relation) + (options?.singleReportName ? 1 : 3);
+        const heading = RELATION_STYLES[relation];
+        const headingText =
+          typeof sectionOffset === "number"
+            ? `${getSectionLetter(order.indexOf(relation) + sectionOffset)}. ${heading.label.toUpperCase()} ${heading.symbol}`
+            : `${heading.label.toUpperCase()} ${heading.symbol}`;
 
-      return [
-        `${getSectionLetter(sectionIndex)}. ${heading.label.toUpperCase()} ${heading.symbol}`,
-        "=".repeat(48),
-        cells
-          .map((cell) => {
-            const noteKey =
-              options?.mode &&
-              options.originalPersonAName &&
-              options.originalPersonA &&
-              options.originalPersonBName &&
-              options.originalPersonB
-                ? buildModalNoteKey(
-                    cell,
-                    options.mode,
-                    options.originalPersonAName,
-                    options.originalPersonA,
-                    options.originalPersonBName,
-                    options.originalPersonB
-                  )
-                : "";
-            const note = noteKey ? options?.modalNotes?.[noteKey] : "";
-            const interactionText =
-              options?.mode === "couple"
-                ? getCoupleInteractionText(cell, personAName, personBName)
-                : getSingleInteractionText(cell, personAName);
+        return [
+          headingText,
+          "=".repeat(48),
+          cells
+            .map((cell) => {
+              const noteKey = buildModalNoteKey(
+                cell,
+                mode,
+                originalPersonAName,
+                originalPersonA,
+                originalPersonBName,
+                originalPersonB
+              );
+              const note = noteKey ? options?.modalNotes?.[noteKey] : "";
+              const interactionText =
+                mode === "couple"
+                  ? getCoupleInteractionText(cell, leftName, rightName)
+                  : getSingleInteractionText(cell, leftName);
 
-            return buildCellReport(cell, personAName, personBName, interactionText, note);
-          })
-          .join("\n\n" + "-".repeat(48) + "\n\n"),
-      ].join("\n");
-    })
-    .filter(Boolean)
-    .join("\n\n\n");
+              return buildCellReport(cell, leftName, rightName, interactionText, note);
+            })
+            .join("\n\n" + "-".repeat(48) + "\n\n"),
+        ].join("\n");
+      })
+      .filter(Boolean)
+      .join("\n\n\n");
 
   if (options?.singleReportName) {
     const soloSummary =
@@ -2758,29 +3428,110 @@ function buildDownloadReport(
               options.originalPersonASex
             )}`
           : "";
+    const soloSections =
+      options.mode &&
+      options.originalPersonAName &&
+      options.originalPersonA &&
+      options.originalPersonBName &&
+      options.originalPersonB
+        ? buildRelationSections({
+            grid,
+            leftName: personAName,
+            rightName: personBName,
+            mode: options.mode,
+            originalPersonAName: options.originalPersonAName,
+            originalPersonA: options.originalPersonA,
+            originalPersonBName: options.originalPersonBName,
+            originalPersonB: options.originalPersonB,
+            omitSamePlanetComparisons: options.omitSamePlanetComparisons,
+            omitMirroredComparisons: options.omitMirroredComparisons,
+            sectionOffset: 1,
+          })
+        : "";
 
     return [
       `${options.singleReportName} Report ${formatShortReportDate(new Date())}`,
       "",
       ...(soloSummary ? [soloSummary, ""] : []),
-      sections,
+      soloSections,
       ...(options.calculations ? ["", "", options.calculations] : []),
     ].join("\n");
   }
 
-  const summary =
+  const coupleSummary =
     options?.originalPersonA &&
     options.originalPersonASex &&
     options.originalPersonB &&
     options.originalPersonBSex
-      ? buildMiniSummaryReport({
-          personAName: options.originalPersonAName ?? personAName,
-          personA: options.originalPersonA,
-          personASex: options.originalPersonASex,
-          personBName: options.originalPersonBName ?? personBName,
-          personB: options.originalPersonB,
-          personBSex: options.originalPersonBSex,
-        })
+      ? buildCoupleSummarySection(
+          options.originalPersonAName ?? personAName,
+          options.originalPersonA,
+          options.originalPersonBName ?? personBName,
+          options.originalPersonB
+        )
+      : "";
+  const soloABlock =
+    options?.originalPersonA &&
+    options.originalPersonAName &&
+    options.originalPersonASex &&
+    options.originalPersonB &&
+    options.originalPersonBName
+      ? [
+          `A. ${buildSoloSummarySection(options.originalPersonAName, options.originalPersonA, options.originalPersonASex)}`,
+          buildRelationSections({
+            grid: buildGrid(options.originalPersonA, options.originalPersonA),
+            leftName: options.originalPersonAName,
+            rightName: options.originalPersonAName,
+            mode: "partner-a",
+            originalPersonAName: options.originalPersonAName,
+            originalPersonA: options.originalPersonA,
+            originalPersonBName: options.originalPersonBName,
+            originalPersonB: options.originalPersonB,
+            omitSamePlanetComparisons: true,
+            omitMirroredComparisons: true,
+          }),
+        ].join("\n\n")
+      : "";
+  const soloBBlock =
+    options?.originalPersonB &&
+    options.originalPersonBName &&
+    options.originalPersonBSex &&
+    options.originalPersonA &&
+    options.originalPersonAName
+      ? [
+          `B. ${buildSoloSummarySection(options.originalPersonBName, options.originalPersonB, options.originalPersonBSex)}`,
+          buildRelationSections({
+            grid: buildGrid(options.originalPersonB, options.originalPersonB),
+            leftName: options.originalPersonBName,
+            rightName: options.originalPersonBName,
+            mode: "partner-b",
+            originalPersonAName: options.originalPersonAName,
+            originalPersonA: options.originalPersonA,
+            originalPersonBName: options.originalPersonBName,
+            originalPersonB: options.originalPersonB,
+            omitSamePlanetComparisons: true,
+            omitMirroredComparisons: true,
+          }),
+        ].join("\n\n")
+      : "";
+  const coupleBlock =
+    options?.originalPersonA &&
+    options.originalPersonAName &&
+    options.originalPersonB &&
+    options.originalPersonBName
+      ? [
+          `C. ${coupleSummary}`,
+          buildRelationSections({
+            grid,
+            leftName: personAName,
+            rightName: personBName,
+            mode: "couple",
+            originalPersonAName: options.originalPersonAName,
+            originalPersonA: options.originalPersonA,
+            originalPersonBName: options.originalPersonBName,
+            originalPersonB: options.originalPersonB,
+          }),
+        ].join("\n\n")
       : "";
 
   return [
@@ -2788,13 +3539,26 @@ function buildDownloadReport(
     `Generated: ${new Date().toLocaleString()}`,
     `${personAName} x ${personBName}`,
     "",
-    ...(summary ? [summary, ""] : []),
-    sections,
+    ...(soloABlock ? [soloABlock, ""] : []),
+    ...(soloBBlock ? [soloBBlock, ""] : []),
+    ...(coupleBlock ? [coupleBlock] : []),
     ...(options?.calculations ? ["", "", options.calculations] : []),
   ].join("\n");
 }
 
 export default function LoveComputerPage() {
+  const [houseTarget, setHouseTarget] = useState<"a" | "b">("a");
+  const [houseAssignmentsA, setHouseAssignmentsA] = useState<HouseAssignment[]>(
+    DEFAULT_HOUSE_ASSIGNMENTS.map((item) => ({ ...item }))
+  );
+  const [houseAssignmentsB, setHouseAssignmentsB] = useState<HouseAssignment[]>(
+    DEFAULT_HOUSE_ASSIGNMENTS.map((item) => ({ ...item }))
+  );
+  const [clockDay, setClockDay] = useState<DayOfWeek>("Thursday");
+  const [sunriseHour, setSunriseHour] = useState(6);
+  const [sunriseMinute, setSunriseMinute] = useState(31);
+  const [clockMode, setClockMode] = useState<ClockMode>("day");
+  const [reportSkin, setReportSkin] = useState<"classic" | "teal">("classic");
   const [personAName, setPersonAName] = useState("Person A");
   const [personA, setPersonA] = useState<PlacementMap>(DEFAULT_A);
   const [personASex, setPersonASex] = useState<Sex>("male");
@@ -2827,10 +3591,12 @@ export default function LoveComputerPage() {
   const [modalNotes, setModalNotes] = useState<ModalNotesMap>({});
   const [noteExpanded, setNoteExpanded] = useState(false);
   const [saveStatus, setSaveStatus] = useState("Charts are stored locally in this browser for now.");
+  const [saveFlashState, setSaveFlashState] = useState<SaveFlashState>(null);
   const [loadPrimarySelection, setLoadPrimarySelection] = useState("");
   const [loadComparisonSelection, setLoadComparisonSelection] = useState("");
   const [deleteChartSelection, setDeleteChartSelection] = useState("");
   const backdropPointerStartedRef = useRef(false);
+  const saveFlashTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!selectedCell) return;
@@ -2848,6 +3614,14 @@ export default function LoveComputerPage() {
   }, [selectedCell]);
 
   useEffect(() => {
+    return () => {
+      if (saveFlashTimeoutRef.current) {
+        window.clearTimeout(saveFlashTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     setSelectedCell(null);
     setFocusedRows([]);
     setFocusedCols([]);
@@ -2860,6 +3634,12 @@ export default function LoveComputerPage() {
     const storedCharts = window.localStorage.getItem(SAVED_CHARTS_STORAGE_KEY);
     const storedModalNotes = window.localStorage.getItem(MODAL_NOTES_STORAGE_KEY);
     const storedNoteMarkerOffset = window.localStorage.getItem(NOTE_MARKER_STORAGE_KEY);
+    const storedReportSkin = window.localStorage.getItem(REPORT_SKIN_STORAGE_KEY);
+    const storedClockCalculator = window.localStorage.getItem(CLOCK_CALCULATOR_STORAGE_KEY);
+
+    if (storedReportSkin === "classic" || storedReportSkin === "teal") {
+      setReportSkin(storedReportSkin);
+    }
 
     if (storedA) {
       try {
@@ -2883,7 +3663,20 @@ export default function LoveComputerPage() {
 
     if (storedCharts) {
       try {
-        setSavedCharts(JSON.parse(storedCharts) as SavedChartRecord[]);
+        const parsed = JSON.parse(storedCharts) as Array<Partial<SavedChartRecord>>;
+        setSavedCharts(
+          parsed.map((record) => ({
+            id: record.id ?? `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            schemaVersion: 2,
+            storageScope: "local",
+            profileName: record.profileName?.trim() || "Unnamed Chart",
+            sex: record.sex === "female" ? "female" : "male",
+            placements: { ...createEmptyPlacementMap(), ...(record.placements ?? {}) },
+            houses: normalizeHouseAssignments(record.houses),
+            createdAt: record.createdAt ?? new Date().toISOString(),
+            updatedAt: record.updatedAt ?? record.createdAt ?? new Date().toISOString(),
+          }))
+        );
         setSaveStatus("Saved charts loaded from this browser.");
       } catch {
         window.localStorage.removeItem(SAVED_CHARTS_STORAGE_KEY);
@@ -2906,7 +3699,57 @@ export default function LoveComputerPage() {
       }
     }
 
+    if (storedClockCalculator) {
+      try {
+        const parsed = JSON.parse(storedClockCalculator) as {
+          day?: DayOfWeek;
+          sunriseHour?: number;
+          sunriseMinute?: number;
+          mode?: ClockMode;
+        };
+
+        if (parsed.day && DAYS_OF_WEEK.includes(parsed.day)) {
+          setClockDay(parsed.day);
+        }
+
+        if (typeof parsed.sunriseHour === "number" && parsed.sunriseHour >= 1 && parsed.sunriseHour <= 12) {
+          setSunriseHour(parsed.sunriseHour);
+        }
+
+        if (
+          typeof parsed.sunriseMinute === "number" &&
+          Number.isInteger(parsed.sunriseMinute) &&
+          parsed.sunriseMinute >= 1 &&
+          parsed.sunriseMinute <= 59
+        ) {
+          setSunriseMinute(parsed.sunriseMinute);
+        }
+
+        if (parsed.mode === "day" || parsed.mode === "night") {
+          setClockMode(parsed.mode);
+        }
+      } catch {
+        window.localStorage.removeItem(CLOCK_CALCULATOR_STORAGE_KEY);
+      }
+    }
+
   }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(REPORT_SKIN_STORAGE_KEY, reportSkin);
+  }, [reportSkin]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      CLOCK_CALCULATOR_STORAGE_KEY,
+      JSON.stringify({
+        day: clockDay,
+        sunriseHour,
+        sunriseMinute,
+        mode: clockMode,
+      })
+    );
+  }, [clockDay, sunriseHour, sunriseMinute, clockMode]);
 
   const visiblePlanets = useMemo(
     () => pickVisiblePlanets(showGenerationalPlanets),
@@ -2958,7 +3801,7 @@ export default function LoveComputerPage() {
     [yinYangA, yinYangB]
   );
   const relationshipGrid = useMemo(() => buildGrid(personA, personB), [personA, personB]);
-  const heartMultiplier = useMemo(() => buildHeartMultiplier(relationshipGrid), [relationshipGrid]);
+  const romanticMatch = useMemo(() => buildRomanticMatchMultiplier(personA, personB), [personA, personB]);
 
   const elementRows = buildSummaryRows(
     { fire: "Fire", earth: "Earth", air: "Air", water: "Water" },
@@ -2996,6 +3839,15 @@ export default function LoveComputerPage() {
     getEnergyQualifier(genderB.final),
     getEnergyQualifier(genderCombined)
   );
+  const planetaryHourRows = useMemo(() => {
+    const baseMinutes = ((sunriseHour % 12) + (clockMode === "day" ? 0 : 12)) * 60 + sunriseMinute;
+    const sequence = buildPlanetaryHourSequence(clockDay, clockMode);
+
+    return sequence.map((entry, index) => ({
+      time: formatClockTime(baseMinutes + index * 60),
+      ...entry,
+    }));
+  }, [clockDay, clockMode, sunriseHour, sunriseMinute]);
 
   const debugBoxes = useMemo(
     () => buildSynastryDebugBoxes(synastryOverridesA, synastryOverridesB),
@@ -3138,6 +3990,8 @@ export default function LoveComputerPage() {
 
   const downloadReport = () => {
     const calculations = buildCalculationReport({
+      personAName,
+      personBName,
       elementRows,
       modalityRows,
       genderRows,
@@ -3148,7 +4002,7 @@ export default function LoveComputerPage() {
       astrologicalGenderB: genderB.astrological,
       generationalGenderA: genderA.generational,
       generationalGenderB: genderB.generational,
-      heartMultiplier,
+      romanticMatch,
     });
     const report = buildDownloadReport(grid, gridLeftName, gridTopName, {
       omitSamePlanetComparisons: gridViewMode !== "couple",
@@ -3225,11 +4079,93 @@ export default function LoveComputerPage() {
     window.localStorage.setItem(SAVED_CHARTS_STORAGE_KEY, JSON.stringify(next));
   };
 
-  const saveChart = (name: string, sex: Sex, placements: PlacementMap) => {
-    const record = createSavedChartRecord(name, sex, placements);
+  const saveChart = (
+    target: "a" | "b",
+    name: string,
+    sex: Sex,
+    placements: PlacementMap,
+    houses: HouseAssignment[]
+  ) => {
+    const normalizedName = name.trim().toLowerCase();
+    const hasDuplicateName = savedCharts.some(
+      (record) => record.profileName.trim().toLowerCase() === normalizedName
+    );
+
+    if (normalizedName && hasDuplicateName) {
+      setSaveStatus("Name already taken.");
+      setSaveFlashState({ target, kind: "taken" });
+      if (saveFlashTimeoutRef.current) {
+        window.clearTimeout(saveFlashTimeoutRef.current);
+      }
+      saveFlashTimeoutRef.current = window.setTimeout(() => {
+        setSaveFlashState(null);
+        saveFlashTimeoutRef.current = null;
+      }, 1600);
+      return;
+    }
+
+    const record = createSavedChartRecord(name, sex, placements, houses);
     const next = [record, ...savedCharts];
     persistSavedCharts(next);
     setSaveStatus(`${record.profileName} saved locally.`);
+    setSaveFlashState({ target, kind: "saved" });
+    if (saveFlashTimeoutRef.current) {
+      window.clearTimeout(saveFlashTimeoutRef.current);
+    }
+    saveFlashTimeoutRef.current = window.setTimeout(() => {
+      setSaveFlashState(null);
+      saveFlashTimeoutRef.current = null;
+    }, 1600);
+  };
+
+  const saveHousesChart = (
+    target: "a" | "b",
+    name: string,
+    sex: Sex,
+    placements: PlacementMap,
+    houses: HouseAssignment[]
+  ) => {
+    const normalizedName = name.trim().toLowerCase();
+    const now = new Date().toISOString();
+    const nextHouses = houses.map((item) => ({ ...item }));
+
+    if (!normalizedName) {
+      setSaveStatus("Enter a chart name before saving houses.");
+      return false;
+    }
+
+    const existingIndex = savedCharts.findIndex(
+      (record) => record.profileName.trim().toLowerCase() === normalizedName
+    );
+
+    if (existingIndex >= 0) {
+      const existing = savedCharts[existingIndex];
+      const updatedRecord: SavedChartRecord = {
+        ...existing,
+        sex,
+        placements: { ...placements },
+        houses: nextHouses,
+        updatedAt: now,
+      };
+      const next = [...savedCharts];
+      next.splice(existingIndex, 1);
+      persistSavedCharts([updatedRecord, ...next]);
+      setSaveStatus(`${updatedRecord.profileName} houses saved locally.`);
+      return true;
+    }
+
+    const record = createSavedChartRecord(name, sex, placements, nextHouses);
+    persistSavedCharts([record, ...savedCharts]);
+    setSaveStatus(`${record.profileName} saved locally.`);
+    setSaveFlashState({ target, kind: "saved" });
+    if (saveFlashTimeoutRef.current) {
+      window.clearTimeout(saveFlashTimeoutRef.current);
+    }
+    saveFlashTimeoutRef.current = window.setTimeout(() => {
+      setSaveFlashState(null);
+      saveFlashTimeoutRef.current = null;
+    }, 1600);
+    return true;
   };
 
   const loadSavedChart = (target: "a" | "b", record: SavedChartRecord) => {
@@ -3237,10 +4173,12 @@ export default function LoveComputerPage() {
       setPersonAName(record.profileName);
       setPersonASex(record.sex);
       setPersonA({ ...record.placements });
+      setHouseAssignmentsA(normalizeHouseAssignments(record.houses));
     } else {
       setPersonBName(record.profileName);
       setPersonBSex(record.sex);
       setPersonB({ ...record.placements });
+      setHouseAssignmentsB(normalizeHouseAssignments(record.houses));
     }
     setSaveStatus(`${record.profileName} loaded into ${target === "a" ? "Primary" : "Comparison"} Chart.`);
   };
@@ -3336,7 +4274,7 @@ export default function LoveComputerPage() {
   };
 
   return (
-    <main className="report-shell">
+    <main className={`report-shell${reportSkin === "teal" ? " report-shell-teal" : ""}`}>
       <nav className="page-jump-nav" aria-label="Page sections">
         {PAGE_NAV_ITEMS.map((item) => (
           <a
@@ -3355,9 +4293,16 @@ export default function LoveComputerPage() {
       <section className="report-header">
         <div>
           <p className="eyebrow">The Grand Counsel of Paizen</p>
-          <h1>Astrological Report</h1>
+          <h1>Relationship Calculator</h1>
         </div>
         <div className="report-meta">
+          <label className="skin-switch">
+            <span>Skin</span>
+            <select value={reportSkin} onChange={(event) => setReportSkin(event.target.value as "classic" | "teal")}>
+              <option value="classic">Sandbox</option>
+              <option value="teal">Teal</option>
+            </select>
+          </label>
           <p>AstrologyToday.ca</p>
           <p>Love Computer Prototype</p>
           <p>Version 1.0</p>
@@ -3370,22 +4315,30 @@ export default function LoveComputerPage() {
           subtitle="Primary chart"
           name={personAName}
           sex={personASex}
+          showGenerational={showGenerationalPlanets}
           onNameChange={setPersonAName}
           values={personA}
           onSexChange={setPersonASex}
           onChange={setPersonA}
-          onSave={() => saveChart(personAName, personASex, personA)}
+          saveFeedback={
+            saveFlashState?.target === "a" ? saveFlashState.kind : null
+          }
+          onSave={() => saveChart("a", personAName, personASex, personA, houseAssignmentsA)}
         />
         <PlacementCard
           title={personBName}
           subtitle="Comparison chart"
           name={personBName}
           sex={personBSex}
+          showGenerational={showGenerationalPlanets}
           onNameChange={setPersonBName}
           values={personB}
           onSexChange={setPersonBSex}
           onChange={setPersonB}
-          onSave={() => saveChart(personBName, personBSex, personB)}
+          saveFeedback={
+            saveFlashState?.target === "b" ? saveFlashState.kind : null
+          }
+          onSave={() => saveChart("b", personBName, personBSex, personB, houseAssignmentsB)}
         />
         <CompatibilityTable />
       </section>
@@ -3789,6 +4742,39 @@ export default function LoveComputerPage() {
         />
       </section>
 
+      <section className="summary-grid summary-grid-roots">
+        <RootsOfPowerCard personA={personA} personB={personB} />
+      </section>
+
+      <section className="summary-grid summary-grid-tools">
+        <HousesCard
+          target={houseTarget}
+          onTargetChange={setHouseTarget}
+          houseAssignments={houseTarget === "a" ? houseAssignmentsA : houseAssignmentsB}
+          onHouseAssignmentsChange={houseTarget === "a" ? setHouseAssignmentsA : setHouseAssignmentsB}
+          onSave={() =>
+            saveHousesChart(
+              houseTarget,
+              houseTarget === "a" ? personAName : personBName,
+              houseTarget === "a" ? personASex : personBSex,
+              houseTarget === "a" ? personA : personB,
+              houseTarget === "a" ? houseAssignmentsA : houseAssignmentsB
+            )
+          }
+        />
+        <ClockCalculatorCard
+          day={clockDay}
+          onDayChange={setClockDay}
+          sunriseHour={sunriseHour}
+          onSunriseHourChange={setSunriseHour}
+          sunriseMinute={sunriseMinute}
+          onSunriseMinuteChange={setSunriseMinute}
+          mode={clockMode}
+          onModeChange={setClockMode}
+          rows={planetaryHourRows}
+        />
+      </section>
+
       {selectedCell ? (
         <div
           className="modal-backdrop"
@@ -3880,20 +4866,24 @@ function PlacementCard({
   subtitle,
   name,
   sex,
+  showGenerational,
   values,
   onNameChange,
   onSexChange,
   onChange,
+  saveFeedback,
   onSave,
 }: {
   title: string;
   subtitle: string;
   name: string;
   sex: Sex;
+  showGenerational: boolean;
   values: PlacementMap;
   onNameChange: (next: string) => void;
   onSexChange: (next: Sex) => void;
   onChange: (next: PlacementMap) => void;
+  saveFeedback: "saved" | "taken" | null;
   onSave: () => void;
 }) {
   return (
@@ -3901,8 +4891,22 @@ function PlacementCard({
       <p className="eyebrow">{subtitle}</p>
       <h2>{title}</h2>
       <p className="card-copy">Leave Moon or ASC blank if birth time is unknown.</p>
-      <button type="button" className="card-save-button" onClick={onSave}>
-        Save Chart
+      <button
+        type="button"
+        className={`card-save-button${
+          saveFeedback === "saved"
+            ? " card-save-button-saved"
+            : saveFeedback === "taken"
+              ? " card-save-button-error"
+              : ""
+        }`}
+        onClick={onSave}
+      >
+        {saveFeedback === "saved"
+          ? "Saved"
+          : saveFeedback === "taken"
+            ? "Name already taken"
+            : "Save Chart"}
       </button>
 
       <label className="sex-row">
@@ -3924,7 +4928,7 @@ function PlacementCard({
       </label>
 
       <div className="placement-list">
-        {PLANETS.map((planet) => (
+        {pickVisiblePlanets(showGenerational).map((planet) => (
           <label key={planet} className="placement-row">
             <div className="planet-mark">
               <strong>{planet}</strong>
@@ -4102,6 +5106,318 @@ function QualifierCard({
           <span>{labels[2]}:</span>
           <strong>{row.combined}</strong>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function RootsOfPowerCard({
+  personA,
+  personB,
+}: {
+  personA: PlacementMap;
+  personB: PlacementMap;
+}) {
+  const personARoots = buildRootsOfPowerMatches(personA);
+  const personBRoots = buildRootsOfPowerMatches(personB);
+
+  return (
+    <section className="summary-card roots-card">
+      <div className="roots-card-heading">
+        <div className="roots-card-heading-copy">
+          <p className="eyebrow">Roots of the Element</p>
+          <h2 className="roots-card-title">Roots of the Element</h2>
+          <p className="roots-card-intro">
+            A snapshot of where each chart draws power, loss, peace, pleasure, work, and change
+            through the classical roots assigned to each sign.
+          </p>
+        </div>
+      </div>
+
+      <div className="roots-card-top">
+        <div className="roots-card-panels">
+          <div className="roots-person-panel-wrap">
+            <p className="roots-panel-label">Person A</p>
+            <div className="roots-person-panel">
+              {ROOTS_ELEMENT_ORDER.map((element) => (
+                <div key={element} className="roots-element-block">
+                  <p className="roots-element-heading">{ROOTS_ELEMENT_LABELS[element]}</p>
+                  {personARoots[element].length ? (
+                    personARoots[element].map((entry) => (
+                      <div key={`${entry.sign}-${entry.planet}`} className="roots-element-line">
+                        <span className="roots-entry-symbols">
+                          {entry.sign} {entry.planet}
+                        </span>
+                        <span className="roots-entry-text">{entry.text}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="roots-element-line roots-element-line-empty">No active roots here</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="roots-person-panel-wrap">
+            <p className="roots-panel-label">Person B</p>
+            <div className="roots-person-panel">
+              {ROOTS_ELEMENT_ORDER.map((element) => (
+                <div key={element} className="roots-element-block">
+                  <p className="roots-element-heading">{ROOTS_ELEMENT_LABELS[element]}</p>
+                  {personBRoots[element].length ? (
+                    personBRoots[element].map((entry) => (
+                      <div key={`${entry.sign}-${entry.planet}`} className="roots-element-line">
+                        <span className="roots-entry-symbols">
+                          {entry.sign} {entry.planet}
+                        </span>
+                        <span className="roots-entry-text">{entry.text}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="roots-element-line roots-element-line-empty">No active roots here</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="roots-table-header">
+        <p className="roots-table-title">Roots Table</p>
+        <p className="roots-table-copy">Reference guide for the classical roots assigned across the zodiac.</p>
+      </div>
+      <div className="roots-table-grid">
+        {ROOTS_TABLE_ORDER.map((sign) => (
+          <div key={sign} className="roots-table-sign-card">
+            <p className="roots-table-sign-heading">{SIGN_LABELS[sign]}</p>
+            {ROOTS_OF_POWER_TABLE[sign].map((entry) => (
+              <div key={`${sign}-${entry.planet}`} className="roots-table-sign-line">
+                {entry.planet} = {entry.text}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HousesCard({
+  target,
+  onTargetChange,
+  houseAssignments,
+  onHouseAssignmentsChange,
+  onSave,
+}: {
+  target: "a" | "b";
+  onTargetChange: (next: "a" | "b") => void;
+  houseAssignments: HouseAssignment[];
+  onHouseAssignmentsChange: (next: HouseAssignment[]) => void;
+  onSave: () => boolean;
+}) {
+  const [saveFeedback, setSaveFeedback] = useState<"idle" | "saved">("idle");
+
+  return (
+    <section className="summary-card astro-tool-card">
+      <p className="eyebrow">Houses</p>
+      <h2>Houses</h2>
+      <div className="houses-shell">
+        <div className="houses-list">
+          {HOUSE_COPY.map((label, index) => (
+            <div key={label} className="houses-row">
+              <div className="houses-number">{index + 1}</div>
+              <select
+                className="astro-tool-select"
+                value={houseAssignments[index]?.sign ?? DEFAULT_HOUSE_ASSIGNMENTS[index].sign}
+                onChange={(event) => {
+                  const next = houseAssignments.map((item) => ({ ...item }));
+                  next[index].sign = event.target.value as Sign | "";
+                  onHouseAssignmentsChange(next);
+                }}
+              >
+                <option value="">N/A</option>
+                {SIGNS.map((sign) => (
+                  <option key={sign} value={sign}>
+                    {sign} {SIGN_LABELS[sign]}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="astro-tool-select houses-planet-select"
+                value={houseAssignments[index]?.planetA ?? DEFAULT_HOUSE_ASSIGNMENTS[index].planetA}
+                onChange={(event) => {
+                  const next = houseAssignments.map((item) => ({ ...item }));
+                  next[index].planetA = event.target.value as HousePlanet | "";
+                  onHouseAssignmentsChange(next);
+                }}
+              >
+                <option value="">N/A</option>
+                {HOUSE_CARD_PLANETS.map((planet) => (
+                  <option key={planet} value={planet}>
+                    {planet}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="astro-tool-select houses-planet-select"
+                value={houseAssignments[index]?.planetB ?? DEFAULT_HOUSE_ASSIGNMENTS[index].planetB}
+                onChange={(event) => {
+                  const next = houseAssignments.map((item) => ({ ...item }));
+                  next[index].planetB = event.target.value as HousePlanet | "";
+                  onHouseAssignmentsChange(next);
+                }}
+              >
+                <option value="">N/A</option>
+                {HOUSE_CARD_PLANETS.map((planet) => (
+                  <option key={planet} value={planet}>
+                    {planet}
+                  </option>
+                ))}
+              </select>
+              <div className="houses-copy">
+                <span>{label}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="houses-actions">
+          <div className="houses-target-toggle" aria-label="Choose chart to save house values into">
+            <button
+              type="button"
+              className={target === "a" ? "houses-target-button is-active" : "houses-target-button"}
+              onClick={() => onTargetChange("a")}
+              aria-pressed={target === "a"}
+              aria-label="Edit Primary chart houses"
+            >
+              A
+            </button>
+            <button
+              type="button"
+              className={target === "b" ? "houses-target-button is-active" : "houses-target-button"}
+              onClick={() => onTargetChange("b")}
+              aria-pressed={target === "b"}
+              aria-label="Edit Comparison chart houses"
+            >
+              B
+            </button>
+          </div>
+          <button
+            type="button"
+            className={saveFeedback === "saved" ? "houses-save-button is-saved" : "houses-save-button"}
+            onClick={() => {
+              const didSave = onSave();
+              if (!didSave) return;
+              setSaveFeedback("saved");
+              window.setTimeout(() => {
+                setSaveFeedback("idle");
+              }, 1200);
+            }}
+          >
+            {saveFeedback === "saved" ? "Saved" : "Save"}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ClockCalculatorCard({
+  day,
+  onDayChange,
+  sunriseHour,
+  onSunriseHourChange,
+  sunriseMinute,
+  onSunriseMinuteChange,
+  mode,
+  onModeChange,
+  rows,
+}: {
+  day: DayOfWeek;
+  onDayChange: (next: DayOfWeek) => void;
+  sunriseHour: number;
+  onSunriseHourChange: (next: number) => void;
+  sunriseMinute: number;
+  onSunriseMinuteChange: (next: number) => void;
+  mode: ClockMode;
+  onModeChange: (next: ClockMode) => void;
+  rows: { time: string; planet: Planet; label: string }[];
+}) {
+  return (
+    <section className="summary-card astro-tool-card clock-card">
+      <p className="eyebrow">Clock</p>
+      <h2>Clock Calculator</h2>
+      <div className="clock-controls">
+        <label className="clock-control clock-control-day">
+          <span>Day</span>
+          <select
+            className="astro-tool-select clock-day-field"
+            value={day}
+            onChange={(event) => onDayChange(event.target.value as DayOfWeek)}
+          >
+            {DAYS_OF_WEEK.map((item) => (
+              <option key={item} value={item}>
+                {item.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="clock-control">
+          <span>Sunrise</span>
+          <div className="clock-time-selects">
+            <select
+              className="astro-tool-select clock-time-field clock-time-field-hour"
+              value={sunriseHour}
+              onChange={(event) => onSunriseHourChange(Number(event.target.value))}
+            >
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+            <span className="clock-colon">:</span>
+            <select
+              className="astro-tool-select clock-time-field clock-time-field-minute"
+              value={sunriseMinute}
+              onChange={(event) => onSunriseMinuteChange(Number(event.target.value))}
+            >
+              {Array.from({ length: 59 }, (_, index) => index + 1).map((value) => (
+                <option key={value} value={value}>
+                  {String(value).padStart(2, "0")}
+                </option>
+              ))}
+            </select>
+            <span className="clock-meridiem">A.M.</span>
+          </div>
+        </div>
+      </div>
+      <div className="clock-table">
+        {rows.map((row) => (
+          <div key={`${mode}-${row.time}`} className="clock-row">
+            <span className="clock-time">{row.time}</span>
+            <span className="clock-planet">{row.planet}</span>
+            <span className="clock-word">{row.label.toUpperCase()}</span>
+          </div>
+        ))}
+      </div>
+      <div className="clock-mode-toggle">
+        <button
+          type="button"
+          className={mode === "day" ? "clock-mode-button is-active" : "clock-mode-button"}
+          onClick={() => onModeChange("day")}
+          aria-label="Show day hours"
+        >
+          ☼
+        </button>
+        <button
+          type="button"
+          className={mode === "night" ? "clock-mode-button is-active" : "clock-mode-button"}
+          onClick={() => onModeChange("night")}
+          aria-label="Show night hours"
+        >
+          ☽
+        </button>
       </div>
     </section>
   );
