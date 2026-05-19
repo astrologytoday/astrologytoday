@@ -3470,12 +3470,14 @@ h2 {
     radial-gradient(circle at 84% 18%, rgba(196, 234, 188, 0.11), transparent 24%),
     radial-gradient(circle at 52% 44%, rgba(255, 255, 255, 0.05), transparent 30%),
     linear-gradient(135deg, #0e5a63 0%, #16737c 34%, #2b8c8e 68%, #63a88f 100%);
-  transform: scale(0.94);
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%) scale(0.94);
   transform-origin: top center;
-  width: calc(100% / 0.94);
+  width: calc((100% + 24px) / 0.94);
   overflow-x: hidden;
-  margin-left: calc(-3% / 0.94);
-  margin-bottom: -148px;
+  margin-left: 0;
+  margin-bottom: -152px;
   padding-right: 0;
 }
 
