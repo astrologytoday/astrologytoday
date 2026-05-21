@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import SiteFooter from "../shared/SiteFooter";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { blogPosts } from "../../lib/blog";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
@@ -11,6 +12,12 @@ import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n"
 const BLOG_DEBUG_STORAGE_KEY = "astrologytoday-blog-debug-v5";
 const BLOG_MARQUEE_BASE_WIDTH = 1979;
 const BLOG_MARQUEE_BASE_HEIGHT = 34;
+const BLOG_CANVAS_SCALE = 0.71;
+const BLOG_CANVAS_WIDTH = 1860;
+const BLOG_CANVAS_BLEED_LEFT = 360;
+const BLOG_CANVAS_BLEED_RIGHT = 360;
+const BLOG_CANVAS_OFFSET_X = 10;
+const BLOG_CANVAS_OFFSET_Y = 16;
 
 type TransformDebug = {
   x: number;
@@ -100,14 +107,14 @@ type GalleryCard = {
 
 const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
-  "☉ ⋅ ARIES SUN ⋅ 03/21 - 04/19 ⋅ ARIES SUN ⋅ ☉",
-  "♀ ⋅ TAURUS VENUS ⋅ 03/30 - 04/23 ⋅ TAURUS VENUS ⋅ ♀",
-  "☽ ⋅ CAPRICORN MOON ⋅ 04/08 - 04/10 ⋅ CAPRICORN MOON ⋅ ☽",
-  "☿ ⋅ PISCES MERCURY ⋅ 03/01 - 04/14 ⋅ PISCES MERCURY ⋅ ☿",
-  "☽ ⋅ AQUARIUS MOON ⋅ 04/11 - 04/12 ⋅ AQUARIUS MOON ⋅ ☽",
-  "♂ ⋅ ARIES MARS ⋅ 04/09 - 05/17 ⋅ ARIES MARS ⋅ ♂",
-  "☽ ⋅ PISCES MOON ⋅ 04/13 - 04/14 ⋅ PISCES MOON ⋅ ☽",
-  "☿ ⋅ ARIES MERCURY ⋅ 04/15 - 05/02 ⋅ ARIES MERCURY ⋅ ☿",
+  "☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉",
+  "♀ ⋅ GEMINI VENUS ⋅ 04/24 - 05/18 ⋅ GEMINI VENUS ⋅ ♀",
+  "☽ ⋅ CANCER NEW MOON ⋅ 05/19 - 05/20 ⋅ CANCER NEW MOON ⋅ ☽",
+  "☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿",
+  "☽ ⋅ LEO MOON ⋅ 05/21 - 05/22 ⋅ LEO MOON ⋅ ☽",
+  "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
+  "☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽",
+  "♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀",
 ];
 
 function buildGalleryCards(locale: SupportedLocale): GalleryCard[] {
@@ -537,7 +544,7 @@ export default function BlogPage({
   return (
     <main className="blog-page blog-gallery-page">
       <div
-        className="home-marquee home-marquee-animated"
+        className="home-marquee home-marquee-animated blog-page-marquee"
         aria-label="Astrology Today marquee"
         style={marqueeStyle}
         onMouseDown={startDragTransform("marquee", marqueeDebug)}
@@ -558,255 +565,266 @@ export default function BlogPage({
         </div>
       </div>
 
-      <section className="home-top-shell home-top-shell-mock blog-gallery-shell">
-        <aside className="home-side-column">
-          <div className="home-social-rail home-social-rail-mock blog-gallery-rail">
-            <div
-              className="blog-gallery-emblem-card"
-              aria-hidden="true"
-              style={{
-                transform: `translate(${emblemCardDebug.x}px, ${emblemCardDebug.y}px) scale(${emblemCardDebug.scale})`,
-                opacity: opacities.emblemCard,
-              }}
-              onMouseDown={startDragTransform("emblemCard", emblemCardDebug)}
-            />
-
-            <div
-              className="home-brand-emblem-wrap"
-              style={getTransformStyle(brandTransforms.emblem, emblemDebug, opacities.emblem)}
-              onMouseDown={startDragTransform("emblem", emblemDebug)}
-            >
-              <img
-                src="/astrologytoday-emblem.png"
-                alt="AstrologyToday emblem"
-                className="home-brand-emblem-image"
-              />
-            </div>
-
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
-              style={getTransformStyle(brandTransforms.titleCircle, titleCircleDebug, 1)}
-              onMouseDown={startDragTransform("titleCircle", titleCircleDebug)}
-            >
+      <ScaledPageCanvas
+        bleedLeft={BLOG_CANVAS_BLEED_LEFT}
+        bleedRight={BLOG_CANVAS_BLEED_RIGHT}
+        className="blog-page-canvas"
+        designWidth={BLOG_CANVAS_WIDTH}
+        offsetX={BLOG_CANVAS_OFFSET_X}
+        offsetY={BLOG_CANVAS_OFFSET_Y}
+        scale={BLOG_CANVAS_SCALE}
+        viewportClassName="blog-page-canvas-viewport"
+      >
+        <section className="home-top-shell home-top-shell-mock blog-gallery-shell">
+          <aside className="home-side-column">
+            <div className="home-social-rail home-social-rail-mock blog-gallery-rail">
               <div
-                className="home-brand-title-circle"
+                className="blog-gallery-emblem-card"
+                aria-hidden="true"
                 style={{
-                  backgroundColor: "#a6c8cf",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleCircle,
+                  transform: `translate(${emblemCardDebug.x}px, ${emblemCardDebug.y}px) scale(${emblemCardDebug.scale})`,
+                  opacity: opacities.emblemCard,
                 }}
+                onMouseDown={startDragTransform("emblemCard", emblemCardDebug)}
               />
-            </div>
 
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
-              style={getTransformStyle(brandTransforms.titleCircle2, titleCircle2Debug, 1)}
-              onMouseDown={startDragTransform("titleCircle2", titleCircle2Debug)}
-            >
               <div
-                className="home-brand-title-circle"
-                style={{
-                  backgroundColor: "#a6c8cf",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleCircle2,
-                }}
-              />
-            </div>
+                className="home-brand-emblem-wrap"
+                style={getTransformStyle(brandTransforms.emblem, emblemDebug, opacities.emblem)}
+                onMouseDown={startDragTransform("emblem", emblemDebug)}
+              >
+                <img
+                  src="/astrologytoday-emblem.png"
+                  alt="AstrologyToday emblem"
+                  className="home-brand-emblem-image"
+                />
+              </div>
 
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
-              style={getTransformStyle(brandTransforms.titleCircle3, titleCircle3Debug, 1)}
-              onMouseDown={startDragTransform("titleCircle3", titleCircle3Debug)}
-            >
               <div
-                className="home-brand-title-circle"
-                style={{
-                  backgroundColor: "#a6c8cf",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleCircle3,
-                }}
-              />
-            </div>
-
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
-              style={getTransformStyle(brandTransforms.titleCircle4, titleCircle4Debug, 1)}
-              onMouseDown={startDragTransform("titleCircle4", titleCircle4Debug)}
-            >
-              <div
-                className="home-brand-title-circle"
-                style={{
-                  backgroundColor: "#a6c8cf",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleCircle4,
-                }}
-              />
-            </div>
-
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-bar-wrap"
-              style={getTransformStyle(brandTransforms.titleBar, titleBarDebug, 1)}
-              onMouseDown={startDragTransform("titleBar", titleBarDebug)}
-            >
-              <div
-                className="home-brand-title-bar"
-                style={{
-                  width: `${titleBarDebug.width}px`,
-                  height: `${titleBarDebug.height}px`,
-                  backgroundColor: "#a9cbd1",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleBar,
-                }}
-              />
-            </div>
-
-            <div
-              className="home-brand-title-bg-wrap home-brand-title-bar-wrap"
-              style={getTransformStyle(brandTransforms.titleBar2, titleBar2Debug, 1)}
-              onMouseDown={startDragTransform("titleBar2", titleBar2Debug)}
-            >
-              <div
-                className="home-brand-title-bar"
-                style={{
-                  width: `${titleBar2Debug.width}px`,
-                  height: `${titleBar2Debug.height}px`,
-                  backgroundColor: "#a9cbd1",
-                  backgroundImage: "url('/title-background.png')",
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  opacity: opacities.titleBar2,
-                }}
-              />
-            </div>
-
-            <div
-              className="home-brand-title-wrap"
-              style={getTransformStyle(brandTransforms.title, titleDebug, opacities.title)}
-              onMouseDown={startDragTransform("title", titleDebug)}
-            >
-              <img
-                src="/astrologytoday-title.png"
-                alt="AstrologyToday title"
-                className="home-brand-title-image"
-                style={{
-                  filter:
-                    "brightness(2) drop-shadow(0 0 16px rgba(255, 255, 255, 0.64)) drop-shadow(0 0 34px rgba(240, 251, 255, 0.46))",
-                }}
-              />
-            </div>
-
-            <nav className="home-sidebar-nav blog-gallery-nav" aria-label="Site sections">
-              {navLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`home-sidebar-link${item.active ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        <section className="home-dashboard home-dashboard-mock blog-gallery-dashboard">
-          <div className="blog-gallery-content">
-            <section className="blog-gallery-hero">
-              <div className="blog-gallery-title-block">
+                className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
+                style={getTransformStyle(brandTransforms.titleCircle, titleCircleDebug, 1)}
+                onMouseDown={startDragTransform("titleCircle", titleCircleDebug)}
+              >
                 <div
+                  className="home-brand-title-circle"
                   style={{
-                    transform: `translate(${pageTitleDebug.x}px, ${pageTitleDebug.y}px) scale(${pageTitleDebug.scale})`,
-                    transformOrigin: "top left",
-                    opacity: opacities.pageTitle,
-                    display: "inline-block",
+                    backgroundColor: "#a6c8cf",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleCircle,
                   }}
-                  onMouseDown={startDragTransform("pageTitle", pageTitleDebug)}
-                >
-                  <h1>Blog</h1>
-                </div>
-                <p className="blog-gallery-intro">
-                  A gallery for essays, articles, research, and Astrology Today journals.
-                </p>
+                />
               </div>
 
-              {featuredPost ? (
-                <Link
-                  href={withLocale(locale, `/blog/${featuredPost.slug}`)}
-                  className="blog-gallery-featured-card"
-                >
-                  <div className="blog-gallery-featured-copy">
-                    <p className="blog-gallery-featured-label">Featured Blog</p>
-                    <h2>{featuredPost.title}</h2>
-                    <p>{featuredPost.excerpt}</p>
-                    <span>{featuredPost.publishedLabel} · {featuredPost.readTime}</span>
-                  </div>
-                  <img
-                    src={featuredPost.coverImage}
-                    alt={featuredPost.coverImageAlt}
-                    className="blog-gallery-featured-image"
-                  />
-                </Link>
-              ) : null}
-            </section>
-
-            <section className="blog-gallery-grid-section" aria-labelledby="blog-gallery-list">
-              <div className="blog-gallery-grid-header">
-                <h2 id="blog-gallery-list">More Posts</h2>
+              <div
+                className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
+                style={getTransformStyle(brandTransforms.titleCircle2, titleCircle2Debug, 1)}
+                onMouseDown={startDragTransform("titleCircle2", titleCircle2Debug)}
+              >
+                <div
+                  className="home-brand-title-circle"
+                  style={{
+                    backgroundColor: "#a6c8cf",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleCircle2,
+                  }}
+                />
               </div>
 
-              <div className="blog-gallery-grid">
-                {galleryCards.map((card) => (
-                  <Link key={card.slug} href={card.href!} className="blog-gallery-card">
-                    <div className="blog-gallery-card-copy">
-                      <p className="blog-gallery-card-meta">{card.meta}</p>
-                      <h3>{card.title}</h3>
-                      <p>{card.excerpt}</p>
-                    </div>
-                    <div className="blog-gallery-card-footer">
-                      <span>{card.badge}</span>
-                      {card.image ? (
-                        <img
-                          src={card.image}
-                          alt={card.imageAlt}
-                          className="blog-gallery-card-thumb"
-                        />
-                      ) : null}
-                    </div>
+              <div
+                className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
+                style={getTransformStyle(brandTransforms.titleCircle3, titleCircle3Debug, 1)}
+                onMouseDown={startDragTransform("titleCircle3", titleCircle3Debug)}
+              >
+                <div
+                  className="home-brand-title-circle"
+                  style={{
+                    backgroundColor: "#a6c8cf",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleCircle3,
+                  }}
+                />
+              </div>
+
+              <div
+                className="home-brand-title-bg-wrap home-brand-title-circle-wrap"
+                style={getTransformStyle(brandTransforms.titleCircle4, titleCircle4Debug, 1)}
+                onMouseDown={startDragTransform("titleCircle4", titleCircle4Debug)}
+              >
+                <div
+                  className="home-brand-title-circle"
+                  style={{
+                    backgroundColor: "#a6c8cf",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleCircle4,
+                  }}
+                />
+              </div>
+
+              <div
+                className="home-brand-title-bg-wrap home-brand-title-bar-wrap"
+                style={getTransformStyle(brandTransforms.titleBar, titleBarDebug, 1)}
+                onMouseDown={startDragTransform("titleBar", titleBarDebug)}
+              >
+                <div
+                  className="home-brand-title-bar"
+                  style={{
+                    width: `${titleBarDebug.width}px`,
+                    height: `${titleBarDebug.height}px`,
+                    backgroundColor: "#a9cbd1",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleBar,
+                  }}
+                />
+              </div>
+
+              <div
+                className="home-brand-title-bg-wrap home-brand-title-bar-wrap"
+                style={getTransformStyle(brandTransforms.titleBar2, titleBar2Debug, 1)}
+                onMouseDown={startDragTransform("titleBar2", titleBar2Debug)}
+              >
+                <div
+                  className="home-brand-title-bar"
+                  style={{
+                    width: `${titleBar2Debug.width}px`,
+                    height: `${titleBar2Debug.height}px`,
+                    backgroundColor: "#a9cbd1",
+                    backgroundImage: "url('/title-background.png')",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    opacity: opacities.titleBar2,
+                  }}
+                />
+              </div>
+
+              <div
+                className="home-brand-title-wrap"
+                style={getTransformStyle(brandTransforms.title, titleDebug, opacities.title)}
+                onMouseDown={startDragTransform("title", titleDebug)}
+              >
+                <img
+                  src="/astrologytoday-title.png"
+                  alt="AstrologyToday title"
+                  className="home-brand-title-image"
+                  style={{
+                    filter:
+                      "brightness(2) drop-shadow(0 0 16px rgba(255, 255, 255, 0.64)) drop-shadow(0 0 34px rgba(240, 251, 255, 0.46))",
+                  }}
+                />
+              </div>
+
+              <nav className="home-sidebar-nav blog-gallery-nav" aria-label="Site sections">
+                {navLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`home-sidebar-link${item.active ? " is-active" : ""}`}
+                  >
+                    {item.label}
                   </Link>
                 ))}
-              </div>
-
-              <nav className="blog-gallery-pagination" aria-label="Blog gallery pages">
-                <a href="#" className="is-active" aria-current="page">
-                  1
-                </a>
-                <a href="#">2</a>
-                <a href="#">3</a>
-                <a href="#">4</a>
-                <a href="#">5</a>
               </nav>
-            </section>
-          </div>
+            </div>
+          </aside>
 
-          <SiteFooter
-            locale={locale}
-            currentPath="/blog"
-            className="blog-gallery-footer"
-            footerSpacing={footerSpacing}
-            logoTransform={footerLogoDebug}
-          />
+          <section className="home-dashboard home-dashboard-mock blog-gallery-dashboard">
+            <div className="blog-gallery-content">
+              <section className="blog-gallery-hero">
+                <div className="blog-gallery-title-block">
+                  <div
+                    style={{
+                      transform: `translate(${pageTitleDebug.x}px, ${pageTitleDebug.y}px) scale(${pageTitleDebug.scale})`,
+                      transformOrigin: "top left",
+                      opacity: opacities.pageTitle,
+                      display: "inline-block",
+                    }}
+                    onMouseDown={startDragTransform("pageTitle", pageTitleDebug)}
+                  >
+                    <h1>Blog</h1>
+                  </div>
+                  <p className="blog-gallery-intro">
+                    A gallery for essays, articles, research, and Astrology Today journals.
+                  </p>
+                </div>
+
+                {featuredPost ? (
+                  <Link
+                    href={withLocale(locale, `/blog/${featuredPost.slug}`)}
+                    className="blog-gallery-featured-card"
+                  >
+                    <div className="blog-gallery-featured-copy">
+                      <p className="blog-gallery-featured-label">Featured Blog</p>
+                      <h2>{featuredPost.title}</h2>
+                      <p>{featuredPost.excerpt}</p>
+                      <span>{featuredPost.publishedLabel} · {featuredPost.readTime}</span>
+                    </div>
+                    <img
+                      src={featuredPost.coverImage}
+                      alt={featuredPost.coverImageAlt}
+                      className="blog-gallery-featured-image"
+                    />
+                  </Link>
+                ) : null}
+              </section>
+
+              <section className="blog-gallery-grid-section" aria-labelledby="blog-gallery-list">
+                <div className="blog-gallery-grid-header">
+                  <h2 id="blog-gallery-list">More Posts</h2>
+                </div>
+
+                <div className="blog-gallery-grid">
+                  {galleryCards.map((card) => (
+                    <Link key={card.slug} href={card.href!} className="blog-gallery-card">
+                      <div className="blog-gallery-card-copy">
+                        <p className="blog-gallery-card-meta">{card.meta}</p>
+                        <h3>{card.title}</h3>
+                        <p>{card.excerpt}</p>
+                      </div>
+                      <div className="blog-gallery-card-footer">
+                        <span>{card.badge}</span>
+                        {card.image ? (
+                          <img
+                            src={card.image}
+                            alt={card.imageAlt}
+                            className="blog-gallery-card-thumb"
+                          />
+                        ) : null}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                <nav className="blog-gallery-pagination" aria-label="Blog gallery pages">
+                  <a href="#" className="is-active" aria-current="page">
+                    1
+                  </a>
+                  <a href="#">2</a>
+                  <a href="#">3</a>
+                  <a href="#">4</a>
+                  <a href="#">5</a>
+                </nav>
+              </section>
+            </div>
+
+            <SiteFooter
+              locale={locale}
+              currentPath="/blog"
+              className="blog-gallery-footer"
+              footerSpacing={footerSpacing}
+              logoTransform={footerLogoDebug}
+            />
+          </section>
         </section>
-      </section>
+      </ScaledPageCanvas>
 
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside

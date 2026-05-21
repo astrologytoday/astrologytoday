@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
@@ -77,6 +78,10 @@ type DownloadsDebugState = {
 
 const DOWNLOADS_DEBUG_STORAGE_KEY = "downloads-debug-v9";
 const DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
+const DOWNLOADS_CANVAS_SCALE = 0.71;
+const DOWNLOADS_CANVAS_WIDTH = 1760;
+const DOWNLOADS_CANVAS_OFFSET_X = 0;
+const DOWNLOADS_CANVAS_OFFSET_Y = 16;
 
 const DEFAULT_DEBUG: DownloadsDebugState = {
   title: {
@@ -538,189 +543,199 @@ export default function DownloadsPage({
       <div className="downloads-orb downloads-orb-one" aria-hidden="true" />
       <div className="downloads-orb downloads-orb-two" aria-hidden="true" />
 
-      <section className="downloads-shell">
-        <div className="downloads-layout">
-          <aside className="downloads-sidebar">
-            <nav
-              className="home-sidebar-nav downloads-sidebar-nav"
-              aria-label="Site sections"
-              style={{
-                transform: "translate(-184px, 24px) scale(1.04)",
-                transformOrigin: "top center",
-              }}
-            >
-              {sidebarLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`home-sidebar-link${item.active ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-
-          <div className="downloads-main">
-            {debugState.pageLogo.visible ? (
-              <img
-                src="/astrologytoday-emblem.png"
-                alt="Astrology Today emblem"
-                className="services-floating-logo"
+      <ScaledPageCanvas
+        className="downloads-page-canvas"
+        designWidth={DOWNLOADS_CANVAS_WIDTH}
+        offsetX={DOWNLOADS_CANVAS_OFFSET_X}
+        offsetY={DOWNLOADS_CANVAS_OFFSET_Y}
+        scale={DOWNLOADS_CANVAS_SCALE}
+        viewportClassName="downloads-page-canvas-viewport"
+      >
+        <section className="downloads-shell">
+          <div className="downloads-layout">
+            <aside className="downloads-sidebar">
+              <nav
+                className="home-sidebar-nav downloads-sidebar-nav"
+                aria-label="Site sections"
                 style={{
-                  transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
+                  transform: "translate(-184px, 24px) scale(1.04)",
+                  transformOrigin: "top center",
+                }}
+              >
+                {sidebarLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`home-sidebar-link${item.active ? " is-active" : ""}`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </aside>
+
+            <div className="downloads-main">
+              {debugState.pageLogo.visible ? (
+                <img
+                  src="/astrologytoday-emblem.png"
+                  alt="Astrology Today emblem"
+                  className="services-floating-logo"
+                  draggable={false}
+                  style={{
+                    transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
+                    transformOrigin: "top left",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDebugTarget("pageLogo");
+                    setLogoDragging({
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      initialX: debugState.pageLogo.x,
+                      initialY: debugState.pageLogo.y,
+                    });
+                  }}
+                />
+              ) : null}
+              <div
+                className="downloads-title-block"
+                style={{
+                  transform: `translate(${debugState.title.x}px, ${debugState.title.y}px) scale(${debugState.title.scale})`,
                   transformOrigin: "top left",
                 }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setDebugTarget("pageLogo");
-                  setLogoDragging({
-                    startX: event.clientX,
-                    startY: event.clientY,
-                    initialX: debugState.pageLogo.x,
-                    initialY: debugState.pageLogo.y,
-                  });
-                }}
-              />
-            ) : null}
-            <div
-              className="downloads-title-block"
-              style={{
-                transform: `translate(${debugState.title.x}px, ${debugState.title.y}px) scale(${debugState.title.scale})`,
-                transformOrigin: "top left",
-              }}
-            >
-              <h1>DOWNLOADS</h1>
-            </div>
-
-            <div
-              className="downloads-card"
-              style={{
-                transform: `translate(${debugState.card.x}px, ${debugState.card.y}px)`,
-                width: `${debugState.card.width}px`,
-                height: `${debugState.card.height}px`,
-                ["--downloads-lock-opacity" as string]: `${debugState.card.opacity}`,
-                ["--downloads-list-opacity" as string]: `${Number((0.72 - debugState.card.opacity * 0.9).toFixed(2))}`,
-                ["--downloads-list-blur" as string]: `${Number((3 + debugState.card.opacity * 10).toFixed(2))}px`,
-              }}
-            >
-              <div className="downloads-list">
-                {downloadItems.map((item) => (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    download
-                    className="downloads-row"
-                    style={{ columnGap: `${debugState.card.gap}px` }}
-                  >
-                    <span className="downloads-row-title">{item.title}</span>
-                    <span className="downloads-row-date">{item.date}</span>
-                  </a>
-                ))}
+              >
+                <h1>DOWNLOADS</h1>
               </div>
-              <div className="downloads-subscriber-overlay" aria-hidden="true">
-                <div className="downloads-subscriber-lockbox">
-                  <div
-                    className="downloads-subscriber-lockbox-inner"
-                    style={{
-                      marginTop: `${-debugState.lockBoxEdges.top}px`,
-                      marginBottom: `${-debugState.lockBoxEdges.bottom}px`,
-                      paddingTop: `${34 + debugState.lockBoxEdges.top}px`,
-                      paddingBottom: `${32 + debugState.lockBoxEdges.bottom}px`,
-                    }}
-                  >
+
+              <div
+                className="downloads-card"
+                style={{
+                  transform: `translate(${debugState.card.x}px, ${debugState.card.y}px)`,
+                  width: `${debugState.card.width}px`,
+                  height: `${debugState.card.height}px`,
+                  ["--downloads-lock-opacity" as string]: `${debugState.card.opacity}`,
+                  ["--downloads-list-opacity" as string]: `${Number((0.72 - debugState.card.opacity * 0.9).toFixed(2))}`,
+                  ["--downloads-list-blur" as string]: `${Number((3 + debugState.card.opacity * 10).toFixed(2))}px`,
+                }}
+              >
+                <div className="downloads-list">
+                  {downloadItems.map((item) => (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      download
+                      className="downloads-row"
+                      style={{ columnGap: `${debugState.card.gap}px` }}
+                    >
+                      <span className="downloads-row-title">{item.title}</span>
+                      <span className="downloads-row-date">{item.date}</span>
+                    </a>
+                  ))}
+                </div>
+                <div className="downloads-subscriber-overlay" aria-hidden="true">
+                  <div className="downloads-subscriber-lockbox">
                     <div
-                      className="downloads-subscriber-lock-header"
+                      className="downloads-subscriber-lockbox-inner"
                       style={{
-                        transform: `translate(${debugState.lockHeader.x}px, ${debugState.lockHeader.y}px) scale(${debugState.lockHeader.scale})`,
-                        transformOrigin: "center top",
+                        marginTop: `${-debugState.lockBoxEdges.top}px`,
+                        marginBottom: `${-debugState.lockBoxEdges.bottom}px`,
+                        paddingTop: `${34 + debugState.lockBoxEdges.top}px`,
+                        paddingBottom: `${32 + debugState.lockBoxEdges.bottom}px`,
                       }}
                     >
-                      <div className="downloads-subscriber-lock-icon">🔒</div>
-                      <p className="downloads-subscriber-lock-kicker">Locked Library</p>
+                      <div
+                        className="downloads-subscriber-lock-header"
+                        style={{
+                          transform: `translate(${debugState.lockHeader.x}px, ${debugState.lockHeader.y}px) scale(${debugState.lockHeader.scale})`,
+                          transformOrigin: "center top",
+                        }}
+                      >
+                        <div className="downloads-subscriber-lock-icon">🔒</div>
+                        <p className="downloads-subscriber-lock-kicker">Locked Library</p>
+                      </div>
+                      <h2>
+                        <span
+                          className="downloads-lock-line"
+                          style={{
+                            transform: `translate(${debugState.lockFor.x}px, ${debugState.lockFor.y}px) scale(${debugState.lockFor.scale})`,
+                          }}
+                        >
+                          For
+                        </span>
+                        <span
+                          className="downloads-lock-line"
+                          style={{
+                            transform: `translate(${debugState.lockSubscribers.x}px, ${debugState.lockSubscribers.y}px) scale(${debugState.lockSubscribers.scale})`,
+                          }}
+                        >
+                          Subscribers
+                        </span>
+                        <span
+                          className="downloads-lock-line"
+                          style={{
+                            transform: `translate(${debugState.lockOnly.x}px, ${debugState.lockOnly.y}px) scale(${debugState.lockOnly.scale})`,
+                          }}
+                        >
+                          Only
+                        </span>
+                      </h2>
+                      <p
+                        className="downloads-subscriber-lock-copy"
+                        style={{
+                          transform: `translate(${debugState.lockCopy.x}px, ${debugState.lockCopy.y}px) scale(${debugState.lockCopy.scale})`,
+                          transformOrigin: "center top",
+                        }}
+                      >
+                        Download access will unlock here once subscriber access is connected.
+                      </p>
                     </div>
-                    <h2>
-                      <span
-                        className="downloads-lock-line"
-                        style={{
-                          transform: `translate(${debugState.lockFor.x}px, ${debugState.lockFor.y}px) scale(${debugState.lockFor.scale})`,
-                        }}
-                      >
-                        For
-                      </span>
-                      <span
-                        className="downloads-lock-line"
-                        style={{
-                          transform: `translate(${debugState.lockSubscribers.x}px, ${debugState.lockSubscribers.y}px) scale(${debugState.lockSubscribers.scale})`,
-                        }}
-                      >
-                        Subscribers
-                      </span>
-                      <span
-                        className="downloads-lock-line"
-                        style={{
-                          transform: `translate(${debugState.lockOnly.x}px, ${debugState.lockOnly.y}px) scale(${debugState.lockOnly.scale})`,
-                        }}
-                      >
-                        Only
-                      </span>
-                    </h2>
-                    <p
-                      className="downloads-subscriber-lock-copy"
-                      style={{
-                        transform: `translate(${debugState.lockCopy.x}px, ${debugState.lockCopy.y}px) scale(${debugState.lockCopy.scale})`,
-                        transformOrigin: "center top",
-                      }}
-                    >
-                      Download access will unlock here once subscriber access is connected.
-                    </p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <aside className="downloads-cta-column">
-            <a
-              href="https://testflight.apple.com/join/5jkdSs4A"
-              className="home-lifespace-card-cta downloads-lifespace-card"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                transform: `translate(${debugState.lifespace.x}px, ${debugState.lifespace.y}px) scale(${debugState.lifespace.scale})`,
-                transformOrigin: "top center",
-              }}
-            >
-              <span
-                className="home-lifespace-card-shell"
-                style={
-                  {
-                    ["--lifespace-card-width" as string]: `${debugState.lifespace.width}px`,
-                    ["--lifespace-card-height" as string]: `${debugState.lifespace.height}px`,
-                  } as CSSProperties
-                }
+            <aside className="downloads-cta-column">
+              <a
+                href="https://testflight.apple.com/join/5jkdSs4A"
+                className="home-lifespace-card-cta downloads-lifespace-card"
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  transform: `translate(${debugState.lifespace.x}px, ${debugState.lifespace.y}px) scale(${debugState.lifespace.scale})`,
+                  transformOrigin: "top center",
+                }}
               >
-                <span className="home-lifespace-card-core">
-                  <img
-                    src="/lifespace-app-icon.png"
-                    alt="LIFESPACE app icon"
-                    className="home-lifespace-card-image"
-                  />
+                <span
+                  className="home-lifespace-card-shell"
+                  style={
+                    {
+                      ["--lifespace-card-width" as string]: `${debugState.lifespace.width}px`,
+                      ["--lifespace-card-height" as string]: `${debugState.lifespace.height}px`,
+                    } as CSSProperties
+                  }
+                >
+                  <span className="home-lifespace-card-core">
+                    <img
+                      src="/lifespace-app-icon.png"
+                      alt="LIFESPACE app icon"
+                      className="home-lifespace-card-image"
+                    />
+                  </span>
                 </span>
-              </span>
-              <span className="home-lifespace-card-caption">DOWNLOAD LIFESPACE 1.0</span>
-            </a>
-          </aside>
-        </div>
-        <SiteFooter
-          locale={locale}
-          currentPath="/downloads"
-          className="site-section-footer"
-          footerSpacing={debugState.footer.spacing}
-          logoTransform={debugState.footerLogo}
-        />
-      </section>
+                <span className="home-lifespace-card-caption">DOWNLOAD LIFESPACE 1.0</span>
+              </a>
+            </aside>
+          </div>
+          <SiteFooter
+            locale={locale}
+            currentPath="/downloads"
+            className="site-section-footer"
+            footerSpacing={debugState.footer.spacing}
+            logoTransform={debugState.footerLogo}
+          />
+        </section>
+      </ScaledPageCanvas>
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside
           className="downloads-debugger"

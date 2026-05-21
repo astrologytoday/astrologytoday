@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
@@ -51,6 +52,10 @@ type AboutDebugState = {
 
 const ABOUT_DEBUG_STORAGE_KEY = "about-debug-v4";
 const ABOUT_DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
+const ABOUT_CANVAS_SCALE = 0.71;
+const ABOUT_CANVAS_WIDTH = 1760;
+const ABOUT_CANVAS_OFFSET_X = 0;
+const ABOUT_CANVAS_OFFSET_Y = 16;
 const ABOUT_DEFAULT_DEBUG: AboutDebugState = {
   pageLogo: {
     x: -454,
@@ -445,217 +450,226 @@ export default function AboutPage({
       <div className="about-orb about-orb-two" aria-hidden="true" />
       <div className="about-orb about-orb-three" aria-hidden="true" />
 
-      <section className="about-shell">
-        <div className="about-layout">
-          <aside className="about-sidebar">
-            <nav
-              className="home-sidebar-nav pricing-sidebar-nav about-sidebar-nav"
-              aria-label="Site sections"
-              style={{
-                transform: "translate(-184px, 24px) scale(1.04)",
-                transformOrigin: "top center",
-              }}
-            >
-              {sidebarLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`home-sidebar-link${item.active ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-
-          <div className="about-main">
-            <img
-              src="/astrologytoday-emblem.png"
-              alt="Astrology Today emblem"
-              className="about-page-emblem"
-              style={{
-                transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
-              }}
-              onMouseDown={(event) =>
-                setLogoDragging({
-                  startX: event.clientX,
-                  startY: event.clientY,
-                  initialX: debugState.pageLogo.x,
-                  initialY: debugState.pageLogo.y,
-                })
-              }
-            />
-
-            <div
-              className="about-content-block"
-              style={{
-                transform: `translate(${debugState.contentBlock.x}px, ${debugState.contentBlock.y}px)`,
-              }}
-            >
-              <header className="about-hero">
-                <div className="about-hero-copy">
-                  <h1
-                    style={{
-                      transform: `translateY(${debugState.title.y}px) scale(${debugState.title.scale})`,
-                      transformOrigin: "left top",
-                    }}
-                  >
-                    What Is Astroanalysis?
-                  </h1>
-                </div>
-              </header>
-
-              <section
-                className="about-article-card"
-                style={{ width: `${debugState.articleCard.width}%` }}
+      <ScaledPageCanvas
+        className="about-page-canvas"
+        designWidth={ABOUT_CANVAS_WIDTH}
+        offsetX={ABOUT_CANVAS_OFFSET_X}
+        offsetY={ABOUT_CANVAS_OFFSET_Y}
+        scale={ABOUT_CANVAS_SCALE}
+        viewportClassName="about-page-canvas-viewport"
+      >
+        <section className="about-shell">
+          <div className="about-layout">
+            <aside className="about-sidebar">
+              <nav
+                className="home-sidebar-nav pricing-sidebar-nav about-sidebar-nav"
+                aria-label="Site sections"
+                style={{
+                  transform: "translate(-184px, 24px) scale(1.04)",
+                  transformOrigin: "top center",
+                }}
               >
-                <article
-                  className="about-article"
-                  style={
-                    {
-                      "--about-body-scale": `${debugState.bodyText.scale}`,
-                    } as CSSProperties
-                  }
-                >
-                  {aboutParagraphs.slice(0, 2).map((paragraph, index) => (
-                    <p key={`intro-${index}`}>
-                      {renderHighlightedText(paragraph, `intro-${index}`, {
-                        glowAmount: debugState.glowText.amount,
-                        boldEnabled: debugState.boldText.enabled,
-                      })}
-                    </p>
-                  ))}
+                {sidebarLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`home-sidebar-link${item.active ? " is-active" : ""}`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </aside>
 
-                  <div className="about-benefits-section">
-                    <p className="about-benefits-lead">Some of these insights include:</p>
-                    <div className="about-benefits-card">
-                      <div className="about-benefits-grid">
-                        {aboutBullets.map((item) => (
-                          <div key={item} className="about-benefit-item">
-                            {item}
-                          </div>
-                        ))}
+            <div className="about-main">
+              <img
+                src="/astrologytoday-emblem.png"
+                alt="Astrology Today emblem"
+                className="about-page-emblem"
+                draggable={false}
+                style={{
+                  transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
+                }}
+                onMouseDown={(event) =>
+                  setLogoDragging({
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    initialX: debugState.pageLogo.x,
+                    initialY: debugState.pageLogo.y,
+                  })
+                }
+              />
+
+              <div
+                className="about-content-block"
+                style={{
+                  transform: `translate(${debugState.contentBlock.x}px, ${debugState.contentBlock.y}px)`,
+                }}
+              >
+                <header className="about-hero">
+                  <div className="about-hero-copy">
+                    <h1
+                      style={{
+                        transform: `translateY(${debugState.title.y}px) scale(${debugState.title.scale})`,
+                        transformOrigin: "left top",
+                      }}
+                    >
+                      What Is Astroanalysis?
+                    </h1>
+                  </div>
+                </header>
+
+                <section
+                  className="about-article-card"
+                  style={{ width: `${debugState.articleCard.width}%` }}
+                >
+                  <article
+                    className="about-article"
+                    style={
+                      {
+                        "--about-body-scale": `${debugState.bodyText.scale}`,
+                      } as CSSProperties
+                    }
+                  >
+                    {aboutParagraphs.slice(0, 2).map((paragraph, index) => (
+                      <p key={`intro-${index}`}>
+                        {renderHighlightedText(paragraph, `intro-${index}`, {
+                          glowAmount: debugState.glowText.amount,
+                          boldEnabled: debugState.boldText.enabled,
+                        })}
+                      </p>
+                    ))}
+
+                    <div className="about-benefits-section">
+                      <p className="about-benefits-lead">Some of these insights include:</p>
+                      <div className="about-benefits-card">
+                        <div className="about-benefits-grid">
+                          {aboutBullets.map((item) => (
+                            <div key={item} className="about-benefit-item">
+                              {item}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
+
+                    {aboutParagraphs.slice(2).map((paragraph, index) => (
+                      <p key={`body-${index}`}>
+                        {renderHighlightedText(paragraph, `body-${index}`, {
+                          glowAmount: debugState.glowText.amount,
+                          boldEnabled: debugState.boldText.enabled,
+                        })}
+                      </p>
+                    ))}
+                  </article>
+
+                  <div className="about-cta-wrap">
+                    <Link
+                      href="https://square.link/u/5GFD8pQc"
+                      className="about-cta-button"
+                      style={{
+                        transform: `scale(${debugState.ctaButton.scale})`,
+                        transformOrigin: "center center",
+                      }}
+                    >
+                      Get Your Astroanalysis
+                    </Link>
                   </div>
-
-                  {aboutParagraphs.slice(2).map((paragraph, index) => (
-                    <p key={`body-${index}`}>
-                      {renderHighlightedText(paragraph, `body-${index}`, {
-                        glowAmount: debugState.glowText.amount,
-                        boldEnabled: debugState.boldText.enabled,
-                      })}
-                    </p>
-                  ))}
-                </article>
-
-                <div className="about-cta-wrap">
-                  <Link
-                    href="https://square.link/u/5GFD8pQc"
-                    className="about-cta-button"
-                    style={{
-                      transform: `scale(${debugState.ctaButton.scale})`,
-                      transformOrigin: "center center",
-                    }}
-                  >
-                    Get Your Astroanalysis
-                  </Link>
-                </div>
-              </section>
+                </section>
+              </div>
             </div>
           </div>
-        </div>
+          <SiteFooter locale={locale} currentPath="/about" className="site-section-footer" />
 
-        <SiteFooter locale={locale} currentPath="/about" className="site-section-footer" />
-
-        {SHOW_DEBUGGERS ? (debuggerVisible ? (
-          <div
-            className="home-logo-debugger"
-            style={{
-              transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)`,
-            }}
-          >
+          {SHOW_DEBUGGERS ? (debuggerVisible ? (
             <div
-              className="home-logo-debugger-header"
-              onMouseDown={(event) =>
-                setDebuggerDragging({
-                  startX: event.clientX,
-                  startY: event.clientY,
-                  initialX: debuggerOffset.x,
-                  initialY: debuggerOffset.y,
-                })
-              }
+              className="home-logo-debugger"
+              style={{
+                transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)`,
+              }}
             >
-              <p>About Debugger</p>
-              <button
-                type="button"
-                className="home-logo-debugger-toggle-button home-logo-debugger-toggle-button-inline"
-                onClick={() => setDebuggerVisible(false)}
+              <div
+                className="home-logo-debugger-header"
+                onMouseDown={(event) =>
+                  setDebuggerDragging({
+                    startX: event.clientX,
+                    startY: event.clientY,
+                    initialX: debuggerOffset.x,
+                    initialY: debuggerOffset.y,
+                  })
+                }
               >
-                Hide
-              </button>
+                <p>About Debugger</p>
+                <button
+                  type="button"
+                  className="home-logo-debugger-toggle-button home-logo-debugger-toggle-button-inline"
+                  onClick={() => setDebuggerVisible(false)}
+                >
+                  Hide
+                </button>
+              </div>
+
+              <label className="home-logo-debugger-select-wrap">
+                <span>Element</span>
+                <select
+                  className="home-logo-debugger-select"
+                  value={debugTarget}
+                  onChange={(event) => setDebugTarget(event.target.value as AboutDebugTarget)}
+                >
+                  <option value="pageLogo">pageLogo</option>
+                  <option value="contentBlock">contentBlock</option>
+                  <option value="title">title</option>
+                  <option value="bodyText">bodyText</option>
+                  <option value="glowText">glowText</option>
+                  <option value="boldText">boldText</option>
+                  <option value="ctaButton">ctaButton</option>
+                  <option value="articleCard">articleCard</option>
+                </select>
+              </label>
+
+              <p className="home-logo-debugger-readout">{activeReadout}</p>
+
+              <div className="home-logo-debugger-tabs">
+                <button type="button" onClick={resetTarget}>
+                  Reset
+                </button>
+                <button type="button" onClick={copyValues}>
+                  Copy Values
+                </button>
+                <button type="button" onClick={() => adjustTarget(1)}>
+                  {primaryAdjustLabel}
+                </button>
+                <button type="button" onClick={() => adjustTarget(-1)}>
+                  {secondaryAdjustLabel}
+                </button>
+                <button type="button" onClick={() => nudgeTarget("left")}>
+                  Left
+                </button>
+                <button type="button" onClick={() => nudgeTarget("right")}>
+                  Right
+                </button>
+                <button type="button" onClick={() => nudgeTarget("up")}>
+                  Up
+                </button>
+                <button type="button" onClick={() => nudgeTarget("down")}>
+                  Down
+                </button>
+              </div>
+
+              {copyStatus ? <p className="home-logo-debugger-readout">{copyStatus}</p> : null}
             </div>
-
-            <label className="home-logo-debugger-select-wrap">
-              <span>Element</span>
-              <select
-                className="home-logo-debugger-select"
-                value={debugTarget}
-                onChange={(event) => setDebugTarget(event.target.value as AboutDebugTarget)}
-              >
-                <option value="pageLogo">pageLogo</option>
-                <option value="contentBlock">contentBlock</option>
-                <option value="title">title</option>
-                <option value="bodyText">bodyText</option>
-                <option value="glowText">glowText</option>
-                <option value="boldText">boldText</option>
-                <option value="ctaButton">ctaButton</option>
-                <option value="articleCard">articleCard</option>
-              </select>
-            </label>
-
-            <p className="home-logo-debugger-readout">{activeReadout}</p>
-
-            <div className="home-logo-debugger-tabs">
-              <button type="button" onClick={resetTarget}>
-                Reset
-              </button>
-              <button type="button" onClick={copyValues}>
-                Copy Values
-              </button>
-              <button type="button" onClick={() => adjustTarget(1)}>
-                {primaryAdjustLabel}
-              </button>
-              <button type="button" onClick={() => adjustTarget(-1)}>
-                {secondaryAdjustLabel}
-              </button>
-              <button type="button" onClick={() => nudgeTarget("left")}>
-                Left
-              </button>
-              <button type="button" onClick={() => nudgeTarget("right")}>
-                Right
-              </button>
-              <button type="button" onClick={() => nudgeTarget("up")}>
-                Up
-              </button>
-              <button type="button" onClick={() => nudgeTarget("down")}>
-                Down
-              </button>
-            </div>
-
-            {copyStatus ? <p className="home-logo-debugger-readout">{copyStatus}</p> : null}
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="home-logo-debugger-toggle-button"
-            onClick={() => setDebuggerVisible(true)}
-            aria-label="Show about debugger"
-          >
-            D
-          </button>
-        )) : null}
-      </section>
+          ) : (
+            <button
+              type="button"
+              className="home-logo-debugger-toggle-button"
+              onClick={() => setDebuggerVisible(true)}
+              aria-label="Show about debugger"
+            >
+              D
+            </button>
+          )) : null}
+        </section>
+      </ScaledPageCanvas>
     </main>
   );
 }

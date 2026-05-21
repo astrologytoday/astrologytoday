@@ -1,6 +1,9 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+const LOVE_COMPUTER_CANVAS_SCALE = 0.71;
 
 type Planet = "☉" | "☽" | "⥉" | "☿" | "♀" | "♂" | "♃" | "♄" | "♅" | "♆";
 type Sign =
@@ -4275,41 +4278,46 @@ export default function LoveComputerPage() {
 
   return (
     <main className={`report-shell${reportSkin === "teal" ? " report-shell-teal" : ""}`}>
-      <nav className="page-jump-nav" aria-label="Page sections">
-        {PAGE_NAV_ITEMS.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="page-jump-link"
-            title={item.label}
-            aria-label={item.label}
-            onClick={handlePageJump(item.href)}
-          >
-            <span>{item.symbol}</span>
-          </a>
-        ))}
-      </nav>
+      <div
+        className="love-computer-zoom-shell"
+        style={{ ["--love-computer-scale" as string]: `${LOVE_COMPUTER_CANVAS_SCALE}` } as CSSProperties}
+      >
+        <nav className="page-jump-nav" aria-label="Page sections">
+          {PAGE_NAV_ITEMS.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="page-jump-link"
+              title={item.label}
+              aria-label={item.label}
+              onClick={handlePageJump(item.href)}
+            >
+              <span>{item.symbol}</span>
+            </a>
+          ))}
+        </nav>
 
-      <section className="report-header">
-        <div>
-          <p className="eyebrow">The Grand Counsel of Paizen</p>
-          <h1>Relationship Calculator</h1>
-        </div>
-        <div className="report-meta">
-          <label className="skin-switch">
-            <span>Skin</span>
-            <select value={reportSkin} onChange={(event) => setReportSkin(event.target.value as "classic" | "teal")}>
-              <option value="classic">Sandbox</option>
-              <option value="teal">Teal</option>
-            </select>
-          </label>
-          <p>AstrologyToday.ca</p>
-          <p>Love Computer Prototype</p>
-          <p>Version 1.0</p>
-        </div>
-      </section>
+        <div className="love-computer-zoom-surface">
+          <section className="report-header">
+            <div>
+              <p className="eyebrow">The Grand Counsel of Paizen</p>
+              <h1>Relationship Calculator</h1>
+            </div>
+            <div className="report-meta">
+              <label className="skin-switch">
+                <span>Skin</span>
+                <select value={reportSkin} onChange={(event) => setReportSkin(event.target.value as "classic" | "teal")}>
+                  <option value="classic">Sandbox</option>
+                  <option value="teal">Teal</option>
+                </select>
+              </label>
+              <p>AstrologyToday.ca</p>
+              <p>Love Computer Prototype</p>
+              <p>Version 1.0</p>
+            </div>
+          </section>
 
-      <section id="placements" className="report-top-grid">
+          <section id="placements" className="report-top-grid">
         <PlacementCard
           title={personAName}
           subtitle="Primary chart"
@@ -4343,7 +4351,7 @@ export default function LoveComputerPage() {
         <CompatibilityTable />
       </section>
 
-      <section id="saved-charts" className="logic-card">
+          <section id="saved-charts" className="logic-card">
         <div className="logic-copy">
           <p className="eyebrow">Saved Charts</p>
           <h2>Local Archive</h2>
@@ -4428,7 +4436,7 @@ export default function LoveComputerPage() {
         </div>
       </section>
 
-      <section id="imports" className="logic-card">
+          <section id="imports" className="logic-card">
         <div className="logic-copy">
           <p className="eyebrow">Import Astro-Seek</p>
           <h2>Report Upload</h2>
@@ -4473,16 +4481,16 @@ export default function LoveComputerPage() {
         </div>
       </section>
 
-      <section
-        id="comparison-grid"
-        className="chart-card"
-        style={
-          {
-            ["--note-marker-shift-x" as string]: `${noteMarkerOffset.x}px`,
-            ["--note-marker-shift-y" as string]: `${noteMarkerOffset.y}px`,
-          } as React.CSSProperties
-        }
-      >
+          <section
+            id="comparison-grid"
+            className="chart-card"
+            style={
+              {
+                ["--note-marker-shift-x" as string]: `${noteMarkerOffset.x}px`,
+                ["--note-marker-shift-y" as string]: `${noteMarkerOffset.y}px`,
+              } as CSSProperties
+            }
+          >
         <div className="section-heading">
           <div>
             <p className="eyebrow">Planet To Planet Chart</p>
@@ -4701,9 +4709,9 @@ export default function LoveComputerPage() {
             </button>
           </div>
         </div>
-      </section>
+          </section>
 
-      <section id="summaries" className="summary-grid">
+          <section id="summaries" className="summary-grid">
         <SummaryCard
           title="Element"
           copy="Weighted 90/10 across personal and generational planets. ASC is excluded."
@@ -4719,9 +4727,9 @@ export default function LoveComputerPage() {
           copy="Final score = 65% astrological + 20% generation + 15% sex. ASC is excluded."
           rows={genderRows}
         />
-      </section>
+          </section>
 
-      <section className="summary-grid summary-grid-secondary">
+          <section className="summary-grid summary-grid-secondary">
         <SummaryCard
           title="Yin Yang"
           copy="Yin = water + earth. Yang = fire + air. Built from the same weighted element totals."
@@ -4740,13 +4748,13 @@ export default function LoveComputerPage() {
           rows={energyRows}
           labels={["Partner A Energy", "Partner B Energy", "Relationship Energy"]}
         />
-      </section>
+          </section>
 
-      <section className="summary-grid summary-grid-roots">
+          <section className="summary-grid summary-grid-roots">
         <RootsOfPowerCard personA={personA} personB={personB} />
-      </section>
+          </section>
 
-      <section className="summary-grid summary-grid-tools">
+          <section className="summary-grid summary-grid-tools">
         <HousesCard
           target={houseTarget}
           onTargetChange={setHouseTarget}
@@ -4773,90 +4781,92 @@ export default function LoveComputerPage() {
           onModeChange={setClockMode}
           rows={planetaryHourRows}
         />
-      </section>
+          </section>
 
-      {selectedCell ? (
-        <div
-          className="modal-backdrop"
-          onMouseDown={(event) => {
-            backdropPointerStartedRef.current = event.target === event.currentTarget;
-          }}
-          onClick={(event) => {
-            if (backdropPointerStartedRef.current && event.target === event.currentTarget) {
-              setSelectedCell(null);
-            }
-            backdropPointerStartedRef.current = false;
-          }}
-          role="presentation"
-        >
-          <div className="modal-layout" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-card" role="dialog" aria-modal="true">
-              <button type="button" className="modal-close" onClick={() => setSelectedCell(null)}>
-                Close
-              </button>
-              <p className="eyebrow">Connection Detail</p>
-              <h2>{selectedCell.title}</h2>
-              <div className="modal-tags">
-                <span
-                  className="person-chip"
-                  data-sex={getChipTone(gridViewMode === "partner-b" ? personBSex : personASex)}
+          {selectedCell ? (
+            <div
+              className="modal-backdrop"
+              onMouseDown={(event) => {
+                backdropPointerStartedRef.current = event.target === event.currentTarget;
+              }}
+              onClick={(event) => {
+                if (backdropPointerStartedRef.current && event.target === event.currentTarget) {
+                  setSelectedCell(null);
+                }
+                backdropPointerStartedRef.current = false;
+              }}
+              role="presentation"
+            >
+              <div className="modal-layout" onClick={(event) => event.stopPropagation()}>
+                <div className="modal-card" role="dialog" aria-modal="true">
+                  <button type="button" className="modal-close" onClick={() => setSelectedCell(null)}>
+                    Close
+                  </button>
+                  <p className="eyebrow">Connection Detail</p>
+                  <h2>{selectedCell.title}</h2>
+                  <div className="modal-tags">
+                    <span
+                      className="person-chip"
+                      data-sex={getChipTone(gridViewMode === "partner-b" ? personBSex : personASex)}
+                    >
+                      {SIGN_LABELS[selectedCell.aSign]} {getCardPlanetLabel(selectedCell.aPlanet)} {selectedCell.aPlanet}
+                      {selectedLeftHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
+                    </span>
+                    <span
+                      className="person-chip"
+                      data-sex={getChipTone(gridViewMode === "partner-a" ? personASex : personBSex)}
+                    >
+                      {SIGN_LABELS[selectedCell.bSign]} {getCardPlanetLabel(selectedCell.bPlanet)} {selectedCell.bPlanet}
+                      {selectedRightHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
+                    </span>
+                    <span>{selectedCell.symbol}</span>
+                  </div>
+                  <div className="modal-interaction-card">
+                    <p className="modal-block-label">Planetary Interaction</p>
+                    <p>{selectedInteractionText}</p>
+                  </div>
+                  <div className="modal-compare-grid">
+                    <ModalDetail planet={selectedCell.aPlanet} sign={selectedCell.aSign} />
+                    <div className="modal-cross" aria-hidden="true" />
+                    <ModalDetail planet={selectedCell.bPlanet} sign={selectedCell.bSign} />
+                  </div>
+                </div>
+                <aside
+                  className={`sticky-note-wrap${shouldShowExpandedNote ? " is-open" : ""}`}
+                  onClick={(event) => event.stopPropagation()}
                 >
-                  {SIGN_LABELS[selectedCell.aSign]} {getCardPlanetLabel(selectedCell.aPlanet)} {selectedCell.aPlanet}
-                  {selectedLeftHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
-                </span>
-                <span
-                  className="person-chip"
-                  data-sex={getChipTone(gridViewMode === "partner-a" ? personASex : personBSex)}
-                >
-                  {SIGN_LABELS[selectedCell.bSign]} {getCardPlanetLabel(selectedCell.bPlanet)} {selectedCell.bPlanet}
-                  {selectedRightHasSamePlanetStar ? <span className="same-planet-inline-star">★</span> : null}
-                </span>
-                <span>{selectedCell.symbol}</span>
-              </div>
-              <div className="modal-interaction-card">
-                <p className="modal-block-label">Planetary Interaction</p>
-                <p>{selectedInteractionText}</p>
-              </div>
-              <div className="modal-compare-grid">
-                <ModalDetail planet={selectedCell.aPlanet} sign={selectedCell.aSign} />
-                <div className="modal-cross" aria-hidden="true" />
-                <ModalDetail planet={selectedCell.bPlanet} sign={selectedCell.bSign} />
+                  <button
+                    type="button"
+                    className="sticky-note-tab"
+                    onClick={() => setNoteExpanded((current) => !current)}
+                    aria-expanded={noteExpanded}
+                    aria-label="Open notes"
+                  >
+                    <span className="sticky-note-tab-label" aria-hidden="true" />
+                  </button>
+                  {shouldShowExpandedNote ? (
+                    <div className="sticky-note-pad">
+                      <div className="sticky-note-head">
+                        <p className="sticky-note-label" aria-hidden="true" />
+                        {!selectedCellHasNote ? (
+                          <button type="button" className="sticky-note-close" onClick={() => setNoteExpanded(false)}>
+                            X
+                          </button>
+                        ) : null}
+                      </div>
+                      <textarea
+                        value={selectedCellNote}
+                        onChange={(event) => updateSelectedCellNote(event.target.value)}
+                        placeholder="Write notes here..."
+                      />
+                    </div>
+                  ) : null}
+                </aside>
               </div>
             </div>
-            <aside
-              className={`sticky-note-wrap${shouldShowExpandedNote ? " is-open" : ""}`}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="sticky-note-tab"
-                onClick={() => setNoteExpanded((current) => !current)}
-                aria-expanded={noteExpanded}
-                aria-label="Open notes"
-              >
-                <span className="sticky-note-tab-label" aria-hidden="true" />
-              </button>
-              {shouldShowExpandedNote ? (
-                <div className="sticky-note-pad">
-                  <div className="sticky-note-head">
-                    <p className="sticky-note-label" aria-hidden="true" />
-                    {!selectedCellHasNote ? (
-                      <button type="button" className="sticky-note-close" onClick={() => setNoteExpanded(false)}>
-                        X
-                      </button>
-                    ) : null}
-                  </div>
-                  <textarea
-                    value={selectedCellNote}
-                    onChange={(event) => updateSelectedCellNote(event.target.value)}
-                    placeholder="Write notes here..."
-                  />
-                </div>
-              ) : null}
-            </aside>
-          </div>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </main>
   );
 }

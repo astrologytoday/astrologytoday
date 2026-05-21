@@ -5,11 +5,18 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { BlogPost } from "../../lib/blog";
 import SiteFooter from "../shared/SiteFooter";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
 const BLOG_POST_DEBUG_STORAGE_KEY = "astrologytoday-blog-post-debug-v2";
+const BLOG_POST_CANVAS_SCALE = 0.71;
+const BLOG_POST_CANVAS_WIDTH = 1860;
+const BLOG_POST_CANVAS_BLEED_LEFT = 360;
+const BLOG_POST_CANVAS_BLEED_RIGHT = 360;
+const BLOG_POST_CANVAS_OFFSET_X = 10;
+const BLOG_POST_CANVAS_OFFSET_Y = 16;
 
 type BlogPostLayoutTarget =
   | "pageLogo"
@@ -291,286 +298,297 @@ export default function BlogPostPageClient({
         } as CSSProperties
       }
     >
-      <section className="home-top-shell home-top-shell-mock blog-gallery-shell blog-article-shell">
-        <aside className="home-side-column">
-          <div className="home-social-rail home-social-rail-mock blog-gallery-rail blog-article-rail">
-            <nav className="home-sidebar-nav blog-gallery-nav" aria-label="Site sections">
-              {sidebarLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`home-sidebar-link${item.active ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
-        <section className="home-dashboard home-dashboard-mock blog-article-dashboard">
-          <article className="blog-article-main">
-            {layoutDebug.pageLogo.visible ? (
-              <img
-                src="/astrologytoday-emblem.png"
-                alt="Astrology Today emblem"
-                className="blog-post-floating-logo"
-                style={{
-                  transform: `translate(${layoutDebug.pageLogo.x}px, ${layoutDebug.pageLogo.y}px) scale(${layoutDebug.pageLogo.scale})`,
-                  transformOrigin: "top left",
-                }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setDebugTarget("pageLogo");
-                  setLogoDragging({
-                    startX: event.clientX,
-                    startY: event.clientY,
-                    initialX: layoutDebug.pageLogo.x,
-                    initialY: layoutDebug.pageLogo.y,
-                  });
-                }}
-              />
-            ) : null}
-            <div className="blog-article-back-row">
-              <Link href={withLocale(locale, "/blog")} className="blog-article-back-link">
-                ← Back to Blog
-              </Link>
-            </div>
-
-            <header className="blog-article-hero-panel">
-              <div className="blog-article-hero-copy">
-                <p className="blog-kicker">{post.issueLabel}</p>
-                <div className="blog-article-title-stack">
-                  {titleLines.map((line, index) => (
-                    <span key={`${line}-${index}`}>{line}</span>
-                  ))}
-                </div>
-                {post.subtitle ? <p className="blog-article-subtitle">{post.subtitle}</p> : null}
-                <p className="blog-article-meta">
-                  {post.publishedLabel} · {post.readTime}
-                </p>
-                {post.deck ? <p className="blog-article-deck">{post.deck}</p> : null}
-              </div>
-            </header>
-
-            <section className="blog-article-card">
-              <figure className="blog-article-cover blog-article-cover-in-card">
-                <img
-                  src={post.coverImage}
-                  alt={post.coverImageAlt}
-                  className="blog-article-cover-image"
-                />
-                {post.coverImageCaption ? (
-                  <figcaption className="blog-article-cover-caption">{post.coverImageCaption}</figcaption>
-                ) : null}
-              </figure>
-
-              <div className="blog-longform">
-                {post.intro.map((paragraph, index) => (
-                  <p key={`intro-${index}`}>{renderBracketItalics(paragraph, `intro-${index}`)}</p>
+      <ScaledPageCanvas
+        bleedLeft={BLOG_POST_CANVAS_BLEED_LEFT}
+        bleedRight={BLOG_POST_CANVAS_BLEED_RIGHT}
+        className="blog-article-page-canvas"
+        designWidth={BLOG_POST_CANVAS_WIDTH}
+        offsetX={BLOG_POST_CANVAS_OFFSET_X}
+        offsetY={BLOG_POST_CANVAS_OFFSET_Y}
+        scale={BLOG_POST_CANVAS_SCALE}
+        viewportClassName="blog-article-page-canvas-viewport"
+      >
+        <section className="home-top-shell home-top-shell-mock blog-gallery-shell blog-article-shell">
+          <aside className="home-side-column">
+            <div className="home-social-rail home-social-rail-mock blog-gallery-rail blog-article-rail">
+              <nav className="home-sidebar-nav blog-gallery-nav" aria-label="Site sections">
+                {sidebarLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`home-sidebar-link${item.active ? " is-active" : ""}`}
+                  >
+                    {item.label}
+                  </Link>
                 ))}
+              </nav>
+            </div>
+          </aside>
 
-                {post.sections.map((section, index) => {
-                  const showMatrixAfterSection = section.paragraphs?.some((paragraph) =>
-                    paragraph.includes(
-                      "Each of these disorders corresponded perfectly with what we have learned from ancient astrology in medical practice.",
-                    ),
-                  );
-                  const hasQuoteSpacing = Boolean(section.quote);
-                  const hasIntroSpacing =
-                    section.paragraphs?.some((paragraph) =>
-                      paragraph.includes(
-                        "not fully understanding the signs, planetary placements, or the numerous interactions between the two.",
-                      ),
-                    ) ?? false;
-                  const hasGallerySpacing = Boolean(section.images);
-                  const hasBulletSpacing =
-                    section.items?.includes("Track bleeding cycles") ?? false;
-                  const hasFigureSpacing =
-                    Boolean(section.image?.caption) &&
-                    (!section.paragraphs || section.paragraphs.length === 0);
-                  const hasPostListSpacing =
-                    section.items?.includes(
-                      "Fix your gaze upon the candle’s flame while continuing the breathing exercise. Feel your own presence in your periphery.",
-                    ) ?? false;
-                  const hasStardustSpacing =
-                    section.paragraphs?.some((paragraph) =>
-                      paragraph.includes(
-                        "under extreme conditions, such as the collapse or explosion of a star.",
-                      ),
-                    ) ?? false;
+          <section className="home-dashboard home-dashboard-mock blog-article-dashboard">
+            <article className="blog-article-main">
+              {layoutDebug.pageLogo.visible ? (
+                <img
+                  src="/astrologytoday-emblem.png"
+                  alt="Astrology Today emblem"
+                  className="blog-post-floating-logo"
+                  style={{
+                    transform: `translate(${layoutDebug.pageLogo.x}px, ${layoutDebug.pageLogo.y}px) scale(${layoutDebug.pageLogo.scale})`,
+                    transformOrigin: "top left",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDebugTarget("pageLogo");
+                    setLogoDragging({
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      initialX: layoutDebug.pageLogo.x,
+                      initialY: layoutDebug.pageLogo.y,
+                    });
+                  }}
+                />
+              ) : null}
+              <div className="blog-article-back-row">
+                <Link href={withLocale(locale, "/blog")} className="blog-article-back-link">
+                  ← Back to Blog
+                </Link>
+              </div>
 
-                  return (
-                    <div
-                      key={`section-wrap-${index}`}
-                      className={`blog-article-block${
-                        hasQuoteSpacing ? " has-quote-spacing" : ""
-                      }${hasIntroSpacing ? " has-intro-spacing" : ""}${
-                        hasGallerySpacing ? " has-gallery-spacing" : ""
-                      }${hasBulletSpacing ? " has-bullet-spacing" : ""}${
-                        hasFigureSpacing ? " has-figure-spacing" : ""
-                      }${
-                        hasPostListSpacing ? " has-post-list-spacing" : ""
-                      }${
-                        hasStardustSpacing ? " has-stardust-spacing" : ""
-                      }`}
-                    >
-                      <section
-                        className={`blog-article-section${
-                          section.image && section.imageLayout === "rightWrap"
-                            ? " has-wrap-image"
-                            : ""
-                        }${section.images ? " is-gallery" : ""}${section.quote ? " is-quote" : ""}${
-                          section.items ? " is-list-block" : ""
-                        }${section.separator ? " is-separator" : ""}`}
+              <header className="blog-article-hero-panel">
+                <div className="blog-article-hero-copy">
+                  <p className="blog-kicker">{post.issueLabel}</p>
+                  <div className="blog-article-title-stack">
+                    {titleLines.map((line, index) => (
+                      <span key={`${line}-${index}`}>{line}</span>
+                    ))}
+                  </div>
+                  {post.subtitle ? <p className="blog-article-subtitle">{post.subtitle}</p> : null}
+                  <p className="blog-article-meta">
+                    {post.publishedLabel} · {post.readTime}
+                  </p>
+                  {post.deck ? <p className="blog-article-deck">{post.deck}</p> : null}
+                </div>
+              </header>
+
+              <section className="blog-article-card">
+                <figure className="blog-article-cover blog-article-cover-in-card">
+                  <img
+                    src={post.coverImage}
+                    alt={post.coverImageAlt}
+                    className="blog-article-cover-image"
+                  />
+                  {post.coverImageCaption ? (
+                    <figcaption className="blog-article-cover-caption">{post.coverImageCaption}</figcaption>
+                  ) : null}
+                </figure>
+
+                <div className="blog-longform">
+                  {post.intro.map((paragraph, index) => (
+                    <p key={`intro-${index}`}>{renderBracketItalics(paragraph, `intro-${index}`)}</p>
+                  ))}
+
+                  {post.sections.map((section, index) => {
+                    const showMatrixAfterSection = section.paragraphs?.some((paragraph) =>
+                      paragraph.includes(
+                        "Each of these disorders corresponded perfectly with what we have learned from ancient astrology in medical practice.",
+                      ),
+                    );
+                    const hasQuoteSpacing = Boolean(section.quote);
+                    const hasIntroSpacing =
+                      section.paragraphs?.some((paragraph) =>
+                        paragraph.includes(
+                          "not fully understanding the signs, planetary placements, or the numerous interactions between the two.",
+                        ),
+                      ) ?? false;
+                    const hasGallerySpacing = Boolean(section.images);
+                    const hasBulletSpacing =
+                      section.items?.includes("Track bleeding cycles") ?? false;
+                    const hasFigureSpacing =
+                      Boolean(section.image?.caption) &&
+                      (!section.paragraphs || section.paragraphs.length === 0);
+                    const hasPostListSpacing =
+                      section.items?.includes(
+                        "Fix your gaze upon the candle’s flame while continuing the breathing exercise. Feel your own presence in your periphery.",
+                      ) ?? false;
+                    const hasStardustSpacing =
+                      section.paragraphs?.some((paragraph) =>
+                        paragraph.includes(
+                          "under extreme conditions, such as the collapse or explosion of a star.",
+                        ),
+                      ) ?? false;
+
+                    return (
+                      <div
+                        key={`section-wrap-${index}`}
+                        className={`blog-article-block${
+                          hasQuoteSpacing ? " has-quote-spacing" : ""
+                        }${hasIntroSpacing ? " has-intro-spacing" : ""}${
+                          hasGallerySpacing ? " has-gallery-spacing" : ""
+                        }${hasBulletSpacing ? " has-bullet-spacing" : ""}${
+                          hasFigureSpacing ? " has-figure-spacing" : ""
+                        }${
+                          hasPostListSpacing ? " has-post-list-spacing" : ""
+                        }${
+                          hasStardustSpacing ? " has-stardust-spacing" : ""
+                        }`}
                       >
-                        {section.separator ? <div className="blog-article-separator">. . .</div> : null}
-                        {section.quoteLead ? <p className="blog-article-quote-lead">{section.quoteLead}</p> : null}
+                        <section
+                          className={`blog-article-section${
+                            section.image && section.imageLayout === "rightWrap"
+                              ? " has-wrap-image"
+                              : ""
+                          }${section.images ? " is-gallery" : ""}${section.quote ? " is-quote" : ""}${
+                            section.items ? " is-list-block" : ""
+                          }${section.separator ? " is-separator" : ""}`}
+                        >
+                          {section.separator ? <div className="blog-article-separator">. . .</div> : null}
+                          {section.quoteLead ? <p className="blog-article-quote-lead">{section.quoteLead}</p> : null}
 
-                        {section.quote ? (
-                          <blockquote className="blog-article-quote">
-                            <p>{section.quote}</p>
-                          </blockquote>
-                        ) : null}
+                          {section.quote ? (
+                            <blockquote className="blog-article-quote">
+                              <p>{section.quote}</p>
+                            </blockquote>
+                          ) : null}
 
-                        {section.eyebrow || section.heading || section.paragraphs ? (
-                          <div className="blog-article-section-copy">
-                            {section.eyebrow ? <p className="blog-kicker">{section.eyebrow}</p> : null}
-                            {section.heading ? (
-                              <h2 className={section.subheading ? "blog-article-subheading" : undefined}>
-                                {section.heading}
-                              </h2>
-                            ) : null}
-                            {section.paragraphs?.map((paragraph, paragraphIndex) => (
-                              <div key={`section-${index}-paragraph-wrap-${paragraphIndex}`}>
-                                <p
-                                  className={
-                                    paragraph ===
-                                    "Modern medicine excels at acute care and infection control, but fails at maintaining the overall health of the body long-term."
-                                      ? "blog-article-standout"
-                                      : undefined
-                                  }
-                                >
-                                  {renderBracketItalics(
-                                    paragraph,
-                                    `section-${index}-paragraph-${paragraphIndex}`,
-                                  )}
-                                </p>
-                                {section.image &&
-                                section.imageLayout === "rightWrap" &&
-                                section.imageAfterParagraph === paragraphIndex + 1 ? (
-                                  <figure className="blog-inline-figure blog-inline-figure-right-wrap">
-                                    <img
-                                      src={section.image.src}
-                                      alt={section.image.alt}
-                                      className="blog-inline-figure-image"
-                                    />
-                                    {section.image.caption ? <figcaption>{section.image.caption}</figcaption> : null}
-                                  </figure>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-
-                        {section.image && section.imageLayout !== "rightWrap" ? (
-                          <figure
-                            className="blog-inline-figure blog-inline-figure-centered"
-                          >
-                            <img
-                              src={section.image.src}
-                              alt={section.image.alt}
-                              className="blog-inline-figure-image"
-                            />
-                            {section.image.caption ? <figcaption>{section.image.caption}</figcaption> : null}
-                          </figure>
-                        ) : null}
-
-                        {section.images ? (
-                          <figure className="blog-image-pair">
-                            <div className="blog-image-row">
-                              {section.images.map((image) => (
-                                <div key={image.src} className="blog-image-card">
-                                  <img src={image.src} alt={image.alt} />
+                          {section.eyebrow || section.heading || section.paragraphs ? (
+                            <div className="blog-article-section-copy">
+                              {section.eyebrow ? <p className="blog-kicker">{section.eyebrow}</p> : null}
+                              {section.heading ? (
+                                <h2 className={section.subheading ? "blog-article-subheading" : undefined}>
+                                  {section.heading}
+                                </h2>
+                              ) : null}
+                              {section.paragraphs?.map((paragraph, paragraphIndex) => (
+                                <div key={`section-${index}-paragraph-wrap-${paragraphIndex}`}>
+                                  <p
+                                    className={
+                                      paragraph ===
+                                      "Modern medicine excels at acute care and infection control, but fails at maintaining the overall health of the body long-term."
+                                        ? "blog-article-standout"
+                                        : undefined
+                                    }
+                                  >
+                                    {renderBracketItalics(
+                                      paragraph,
+                                      `section-${index}-paragraph-${paragraphIndex}`,
+                                    )}
+                                  </p>
+                                  {section.image &&
+                                  section.imageLayout === "rightWrap" &&
+                                  section.imageAfterParagraph === paragraphIndex + 1 ? (
+                                    <figure className="blog-inline-figure blog-inline-figure-right-wrap">
+                                      <img
+                                        src={section.image.src}
+                                        alt={section.image.alt}
+                                        className="blog-inline-figure-image"
+                                      />
+                                      {section.image.caption ? <figcaption>{section.image.caption}</figcaption> : null}
+                                    </figure>
+                                  ) : null}
                                 </div>
                               ))}
                             </div>
-                            <figcaption>
-                              ‘Microcosmus Melothesia’ by B.A. Vierling and Dr. J.H. McLean’s Family Almanac (1874)
-                            </figcaption>
-                          </figure>
-                        ) : null}
+                          ) : null}
 
-                        {section.items ? (
-                          <ul className="blog-inline-list">
-                            {section.items.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </section>
+                          {section.image && section.imageLayout !== "rightWrap" ? (
+                            <figure
+                              className="blog-inline-figure blog-inline-figure-centered"
+                            >
+                              <img
+                                src={section.image.src}
+                                alt={section.image.alt}
+                                className="blog-inline-figure-image"
+                              />
+                              {section.image.caption ? <figcaption>{section.image.caption}</figcaption> : null}
+                            </figure>
+                          ) : null}
 
-                      {showMatrixAfterSection ? (
-                        <section className="blog-medical-grid-section has-bottom-spacing">
-                          <div>
-                            <p>Let’s review some of the ailments caused by astrological placements…</p>
-                          </div>
+                          {section.images ? (
+                            <figure className="blog-image-pair">
+                              <div className="blog-image-row">
+                                {section.images.map((image) => (
+                                  <div key={image.src} className="blog-image-card">
+                                    <img src={image.src} alt={image.alt} />
+                                  </div>
+                                ))}
+                              </div>
+                              <figcaption>
+                                ‘Microcosmus Melothesia’ by B.A. Vierling and Dr. J.H. McLean’s Family Almanac (1874)
+                              </figcaption>
+                            </figure>
+                          ) : null}
 
-                          <div className="blog-zodiac-grid">
-                            {post.zodiacBodyMap.map((item) => (
-                              <article key={item.sign} className="blog-zodiac-grid-card">
-                                <h3>{item.sign}</h3>
-                                <p>{item.body}</p>
-                              </article>
-                            ))}
-                          </div>
+                          {section.items ? (
+                            <ul className="blog-inline-list">
+                              {section.items.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : null}
                         </section>
-                      ) : null}
-                    </div>
-                  );
-                })}
 
-                {post.practices.length > 0 ? (
-                  <section className="blog-practice-strip">
-                    <ul className="blog-practice-list">
-                      {post.practices.map((item) => (
-                        <li key={item}>
-                          {(() => {
-                            const practice = splitPracticeItem(item);
-                            return (
-                              <>
-                                {practice.letter ? (
-                                  <span className="blog-practice-badge" aria-hidden="true">
-                                    {practice.letter}
-                                  </span>
-                                ) : null}
-                                <span className="blog-practice-copy">{practice.text}</span>
-                              </>
-                            );
-                          })()}
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
+                        {showMatrixAfterSection ? (
+                          <section className="blog-medical-grid-section has-bottom-spacing">
+                            <div>
+                              <p>Let’s review some of the ailments caused by astrological placements…</p>
+                            </div>
 
-                {post.closing.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-              </div>
-            </section>
-          </article>
+                            <div className="blog-zodiac-grid">
+                              {post.zodiacBodyMap.map((item) => (
+                                <article key={item.sign} className="blog-zodiac-grid-card">
+                                  <h3>{item.sign}</h3>
+                                  <p>{item.body}</p>
+                                </article>
+                              ))}
+                            </div>
+                          </section>
+                        ) : null}
+                      </div>
+                    );
+                  })}
 
-          <SiteFooter
-            locale={locale}
-            currentPath={`/blog/${post.slug}`}
-            className="blog-gallery-footer"
-            footerSpacing={layoutDebug.footer.spacing}
-            logoTransform={layoutDebug.footerLogo}
-          />
+                  {post.practices.length > 0 ? (
+                    <section className="blog-practice-strip">
+                      <ul className="blog-practice-list">
+                        {post.practices.map((item) => (
+                          <li key={item}>
+                            {(() => {
+                              const practice = splitPracticeItem(item);
+                              return (
+                                <>
+                                  {practice.letter ? (
+                                    <span className="blog-practice-badge" aria-hidden="true">
+                                      {practice.letter}
+                                    </span>
+                                  ) : null}
+                                  <span className="blog-practice-copy">{practice.text}</span>
+                                </>
+                              );
+                            })()}
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  ) : null}
+
+                  {post.closing.map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+                </div>
+              </section>
+            </article>
+
+            <SiteFooter
+              locale={locale}
+              currentPath={`/blog/${post.slug}`}
+              className="blog-gallery-footer"
+              footerSpacing={layoutDebug.footer.spacing}
+              logoTransform={layoutDebug.footerLogo}
+            />
+          </section>
         </section>
-      </section>
+      </ScaledPageCanvas>
 
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside

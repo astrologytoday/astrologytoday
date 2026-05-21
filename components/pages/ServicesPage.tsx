@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
@@ -28,6 +29,10 @@ type ServicesDebugState = {
 
 const SERVICES_DEBUG_STORAGE_KEY = "services-debug-v3";
 const SERVICES_DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
+const SERVICES_CANVAS_SCALE = 0.71;
+const SERVICES_CANVAS_WIDTH = 1760;
+const SERVICES_CANVAS_OFFSET_X = 0;
+const SERVICES_CANVAS_OFFSET_Y = 16;
 const SERVICES_DEFAULT_DEBUG: ServicesDebugState = {
   footer: {
     spacing: 120,
@@ -306,205 +311,215 @@ export default function ServicesPage({
       <div className="services-orb services-orb-two" aria-hidden="true" />
       <div className="services-orb services-orb-three" aria-hidden="true" />
 
-      <section className="services-shell">
-        <div className="services-layout">
-          <aside className="services-sidebar">
-            <nav
-              className="home-sidebar-nav services-sidebar-nav"
-              aria-label="Site sections"
-              style={{
-                transform: "translate(-184px, 24px) scale(1.04)",
-                transformOrigin: "top center",
-              }}
-            >
-              {sidebarLinks.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`home-sidebar-link${item.active ? " is-active" : ""}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </aside>
-
-          <div className="services-main">
-            {debugState.pageLogo.visible ? (
-              <img
-                src="/astrologytoday-emblem.png"
-                alt="Astrology Today emblem"
-                className="services-floating-logo"
+      <ScaledPageCanvas
+        className="services-page-canvas"
+        designWidth={SERVICES_CANVAS_WIDTH}
+        offsetX={SERVICES_CANVAS_OFFSET_X}
+        offsetY={SERVICES_CANVAS_OFFSET_Y}
+        scale={SERVICES_CANVAS_SCALE}
+        viewportClassName="services-page-canvas-viewport"
+      >
+        <section className="services-shell">
+          <div className="services-layout">
+            <aside className="services-sidebar">
+              <nav
+                className="home-sidebar-nav services-sidebar-nav"
+                aria-label="Site sections"
                 style={{
-                  transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
-                  transformOrigin: "top left",
+                  transform: "translate(-184px, 24px) scale(1.04)",
+                  transformOrigin: "top center",
                 }}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  setDebugTarget("pageLogo");
-                  setLogoDragging({
-                    startX: event.clientX,
-                    startY: event.clientY,
-                    initialX: debugState.pageLogo.x,
-                    initialY: debugState.pageLogo.y,
-                  });
-                }}
-              />
-            ) : null}
-            <div className="services-hero">
-              <p className="services-kicker">Services</p>
-              <h1>Support for relationships, families, and deeper self-understanding.</h1>
-              <p className="services-hero-copy">
-                These services are designed to help individuals better understand the deeper emotional,
-                psychological, and relational forces shaping their interactions.
-              </p>
-            </div>
-
-            <div className="services-grid">
-              <article className="services-panel">
-                <p className="services-section-label">Couples &amp; Family Services</p>
-                <h2>Relationship &amp; Family Counseling</h2>
-                <p>
-                  Relationships fail due to communication breakdown, emotional distance, and difficulty
-                  understanding one another&apos;s needs. This work focuses on bringing greater clarity to the
-                  relationship dynamic as a whole.
-                </p>
-                <p>
-                  By understanding one another better, the door to more compassion, better communication,
-                  and more grounded solutions can be opened.
-                </p>
-                <ul className="services-bullet-list">
-                  {couplesBullets.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <p>
-                  Family counseling focuses on the larger emotional system of the family and the roles
-                  each person plays within it. Many family conflicts are shaped by long-standing
-                  patterns, unspoken expectations, unresolved wounds, and differences in personality,
-                  values, or identity.
-                </p>
-                <div className="services-inline-cta">
-                  <a
-                    href="mailto:mariosbardella@protonmail.com?subject=Relationship%20or%20Family%20Counseling%20Inquiry"
-                    className="services-inline-cta-button"
+              >
+                {sidebarLinks.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className={`home-sidebar-link${item.active ? " is-active" : ""}`}
                   >
-                    Learn More
-                  </a>
-                </div>
-              </article>
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </aside>
 
-              <article className="services-panel">
-                <p className="services-section-label">Singles Services</p>
-                <h2>Introspection Therapy</h2>
-                <p className="services-quote">
-                  &quot;Gnothi Seauton&quot; is an Ancient Proverb that means: Know Yourself.
+            <div className="services-main">
+              {debugState.pageLogo.visible ? (
+                <img
+                  src="/astrologytoday-emblem.png"
+                  alt="Astrology Today emblem"
+                  className="services-floating-logo"
+                  draggable={false}
+                  style={{
+                    transform: `translate(${debugState.pageLogo.x}px, ${debugState.pageLogo.y}px) scale(${debugState.pageLogo.scale})`,
+                    transformOrigin: "top left",
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDebugTarget("pageLogo");
+                    setLogoDragging({
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      initialX: debugState.pageLogo.x,
+                      initialY: debugState.pageLogo.y,
+                    });
+                  }}
+                />
+              ) : null}
+              <div className="services-hero">
+                <p className="services-kicker">Services</p>
+                <h1>Support for relationships, families, and deeper self-understanding.</h1>
+                <p className="services-hero-copy">
+                  These services are designed to help individuals better understand the deeper emotional,
+                  psychological, and relational forces shaping their interactions.
                 </p>
-                <p>
-                  Introspection Therapy is a deep self-exploration process focused on identity, unseen
-                  inner conflicts, emotional patterns, and personal growth. This is meant to help you
-                  better understand who you are, how you relate to others, as well as other life aspects
-                  such as:
-                </p>
-                <ul className="services-bullet-list">
-                  {singlesBullets.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <p>
-                  Sessions may explore the ego, the mind, the heart, personal values, philosophy of
-                  life, and the ongoing tension between one&apos;s higher nature and shadow.
-                </p>
-                <p>
-                  This service also includes career counseling and support for unrequited love, helping
-                  clients gain clarity around purpose, direction, relationship patterns, and how to live
-                  your best life.
-                </p>
-                <div className="services-inline-cta">
-                  <a
-                    href="mailto:mariosbardella@protonmail.com?subject=Introspection%20Therapy%20Inquiry"
-                    className="services-inline-cta-button"
-                  >
-                    Learn More
-                  </a>
-                </div>
-              </article>
+              </div>
 
-              <article className="services-panel">
-                <p className="services-section-label">Couples &amp; Singles Services</p>
-                <h2>Astrological Reports</h2>
-                <p>
-                  Each report is a personalized, in-depth astrological analysis designed to give you
-                  clear insight into yourself, your relationships, and your life direction.
-                </p>
-                <p>
-                  These reports are written in a direct, readable style and focus on real patterns such
-                  as...
-                </p>
-                <ul className="services-bullet-list">
-                  {reportBullets.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <p>
-                  Each report is detailed, structured, and have full astrological calculations included
-                  for each of your seven planets and interactions.
-                </p>
-                <div className="services-inline-cta">
-                  <a
-                    href="mailto:mariosbardella@protonmail.com?subject=Astrological%20Report%20Inquiry"
-                    className="services-inline-cta-button"
-                  >
-                    Learn More
-                  </a>
-                </div>
-              </article>
+              <div className="services-grid">
+                <article className="services-panel">
+                  <p className="services-section-label">Couples &amp; Family Services</p>
+                  <h2>Relationship &amp; Family Counseling</h2>
+                  <p>
+                    Relationships fail due to communication breakdown, emotional distance, and difficulty
+                    understanding one another&apos;s needs. This work focuses on bringing greater clarity to the
+                    relationship dynamic as a whole.
+                  </p>
+                  <p>
+                    By understanding one another better, the door to more compassion, better communication,
+                    and more grounded solutions can be opened.
+                  </p>
+                  <ul className="services-bullet-list">
+                    {couplesBullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <p>
+                    Family counseling focuses on the larger emotional system of the family and the roles
+                    each person plays within it. Many family conflicts are shaped by long-standing
+                    patterns, unspoken expectations, unresolved wounds, and differences in personality,
+                    values, or identity.
+                  </p>
+                  <div className="services-inline-cta">
+                    <a
+                      href="mailto:mariosbardella@protonmail.com?subject=Relationship%20or%20Family%20Counseling%20Inquiry"
+                      className="services-inline-cta-button"
+                    >
+                      Learn More
+                    </a>
+                  </div>
+                </article>
 
-              <article className="services-panel">
-                <p className="services-section-label">Singles Services</p>
-                <h2>1-on-1 Peer Support</h2>
-                <p>
-                  1-on-1 Peer Support is a more practical, structured, and supportive service designed
-                  to help clients stay grounded, motivated, and accountable in daily life.
-                </p>
-                <p>
-                  This service is ideal for individuals who benefit from regular encouragement,
-                  routine-building, and consistent support as they work toward personal goals.
-                </p>
-                <p>
-                  Personal life coaching involves...
-                </p>
-                <ul className="services-bullet-list">
-                  {peerSupportBullets.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-                <p>
-                  This service is especially helpful for clients who are trying to build momentum,
-                  improve discipline, stay emotionally on track, or move through difficult periods with
-                  steady support and structure.
-                </p>
-                <div className="services-inline-cta">
-                  <a
-                    href="mailto:mariosbardella@protonmail.com?subject=1-on-1%20Peer%20Support%20Inquiry"
-                    className="services-inline-cta-button"
-                  >
-                    Learn More
-                  </a>
-                </div>
-              </article>
+                <article className="services-panel">
+                  <p className="services-section-label">Singles Services</p>
+                  <h2>Introspection Therapy</h2>
+                  <p className="services-quote">
+                    &quot;Gnothi Seauton&quot; is an Ancient Proverb that means: Know Yourself.
+                  </p>
+                  <p>
+                    Introspection Therapy is a deep self-exploration process focused on identity, unseen
+                    inner conflicts, emotional patterns, and personal growth. This is meant to help you
+                    better understand who you are, how you relate to others, as well as other life aspects
+                    such as:
+                  </p>
+                  <ul className="services-bullet-list">
+                    {singlesBullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <p>
+                    Sessions may explore the ego, the mind, the heart, personal values, philosophy of
+                    life, and the ongoing tension between one&apos;s higher nature and shadow.
+                  </p>
+                  <p>
+                    This service also includes career counseling and support for unrequited love, helping
+                    clients gain clarity around purpose, direction, relationship patterns, and how to live
+                    your best life.
+                  </p>
+                  <div className="services-inline-cta">
+                    <a
+                      href="mailto:mariosbardella@protonmail.com?subject=Introspection%20Therapy%20Inquiry"
+                      className="services-inline-cta-button"
+                    >
+                      Learn More
+                    </a>
+                  </div>
+                </article>
+
+                <article className="services-panel">
+                  <p className="services-section-label">Couples &amp; Singles Services</p>
+                  <h2>Astrological Reports</h2>
+                  <p>
+                    Each report is a personalized, in-depth astrological analysis designed to give you
+                    clear insight into yourself, your relationships, and your life direction.
+                  </p>
+                  <p>
+                    These reports are written in a direct, readable style and focus on real patterns such
+                    as...
+                  </p>
+                  <ul className="services-bullet-list">
+                    {reportBullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <p>
+                    Each report is detailed, structured, and have full astrological calculations included
+                    for each of your seven planets and interactions.
+                  </p>
+                  <div className="services-inline-cta">
+                    <a
+                      href="mailto:mariosbardella@protonmail.com?subject=Astrological%20Report%20Inquiry"
+                      className="services-inline-cta-button"
+                    >
+                      Learn More
+                    </a>
+                  </div>
+                </article>
+
+                <article className="services-panel">
+                  <p className="services-section-label">Singles Services</p>
+                  <h2>1-on-1 Peer Support</h2>
+                  <p>
+                    1-on-1 Peer Support is a more practical, structured, and supportive service designed
+                    to help clients stay grounded, motivated, and accountable in daily life.
+                  </p>
+                  <p>
+                    This service is ideal for individuals who benefit from regular encouragement,
+                    routine-building, and consistent support as they work toward personal goals.
+                  </p>
+                  <p>
+                    Personal life coaching involves...
+                  </p>
+                  <ul className="services-bullet-list">
+                    {peerSupportBullets.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  <p>
+                    This service is especially helpful for clients who are trying to build momentum,
+                    improve discipline, stay emotionally on track, or move through difficult periods with
+                    steady support and structure.
+                  </p>
+                  <div className="services-inline-cta">
+                    <a
+                      href="mailto:mariosbardella@protonmail.com?subject=1-on-1%20Peer%20Support%20Inquiry"
+                      className="services-inline-cta-button"
+                    >
+                      Learn More
+                    </a>
+                  </div>
+                </article>
+              </div>
             </div>
           </div>
-        </div>
-        <SiteFooter
-          locale={locale}
-          currentPath="/services"
-          className="site-section-footer"
-          footerSpacing={debugState.footer.spacing}
-          logoTransform={debugState.footerLogo}
-        />
-      </section>
+          <SiteFooter
+            locale={locale}
+            currentPath="/services"
+            className="site-section-footer"
+            footerSpacing={debugState.footer.spacing}
+            logoTransform={debugState.footerLogo}
+          />
+        </section>
+      </ScaledPageCanvas>
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside
           className="downloads-debugger"

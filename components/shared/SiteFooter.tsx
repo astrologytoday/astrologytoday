@@ -60,7 +60,10 @@ export default function SiteFooter({
           label: copy.footer.advertise,
           href: "mailto:mariosbardella@protonmail.com?subject=Advertising%20With%20Astrology%20Today",
         },
-        { label: copy.footer.support, href: "https://buymeacoffee.com/creationhealth" },
+        {
+          label: copy.footer.support,
+          href: "mailto:mariosbardella@protonmail.com?subject=Support%20Inquiry",
+        },
       ],
     },
     {
@@ -75,7 +78,7 @@ export default function SiteFooter({
     {
       heading: copy.footer.other,
       items: [
-        { label: copy.footer.upgrade, href: "/upgrade-to-at-plus" },
+        { label: copy.footer.upgrade, href: "/pricing" },
         { label: copy.footer.staff, href: "/meet-the-creator" },
         { label: copy.footer.services, href: "/services" },
       ],
@@ -103,14 +106,20 @@ export default function SiteFooter({
         {footerColumns.map((column) => (
           <div key={column.heading} className="home-footer-mega-column">
             <h3>{column.heading}</h3>
-            <ul>
-              {column.items.map((item) => (
-                <li key={item.label}>
-                  <Link href={localizedHref(item.href)}>{item.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <ul>
+                {column.items.map((item) => (
+                  <li key={item.label}>
+                    {item.disabled ? (
+                      <span>{item.label}</span>
+                    ) : item.href.startsWith("mailto:") ? (
+                      <a href={item.href}>{item.label}</a>
+                    ) : (
+                      <Link href={localizedHref(item.href)}>{item.label}</Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
         ))}
         <div className="home-footer-mega-column home-footer-mega-languages">
           <h3>{copy.footer.language}</h3>
@@ -129,7 +138,7 @@ export default function SiteFooter({
       </footer>
 
       <p className="home-site-credit">
-        © 2024 Astrology Today. {copy.footer.credit}{" "}
+        © 2026 Astrology Today. {copy.footer.credit}{" "}
         <Link href={localizedHref("/website-services")} className="home-site-credit-link">
           LIFESPACE
         </Link>

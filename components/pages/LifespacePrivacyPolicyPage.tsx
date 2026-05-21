@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+
+const LEGAL_CANVAS_SCALE = 0.71;
+const LEGAL_CANVAS_WIDTH = 1760;
+const LEGAL_CANVAS_OFFSET_X = 0;
+const LEGAL_CANVAS_OFFSET_Y = 16;
 
 type PolicySection = {
   id: string;
@@ -132,8 +138,8 @@ const sections: PolicySection[] = [
     id: "childrens-privacy",
     title: "10. Children’s Privacy",
     paragraphs: [
-      "LIFESPACE is not intended for children under the age of 13.",
-      "We do not knowingly collect personal information from children under 13. If we become aware that personal information from a child under 13 has been collected, we will take reasonable steps to delete that information.",
+      "LIFESPACE is not intended for children under the age of 16.",
+      "We do not knowingly collect personal information from children under 16. If we become aware that personal information from a child under 16 has been collected, we will take reasonable steps to delete that information.",
     ],
   },
   {
@@ -203,6 +209,14 @@ export default function LifespacePrivacyPolicyPage({
       <div className="site-rules-orbit site-rules-orbit-left" aria-hidden="true" />
       <div className="site-rules-orbit site-rules-orbit-right" aria-hidden="true" />
 
+      <ScaledPageCanvas
+        className="site-rules-page-canvas"
+        designWidth={LEGAL_CANVAS_WIDTH}
+        offsetX={LEGAL_CANVAS_OFFSET_X}
+        offsetY={LEGAL_CANVAS_OFFSET_Y}
+        scale={LEGAL_CANVAS_SCALE}
+        viewportClassName="site-rules-page-canvas-viewport"
+      >
       <section className="site-rules-shell">
         <header className="site-rules-hero">
           <Link href={withLocale(locale, "/")} className="site-rules-brand" aria-label="Return to Astrology Today home">
@@ -285,6 +299,7 @@ export default function LifespacePrivacyPolicyPage({
           </article>
         </div>
       </section>
+      </ScaledPageCanvas>
     </main>
   );
 }

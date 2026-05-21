@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { type FormEvent, useState } from "react";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+
+const LEGAL_CANVAS_SCALE = 0.71;
+const LEGAL_CANVAS_WIDTH = 1760;
+const LEGAL_CANVAS_OFFSET_X = 0;
+const LEGAL_CANVAS_OFFSET_Y = 16;
 
 export default function UpgradeToAtPlusPage({
   locale = defaultLocale,
@@ -35,63 +41,72 @@ export default function UpgradeToAtPlusPage({
       <div className="site-rules-orbit site-rules-orbit-left" aria-hidden="true" />
       <div className="site-rules-orbit site-rules-orbit-right" aria-hidden="true" />
 
-      <section className="site-rules-shell">
-        <section className="site-rules-document at-plus-form-card">
-          <div className="site-rules-intro">
-            <h2 className="site-rules-legal-heading">AstrologyToday+ Interest Form</h2>
-            <p>
-              AstrologyToday+ is not yet available for public users. What additions to the
-              program would you like to see included in this feature?
-            </p>
-            <p>
-              Tell us what would make AstrologyToday+ feel genuinely valuable to you. Your
-              response will open as a ready-to-send email addressed to Mario.
-            </p>
-          </div>
-
-          <form className="at-plus-form" onSubmit={handleSubmit}>
-            <label className="at-plus-field">
-              <span>Name</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Your name"
-              />
-            </label>
-
-            <label className="at-plus-field">
-              <span>Email</span>
-              <input
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Your email"
-              />
-            </label>
-
-            <label className="at-plus-field">
-              <span>What additions would you like to see?</span>
-              <textarea
-                value={ideas}
-                onChange={(event) => setIdeas(event.target.value)}
-                placeholder="Ideas for premium reports, tools, reader features, app integrations, or anything else you'd want included in AstrologyToday+."
-                rows={9}
-                required
-              />
-            </label>
-
-            <div className="at-plus-actions">
-              <button type="submit" className="at-plus-submit">
-                Send Feedback
-              </button>
-              <Link href={withLocale(locale, "/")} className="site-rules-home-link">
-                Return to Astrology Today
-              </Link>
+      <ScaledPageCanvas
+        className="site-rules-page-canvas"
+        designWidth={LEGAL_CANVAS_WIDTH}
+        offsetX={LEGAL_CANVAS_OFFSET_X}
+        offsetY={LEGAL_CANVAS_OFFSET_Y}
+        scale={LEGAL_CANVAS_SCALE}
+        viewportClassName="site-rules-page-canvas-viewport"
+      >
+        <section className="site-rules-shell">
+          <section className="site-rules-document at-plus-form-card">
+            <div className="site-rules-intro">
+              <h2 className="site-rules-legal-heading">AstrologyToday+ Interest Form</h2>
+              <p>
+                AstrologyToday+ is not yet available for public users. What additions to the
+                program would you like to see included in this feature?
+              </p>
+              <p>
+                Tell us what would make AstrologyToday+ feel genuinely valuable to you. Your
+                response will open as a ready-to-send email addressed to Mario.
+              </p>
             </div>
-          </form>
+
+            <form className="at-plus-form" onSubmit={handleSubmit}>
+              <label className="at-plus-field">
+                <span>Name</span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="Your name"
+                />
+              </label>
+
+              <label className="at-plus-field">
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Your email"
+                />
+              </label>
+
+              <label className="at-plus-field">
+                <span>What additions would you like to see?</span>
+                <textarea
+                  value={ideas}
+                  onChange={(event) => setIdeas(event.target.value)}
+                  placeholder="Ideas for premium reports, tools, reader features, app integrations, or anything else you'd want included in AstrologyToday+."
+                  rows={9}
+                  required
+                />
+              </label>
+
+              <div className="at-plus-actions">
+                <button type="submit" className="at-plus-submit">
+                  Send Feedback
+                </button>
+                <Link href={withLocale(locale, "/")} className="site-rules-home-link">
+                  Return to Astrology Today
+                </Link>
+              </div>
+            </form>
+          </section>
         </section>
-      </section>
+      </ScaledPageCanvas>
     </main>
   );
 }

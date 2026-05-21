@@ -20,6 +20,7 @@ import {
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
 import { getWebAccountByUsername, upsertMailingListSignup } from "../../lib/firebase/lifespace";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 
 type NavLink = {
   label: string;
@@ -118,6 +119,12 @@ const HOME_PREVIEW_BUTTON_LOCKED: TransformDebug = { x: 406, y: -4, scale: 0.92 
 const HOME_NEWSLETTER_TITLE_LOCKED: TransformDebug = { x: 0, y: -75, scale: 2.04 };
 const HOME_NEWSLETTER_FORM_LOCKED: TransformDebug = { x: 0, y: -98, scale: 1.08 };
 const HOME_FOOTER_LOGO_LOCKED: TransformDebug = { x: 11, y: 11, scale: 1.24 };
+const HOME_CANVAS_SCALE = 0.71;
+const HOME_CANVAS_WIDTH = 1860;
+const HOME_CANVAS_BLEED_LEFT = 360;
+const HOME_CANVAS_BLEED_RIGHT = 360;
+const HOME_CANVAS_OFFSET_X = 10;
+const HOME_CANVAS_OFFSET_Y = 29;
 const HOME_FOOTER_BAR_LOCKED: TransformDebug = { x: -17, y: -163, scale: 1 };
 const HOME_FOOTER_META_LOCKED: TransformDebug = { x: 0, y: 0, scale: 1 };
 const HOME_FOOTER_CREDIT_LOCKED: TransformDebug = { x: 0, y: -150, scale: 1 };
@@ -328,7 +335,7 @@ export default function HomePage({
     { label: copy.nav.home, href: "/" },
     { label: copy.nav.services, href: "/services" },
     { label: copy.nav.downloads, href: "/downloads" },
-    { label: copy.nav.about, href: withLocale(locale, "/about") },
+    { label: copy.nav.about, href: "/about" },
     { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: "/pricing" },
     { label: copy.nav.blog, href: "/blog" },
@@ -343,7 +350,10 @@ export default function HomePage({
           label: copy.footer.advertise,
           href: "mailto:mariosbardella@protonmail.com?subject=Advertising%20With%20Astrology%20Today",
         },
-        { label: copy.footer.support, href: "https://buymeacoffee.com/creationhealth" },
+        {
+          label: copy.footer.support,
+          href: "mailto:mariosbardella@protonmail.com?subject=Support%20Inquiry",
+        },
       ] satisfies FooterLink[],
     },
     {
@@ -358,7 +368,7 @@ export default function HomePage({
     {
       heading: copy.footer.other,
       items: [
-        { label: copy.footer.upgrade, href: "/upgrade-to-at-plus" },
+        { label: copy.footer.upgrade, href: "/pricing" },
         { label: copy.footer.staff, href: "/meet-the-creator" },
         { label: copy.footer.services, href: "/services" },
       ] satisfies FooterLink[],
@@ -1300,7 +1310,17 @@ export default function HomePage({
   };
 
   return (
-    <main className="home-page home-page-mock">
+    <main className="home-page">
+      <ScaledPageCanvas
+        bleedLeft={HOME_CANVAS_BLEED_LEFT}
+        bleedRight={HOME_CANVAS_BLEED_RIGHT}
+        className="home-page-mock home-page-canvas"
+        designWidth={HOME_CANVAS_WIDTH}
+        offsetX={HOME_CANVAS_OFFSET_X}
+        offsetY={HOME_CANVAS_OFFSET_Y}
+        scale={HOME_CANVAS_SCALE}
+        viewportClassName="home-page-canvas-viewport"
+      >
       <div
         className="home-marquee home-marquee-animated"
         aria-label="Libra week marquee"
@@ -2024,7 +2044,13 @@ export default function HomePage({
               <ul>
                 {column.items.map((item) => (
                   <li key={item.label}>
-                    <Link href={localizedHref(item.href)}>{item.label}</Link>
+                    {"disabled" in item && item.disabled ? (
+                      <span>{item.label}</span>
+                    ) : item.href.startsWith("mailto:") ? (
+                      <a href={item.href}>{item.label}</a>
+                    ) : (
+                      <Link href={localizedHref(item.href)}>{item.label}</Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -2058,12 +2084,13 @@ export default function HomePage({
             startDragTransform("footerCredit", footerCreditDebug)(event);
           }}
         >
-          © 2024 Astrology Today. {copy.footer.credit}{" "}
+          © 2026 Astrology Today. {copy.footer.credit}{" "}
           <Link href={localizedHref("/website-services")} className="home-site-credit-link">
             LIFESPACE
           </Link>
         </p>
       </div>
+      </ScaledPageCanvas>
 
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside

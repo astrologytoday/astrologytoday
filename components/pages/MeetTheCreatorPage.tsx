@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
@@ -102,6 +103,10 @@ const DEFAULT_BODY_TEXT_SIZE = 1.24;
 const DEFAULT_TITLE_TEXT_SIZE = 5.1;
 const DEFAULT_SIGNS_RADIUS = 30;
 const DEFAULT_BOTTOM_TRIM = -250;
+const CREATOR_CANVAS_SCALE = 0.71;
+const CREATOR_CANVAS_WIDTH = 1760;
+const CREATOR_CANVAS_OFFSET_X = 0;
+const CREATOR_CANVAS_OFFSET_Y = 16;
 const SECTION_TARGETS: SectionTarget[] = [
   "title",
   "signsPanel",
@@ -561,8 +566,16 @@ export default function MeetTheCreatorPage({
       <div className="creator-page-gridline creator-page-gridline-one" aria-hidden="true" />
       <div className="creator-page-gridline creator-page-gridline-two" aria-hidden="true" />
 
-      <div className="creator-shell">
-        <article className="creator-article">
+      <ScaledPageCanvas
+        className="creator-page-canvas"
+        designWidth={CREATOR_CANVAS_WIDTH}
+        offsetX={CREATOR_CANVAS_OFFSET_X}
+        offsetY={CREATOR_CANVAS_OFFSET_Y}
+        scale={CREATOR_CANVAS_SCALE}
+        viewportClassName="creator-page-canvas-viewport"
+      >
+        <div className="creator-shell">
+          <article className="creator-article">
           <header className="creator-article-header">
             <span className="creator-eyebrow">Astrology Today</span>
             <span className="creator-header-star" aria-hidden="true">
@@ -911,261 +924,262 @@ export default function MeetTheCreatorPage({
             </div>
             </div>
           </div>
-        </article>
+          </article>
+        </div>
+      </ScaledPageCanvas>
 
-        {SHOW_DEBUGGERS ? (debuggerVisible ? (
-          <aside
-            className="creator-debugger"
-            style={{ transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)` }}
-          >
-          <div className="creator-debugger-header">
-            <p className="creator-debugger-title">Layout Debugger</p>
-            <button
-              type="button"
-              className="creator-debugger-toggle-button creator-debugger-toggle-button-inline"
-              onClick={() => {
-                setDragging(null);
-                setDebuggerDragging(null);
-                setDebuggerVisible(false);
-              }}
-            >
-              Hide
-            </button>
-          </div>
-          <div
-            className="creator-debugger-dragbar"
-            onMouseDown={(event) =>
-              setDebuggerDragging({
-                startX: event.clientX,
-                startY: event.clientY,
-                initialX: debuggerOffset.x,
-                initialY: debuggerOffset.y,
-              })
-            }
-          >
-            Drag panel
-          </div>
-          <label className="creator-debugger-select-wrap">
-            <span>Element</span>
-            <select
-              className="creator-debugger-select"
-              value={debugTarget}
-              onChange={(event) => setDebugTarget(event.target.value as CreatorDebugTarget)}
-            >
-              <option value="portrait">portrait</option>
-              <option value="title">page title</option>
-              <option value="signsPanel">star signs panel</option>
-              <option value="intro">intro paragraph</option>
-              <option value="fusion">A Fusion of Science and Spirit</option>
-              <option value="fusionSecond">He was first introduced...</option>
-              <option value="innovations">Innovations in Wellness</option>
-              <option value="innovationsFollow">In addition to LIFESPACE...</option>
-              <option value="creationVision">creation health vision</option>
-              <option value="conceptImage">creation health image</option>
-              <option value="conceptCaption">creation health mockup subtitle</option>
-              <option value="creationFacilities">creation health facilities text</option>
-              <option value="author">author & researcher</option>
-              <option value="background">professional background</option>
-              <option value="work">work with mario</option>
-              <option value="primaryButton">book a session</option>
-              <option value="secondaryButton">back to astrology today</option>
-            </select>
-          </label>
-          <div className="creator-debugger-readout">
-            {`X ${activeTransform.x} Y ${activeTransform.y} S ${activeTransform.scale.toFixed(2)}`}
-          </div>
-          <div className="creator-debugger-hint">
-            Arrow keys nudge. Hold Shift for bigger steps. Drag elements directly.
-          </div>
-          <div className="creator-debugger-grid">
-            <button type="button" onClick={() => nudgeTransform("y", -4)}>
-              Up
-            </button>
-            <button type="button" onClick={() => nudgeTransform("x", -4)}>
-              Left
-            </button>
-            <button type="button" onClick={() => nudgeTransform("x", 4)}>
-              Right
-            </button>
-            <button type="button" onClick={() => nudgeTransform("y", 4)}>
-              Down
-            </button>
-            <button type="button" onClick={() => resizeTransform(0.08)}>
-              Bigger
-            </button>
-            <button type="button" onClick={() => resizeTransform(-0.08)}>
-              Smaller
-            </button>
-            <button type="button" onClick={resetActive}>
-              Reset
-            </button>
-          </div>
-          {debugTarget === "portrait" ? (
-            <>
-              <label className="creator-debugger-field">
-                <span>Float Side</span>
-                <select
-                  value={settings.side}
-                  onChange={(event) =>
-                    updateSetting("side", event.target.value as PortraitSettings["side"])
-                  }
-                >
-                  <option value="right">Right</option>
-                  <option value="left">Left</option>
-                </select>
-              </label>
-              <label className="creator-debugger-field">
-                <span>Base Width</span>
-                <input
-                  type="range"
-                  min="160"
-                  max="700"
-                  value={settings.width}
-                  onChange={(event) => updateSetting("width", Number(event.target.value))}
-                />
-              </label>
-              <label className="creator-debugger-field">
-                <span>Text Gap</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="120"
-                  value={settings.leftGap}
-                  onChange={(event) => updateSetting("leftGap", Number(event.target.value))}
-                />
-              </label>
-              <label className="creator-debugger-field">
-                <span>Bottom Gap</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="80"
-                  value={settings.bottom}
-                  onChange={(event) => updateSetting("bottom", Number(event.target.value))}
-                />
-              </label>
-              <label className="creator-debugger-field">
-                <span>Corner Radius</span>
-                <input
-                  type="range"
-                  min="10"
-                  max="48"
-                  value={settings.radius}
-                  onChange={(event) => updateSetting("radius", Number(event.target.value))}
-                />
-              </label>
-            </>
-          ) : null}
-          <label className="creator-debugger-field">
-            <span>Body Text Size</span>
-            <input
-              type="range"
-              min="0.92"
-              max="1.4"
-              step="0.01"
-              value={bodyTextSize}
-              onChange={(event) => setBodyTextSize(Number(event.target.value))}
-            />
-          </label>
-          <label className="creator-debugger-field">
-            <span>Title Size</span>
-            <input
-              type="range"
-              min="3.4"
-              max="7"
-              step="0.1"
-              value={titleTextSize}
-              onChange={(event) => setTitleTextSize(Number(event.target.value))}
-            />
-          </label>
-          <label className="creator-debugger-field">
-            <span>Signs Bubble Radius</span>
-            <input
-              type="range"
-              min="10"
-              max="64"
-              step="1"
-              value={signsRadius}
-              onChange={(event) => setSignsRadius(Number(event.target.value))}
-            />
-          </label>
-          <label className="creator-debugger-field">
-            <span>Bottom Trim</span>
-            <input
-              type="range"
-              min="-1400"
-              max="200"
-              step="10"
-              value={bottomTrim}
-              onChange={(event) => setBottomTrim(Number(event.target.value))}
-            />
-          </label>
-          <label className="creator-debugger-field">
-            <span>Dropcap Size</span>
-            <input
-              type="range"
-              min="3.5"
-              max="7"
-              step="0.1"
-              value={dropCapSize}
-              onChange={(event) => setDropCapSize(Number(event.target.value))}
-            />
-          </label>
-          <label className="creator-debugger-field">
-            <span>Dropcap Font</span>
-            <select
-              value={dropCapFont}
-              onChange={(event) => setDropCapFont(event.target.value as DropCapFont)}
-            >
-              <option value="text">Text Serif</option>
-              <option value="classic">Classic Serif</option>
-              <option value="display">Display Serif</option>
-            </select>
-          </label>
-        </aside>
-        ) : (
+      {SHOW_DEBUGGERS ? (debuggerVisible ? (
+        <aside
+          className="creator-debugger"
+          style={{ transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)` }}
+        >
+        <div className="creator-debugger-header">
+          <p className="creator-debugger-title">Layout Debugger</p>
           <button
             type="button"
-            className="creator-debugger-toggle-button"
+            className="creator-debugger-toggle-button creator-debugger-toggle-button-inline"
             onClick={() => {
               setDragging(null);
-              setDebuggerVisible(true);
+              setDebuggerDragging(null);
+              setDebuggerVisible(false);
             }}
-            aria-label="Show debugger"
-            title="Show debugger"
           >
-            D
+            Hide
           </button>
-        )) : null}
-
-        {conceptLightboxOpen ? (
-          <div
-            className="creator-lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Creation Health concept image"
-            onClick={() => setConceptLightboxOpen(false)}
+        </div>
+        <div
+          className="creator-debugger-dragbar"
+          onMouseDown={(event) =>
+            setDebuggerDragging({
+              startX: event.clientX,
+              startY: event.clientY,
+              initialX: debuggerOffset.x,
+              initialY: debuggerOffset.y,
+            })
+          }
+        >
+          Drag panel
+        </div>
+        <label className="creator-debugger-select-wrap">
+          <span>Element</span>
+          <select
+            className="creator-debugger-select"
+            value={debugTarget}
+            onChange={(event) => setDebugTarget(event.target.value as CreatorDebugTarget)}
           >
-            <div className="creator-lightbox-panel" onClick={(event) => event.stopPropagation()}>
-              <button
-                type="button"
-                className="creator-lightbox-close"
-                onClick={() => setConceptLightboxOpen(false)}
+            <option value="portrait">portrait</option>
+            <option value="title">page title</option>
+            <option value="signsPanel">star signs panel</option>
+            <option value="intro">intro paragraph</option>
+            <option value="fusion">A Fusion of Science and Spirit</option>
+            <option value="fusionSecond">He was first introduced...</option>
+            <option value="innovations">Innovations in Wellness</option>
+            <option value="innovationsFollow">In addition to LIFESPACE...</option>
+            <option value="creationVision">creation health vision</option>
+            <option value="conceptImage">creation health image</option>
+            <option value="conceptCaption">creation health mockup subtitle</option>
+            <option value="creationFacilities">creation health facilities text</option>
+            <option value="author">author & researcher</option>
+            <option value="background">professional background</option>
+            <option value="work">work with mario</option>
+            <option value="primaryButton">book a session</option>
+            <option value="secondaryButton">back to astrology today</option>
+          </select>
+        </label>
+        <div className="creator-debugger-readout">
+          {`X ${activeTransform.x} Y ${activeTransform.y} S ${activeTransform.scale.toFixed(2)}`}
+        </div>
+        <div className="creator-debugger-hint">
+          Arrow keys nudge. Hold Shift for bigger steps. Drag elements directly.
+        </div>
+        <div className="creator-debugger-grid">
+          <button type="button" onClick={() => nudgeTransform("y", -4)}>
+            Up
+          </button>
+          <button type="button" onClick={() => nudgeTransform("x", -4)}>
+            Left
+          </button>
+          <button type="button" onClick={() => nudgeTransform("x", 4)}>
+            Right
+          </button>
+          <button type="button" onClick={() => nudgeTransform("y", 4)}>
+            Down
+          </button>
+          <button type="button" onClick={() => resizeTransform(0.08)}>
+            Bigger
+          </button>
+          <button type="button" onClick={() => resizeTransform(-0.08)}>
+            Smaller
+          </button>
+          <button type="button" onClick={resetActive}>
+            Reset
+          </button>
+        </div>
+        {debugTarget === "portrait" ? (
+          <>
+            <label className="creator-debugger-field">
+              <span>Float Side</span>
+              <select
+                value={settings.side}
+                onChange={(event) =>
+                  updateSetting("side", event.target.value as PortraitSettings["side"])
+                }
               >
-                Close
-              </button>
-              <img
-                src="/creation-health-concept-art.png"
-                alt="Creation Health concept image enlarged"
-                className="creator-lightbox-image"
+                <option value="right">Right</option>
+                <option value="left">Left</option>
+              </select>
+            </label>
+            <label className="creator-debugger-field">
+              <span>Base Width</span>
+              <input
+                type="range"
+                min="160"
+                max="700"
+                value={settings.width}
+                onChange={(event) => updateSetting("width", Number(event.target.value))}
               />
-              <p className="creator-lightbox-caption">
-                Creation Health Mockup: An outdoor psychiatric inpatient/outpatient program
-              </p>
-            </div>
-          </div>
+            </label>
+            <label className="creator-debugger-field">
+              <span>Text Gap</span>
+              <input
+                type="range"
+                min="0"
+                max="120"
+                value={settings.leftGap}
+                onChange={(event) => updateSetting("leftGap", Number(event.target.value))}
+              />
+            </label>
+            <label className="creator-debugger-field">
+              <span>Bottom Gap</span>
+              <input
+                type="range"
+                min="0"
+                max="80"
+                value={settings.bottom}
+                onChange={(event) => updateSetting("bottom", Number(event.target.value))}
+              />
+            </label>
+            <label className="creator-debugger-field">
+              <span>Corner Radius</span>
+              <input
+                type="range"
+                min="10"
+                max="48"
+                value={settings.radius}
+                onChange={(event) => updateSetting("radius", Number(event.target.value))}
+              />
+            </label>
+          </>
         ) : null}
-      </div>
+        <label className="creator-debugger-field">
+          <span>Body Text Size</span>
+          <input
+            type="range"
+            min="0.92"
+            max="1.4"
+            step="0.01"
+            value={bodyTextSize}
+            onChange={(event) => setBodyTextSize(Number(event.target.value))}
+          />
+        </label>
+        <label className="creator-debugger-field">
+          <span>Title Size</span>
+          <input
+            type="range"
+            min="3.4"
+            max="7"
+            step="0.1"
+            value={titleTextSize}
+            onChange={(event) => setTitleTextSize(Number(event.target.value))}
+          />
+        </label>
+        <label className="creator-debugger-field">
+          <span>Signs Bubble Radius</span>
+          <input
+            type="range"
+            min="10"
+            max="64"
+            step="1"
+            value={signsRadius}
+            onChange={(event) => setSignsRadius(Number(event.target.value))}
+          />
+        </label>
+        <label className="creator-debugger-field">
+          <span>Bottom Trim</span>
+          <input
+            type="range"
+            min="-1400"
+            max="200"
+            step="10"
+            value={bottomTrim}
+            onChange={(event) => setBottomTrim(Number(event.target.value))}
+          />
+        </label>
+        <label className="creator-debugger-field">
+          <span>Dropcap Size</span>
+          <input
+            type="range"
+            min="3.5"
+            max="7"
+            step="0.1"
+            value={dropCapSize}
+            onChange={(event) => setDropCapSize(Number(event.target.value))}
+          />
+        </label>
+        <label className="creator-debugger-field">
+          <span>Dropcap Font</span>
+          <select
+            value={dropCapFont}
+            onChange={(event) => setDropCapFont(event.target.value as DropCapFont)}
+          >
+            <option value="text">Text Serif</option>
+            <option value="classic">Classic Serif</option>
+            <option value="display">Display Serif</option>
+          </select>
+        </label>
+      </aside>
+      ) : (
+        <button
+          type="button"
+          className="creator-debugger-toggle-button"
+          onClick={() => {
+            setDragging(null);
+            setDebuggerVisible(true);
+          }}
+          aria-label="Show debugger"
+          title="Show debugger"
+        >
+          D
+        </button>
+      )) : null}
+
+      {conceptLightboxOpen ? (
+        <div
+          className="creator-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Creation Health concept image"
+          onClick={() => setConceptLightboxOpen(false)}
+        >
+          <div className="creator-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="creator-lightbox-close"
+              onClick={() => setConceptLightboxOpen(false)}
+            >
+              Close
+            </button>
+            <img
+              src="/creation-health-concept-art.png"
+              alt="Creation Health concept image enlarged"
+              className="creator-lightbox-image"
+            />
+            <p className="creator-lightbox-caption">
+              Creation Health Mockup: An outdoor psychiatric inpatient/outpatient program
+            </p>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

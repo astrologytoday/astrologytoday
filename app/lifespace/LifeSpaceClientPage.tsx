@@ -27,6 +27,7 @@ import {
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
+import ScaledPageCanvas from "../../components/shared/ScaledPageCanvas";
 
 type IconDockItem = {
   key: string;
@@ -72,6 +73,10 @@ const prescriptionCopy: Record<LifespaceModule, string> = {
 
 const footerLinks = ["Contact", "Careers", "FAQ", "Testimonials", "Privacy Policy", "Terms of Use"];
 const LIFESPACE_DEBUG_STORAGE_KEY = "astrologytoday-lifespace-debug-v1";
+const LIFESPACE_CANVAS_SCALE = 0.71;
+const LIFESPACE_CANVAS_WIDTH = 1760;
+const LIFESPACE_CANVAS_OFFSET_X = 0;
+const LIFESPACE_CANVAS_OFFSET_Y = 16;
 const EMPTY_MODULE_SCORES: Record<LifespaceModule, number> = {
   light: 0,
   innerWork: 0,
@@ -591,325 +596,334 @@ export default function LifeSpaceClientPage() {
 
   return (
     <main className="lifespace-home">
-      {showDashboard ? (
-      <section
-        className={`lifespace-shell ${pageMode === "construction" ? "lifespace-shell-under-construction" : ""}`.trim()}
-        aria-hidden={pageMode === "construction"}
+      <ScaledPageCanvas
+        className="lifespace-page-canvas"
+        designWidth={LIFESPACE_CANVAS_WIDTH}
+        offsetX={LIFESPACE_CANVAS_OFFSET_X}
+        offsetY={LIFESPACE_CANVAS_OFFSET_Y}
+        scale={LIFESPACE_CANVAS_SCALE}
+        viewportClassName="lifespace-page-canvas-viewport"
       >
-        <section className="lifespace-results-panel">
-          <aside className="lifespace-icondock-panel">
-            <div className="lifespace-brand-block">
-              <div className="lifespace-mark-card">
-                <img src="/lifespace-emblem.png" alt="LIFESPACE emblem" className="lifespace-mark-image" />
-              </div>
-              <div className="lifespace-brand-copy">
-                <p className="eyebrow">LIFESPACE</p>
-                <h2>Wellness intelligence</h2>
-                <p>A calm, structured portal for daily mental wellness decisions and long-range self-care.</p>
-              </div>
-            </div>
-
-            <div className="lifespace-icondock" aria-label="LIFESPACE navigation">
-              {iconDockItems.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={`lifespace-icondock-item ${activeDockItem === item.key ? "is-active" : ""}`}
-                  onClick={() => setActiveDockItem(item.key)}
-                  aria-pressed={activeDockItem === item.key}
-                >
-                  <span className="lifespace-icon-circle">{item.icon}</span>
-                  <span className="lifespace-icon-copy">
-                    <span className="lifespace-icon-label">{item.label}</span>
-                    <span className="lifespace-icon-description">{item.description}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <div className="lifespace-sidebar-summary">
-              <span className="lifespace-sidebar-summary-label">Today&apos;s score</span>
-              <strong>{effectiveTodayScore}%</strong>
-              <p>{effectiveStatus === "ready" ? "Live data is shaping this view." : "Connect profile data to unlock live insights."}</p>
-            </div>
-          </aside>
-
-          <div className="lifespace-workspace">
-            <header className="lifespace-dashboard-header">
-              <div className="lifespace-page-title">
-                <p className="eyebrow">Dashboard Overview</p>
-                <div className="lifespace-title-row">
-                  <h1>{effectiveDashboardName}&apos;s LIFESPACE</h1>
-                  <span className={`lifespace-status-chip status-${effectiveStatus}`}>{getStatusLabel(effectiveStatus)}</span>
+        {showDashboard ? (
+        <section
+          className={`lifespace-shell ${pageMode === "construction" ? "lifespace-shell-under-construction" : ""}`.trim()}
+          aria-hidden={pageMode === "construction"}
+        >
+          <section className="lifespace-results-panel">
+            <aside className="lifespace-icondock-panel">
+              <div className="lifespace-brand-block">
+                <div className="lifespace-mark-card">
+                  <img src="/lifespace-emblem.png" alt="LIFESPACE emblem" className="lifespace-mark-image" />
                 </div>
-                <p>
-                  Your environment, habits, and inner life translated into a calmer, clearer wellness command center.
-                </p>
-                {effectiveStatus === "error" && <p>{effectiveErrorMessage}</p>}
-                {effectiveStatus === "loading" && <p>Loading synced profile...</p>}
-                {effectiveStatus === "idle" && <p>Waiting for a shared Firestore user.</p>}
-              </div>
-
-              <div className="lifespace-topdock">
-                <div className="lifespace-topdock-actions">
-                  <button type="button" className="lifespace-utility-button" aria-label="Logout">
-                    <PowerIcon />
-                  </button>
-                  <button type="button" className="lifespace-utility-button" aria-label="User profile">
-                    <PersonIcon />
-                  </button>
-                  <Link href="/" className="lifespace-brand-pill">
-                    <img src="/lifespace-app-icon.png" alt="" aria-hidden="true" />
-                    <span>Astrology Today</span>
-                  </Link>
+                <div className="lifespace-brand-copy">
+                  <p className="eyebrow">LIFESPACE</p>
+                  <h2>Wellness intelligence</h2>
+                  <p>A calm, structured portal for daily mental wellness decisions and long-range self-care.</p>
                 </div>
               </div>
-            </header>
 
-            <section className="lifespace-hero-band">
-              <div className="lifespace-hero-copy">
-                <div className="lifespace-chip-row">
-                  <span className="lifespace-data-chip">Daily score {effectiveTodayScore}%</span>
-                  <span className="lifespace-data-chip">Priority modules {effectivePrescriptionModules.length}</span>
-                  <span className="lifespace-data-chip">Focus area {selectedModuleLabel}</span>
-                </div>
-                <h2>Track the shape of your life, not just isolated habits.</h2>
-                <p>
-                  LIFESPACE helps you see which parts of your routine are regulating you, which ones are draining
-                  you, and where the next week should be gently redirected.
-                </p>
-                <div className="lifespace-hero-actions">
+              <div className="lifespace-icondock" aria-label="LIFESPACE navigation">
+                {iconDockItems.map((item) => (
                   <button
+                    key={item.key}
                     type="button"
-                    className="lifespace-primary-action"
-                    onClick={() => {
-                      setSelectedModule(weakestModule);
-                      setActiveDockItem("analytics");
-                    }}
+                    className={`lifespace-icondock-item ${activeDockItem === item.key ? "is-active" : ""}`}
+                    onClick={() => setActiveDockItem(item.key)}
+                    aria-pressed={activeDockItem === item.key}
                   >
-                    Review weakest area
+                    <span className="lifespace-icon-circle">{item.icon}</span>
+                    <span className="lifespace-icon-copy">
+                      <span className="lifespace-icon-label">{item.label}</span>
+                      <span className="lifespace-icon-description">{item.description}</span>
+                    </span>
                   </button>
-                  <button
-                    type="button"
-                    className="lifespace-secondary-action"
-                    onClick={() => {
-                      document.getElementById("lifespace-prescription")?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                      });
-                    }}
-                  >
-                    Open prescription
-                  </button>
-                </div>
+                ))}
               </div>
 
-              <div className="lifespace-overview-card">
-                <span className="lifespace-overview-label">Current wellness score</span>
+              <div className="lifespace-sidebar-summary">
+                <span className="lifespace-sidebar-summary-label">Today&apos;s score</span>
                 <strong>{effectiveTodayScore}%</strong>
-                <p>
-                  {effectiveTodayScore >= 80
-                    ? "You are in a strong zone. Protect the conditions that are already working."
-                    : effectiveTodayScore >= 55
-                      ? "You have a workable baseline. Small targeted adjustments can lift the week noticeably."
-                      : "Your system may need extra support right now. Prioritize steadiness, clarity, and relief."}
-                </p>
+                <p>{effectiveStatus === "ready" ? "Live data is shaping this view." : "Connect profile data to unlock live insights."}</p>
               </div>
-            </section>
+            </aside>
 
-            <section className="lifespace-analytics-panel">
-              <div className="lifespace-section-heading">
-                <div>
-                  <p className="eyebrow">Main Analytics</p>
-                  <h2>Lifetime module performance</h2>
-                </div>
-                <p>Tap any letter to inspect the module, compare patterns, and decide what deserves attention next.</p>
-              </div>
-
-              <div className="lifespace-analytics-grid">
-                <div className="lifespace-chart-card">
-                  <div className="lifespace-score-overlay" aria-label={`Today's score ${effectiveTodayScore} percent`}>
-                    <span>Today</span>
-                    <strong>{effectiveTodayScore}%</strong>
+            <div className="lifespace-workspace">
+              <header className="lifespace-dashboard-header">
+                <div className="lifespace-page-title">
+                  <p className="eyebrow">Dashboard Overview</p>
+                  <div className="lifespace-title-row">
+                    <h1>{effectiveDashboardName}&apos;s LIFESPACE</h1>
+                    <span className={`lifespace-status-chip status-${effectiveStatus}`}>{getStatusLabel(effectiveStatus)}</span>
                   </div>
-                  <div className="lifespace-chart-grid">
-                    <div className="lifespace-y-axis">
-                      {[100, 75, 50, 25, 0].map((tick) => (
-                        <span key={tick}>{tick}</span>
+                  <p>
+                    Your environment, habits, and inner life translated into a calmer, clearer wellness command center.
+                  </p>
+                  {effectiveStatus === "error" && <p>{effectiveErrorMessage}</p>}
+                  {effectiveStatus === "loading" && <p>Loading synced profile...</p>}
+                  {effectiveStatus === "idle" && <p>Waiting for a shared Firestore user.</p>}
+                </div>
+
+                <div className="lifespace-topdock">
+                  <div className="lifespace-topdock-actions">
+                    <button type="button" className="lifespace-utility-button" aria-label="Logout">
+                      <PowerIcon />
+                    </button>
+                    <button type="button" className="lifespace-utility-button" aria-label="User profile">
+                      <PersonIcon />
+                    </button>
+                    <Link href="/" className="lifespace-brand-pill">
+                      <img src="/lifespace-app-icon.png" alt="" aria-hidden="true" />
+                      <span>Astrology Today</span>
+                    </Link>
+                  </div>
+                </div>
+              </header>
+
+              <section className="lifespace-hero-band">
+                <div className="lifespace-hero-copy">
+                  <div className="lifespace-chip-row">
+                    <span className="lifespace-data-chip">Daily score {effectiveTodayScore}%</span>
+                    <span className="lifespace-data-chip">Priority modules {effectivePrescriptionModules.length}</span>
+                    <span className="lifespace-data-chip">Focus area {selectedModuleLabel}</span>
+                  </div>
+                  <h2>Track the shape of your life, not just isolated habits.</h2>
+                  <p>
+                    LIFESPACE helps you see which parts of your routine are regulating you, which ones are draining
+                    you, and where the next week should be gently redirected.
+                  </p>
+                  <div className="lifespace-hero-actions">
+                    <button
+                      type="button"
+                      className="lifespace-primary-action"
+                      onClick={() => {
+                        setSelectedModule(weakestModule);
+                        setActiveDockItem("analytics");
+                      }}
+                    >
+                      Review weakest area
+                    </button>
+                    <button
+                      type="button"
+                      className="lifespace-secondary-action"
+                      onClick={() => {
+                        document.getElementById("lifespace-prescription")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start",
+                        });
+                      }}
+                    >
+                      Open prescription
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lifespace-overview-card">
+                  <span className="lifespace-overview-label">Current wellness score</span>
+                  <strong>{effectiveTodayScore}%</strong>
+                  <p>
+                    {effectiveTodayScore >= 80
+                      ? "You are in a strong zone. Protect the conditions that are already working."
+                      : effectiveTodayScore >= 55
+                        ? "You have a workable baseline. Small targeted adjustments can lift the week noticeably."
+                        : "Your system may need extra support right now. Prioritize steadiness, clarity, and relief."}
+                  </p>
+                </div>
+              </section>
+
+              <section className="lifespace-analytics-panel">
+                <div className="lifespace-section-heading">
+                  <div>
+                    <p className="eyebrow">Main Analytics</p>
+                    <h2>Lifetime module performance</h2>
+                  </div>
+                  <p>Tap any letter to inspect the module, compare patterns, and decide what deserves attention next.</p>
+                </div>
+
+                <div className="lifespace-analytics-grid">
+                  <div className="lifespace-chart-card">
+                    <div className="lifespace-score-overlay" aria-label={`Today's score ${effectiveTodayScore} percent`}>
+                      <span>Today</span>
+                      <strong>{effectiveTodayScore}%</strong>
+                    </div>
+                    <div className="lifespace-chart-grid">
+                      <div className="lifespace-y-axis">
+                        {[100, 75, 50, 25, 0].map((tick) => (
+                          <span key={tick}>{tick}</span>
+                        ))}
+                      </div>
+
+                      <div className="lifespace-bars">
+                        {LIFESPACE_MODULES.map((module) => {
+                          const score = effectiveLifetimeScores[module];
+
+                          return (
+                            <div key={module} className="lifespace-bar-slot">
+                              <div className="lifespace-bar-shell">
+                                <div
+                                  className={`lifespace-bar-fill ${getBarTone(score)} ${selectedModule === module ? "is-selected" : ""}`}
+                                  style={{ height: `${Math.max(score, 6)}%` }}
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                className={`lifespace-module-word ${selectedModule === module ? "is-active" : ""}`}
+                                onClick={() => setSelectedModule(module)}
+                                aria-label={LIFESPACE_MODULE_LABELS[module]}
+                                aria-pressed={selectedModule === module}
+                              >
+                                {moduleLetters[module]}
+                              </button>
+                              <span className="lifespace-module-caption">
+                                {module === "sensory" ? "Sensory" : LIFESPACE_MODULE_LABELS[module]}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  <aside className="lifespace-module-popup">
+                    <div className="lifespace-module-card-top">
+                      <span className="lifespace-module-score">{selectedModuleScore}%</span>
+                      <span className={`lifespace-tone-pill tone-${getBarTone(selectedModuleScore)}`}>
+                        {selectedModuleScore >= 80 ? "Strong" : selectedModuleScore >= 55 ? "Building" : "Needs support"}
+                      </span>
+                    </div>
+                    <h2>{selectedModuleLabel}</h2>
+                    <p>{moduleDescriptions[selectedModule]}</p>
+
+                    <div className="lifespace-module-mini-list">
+                      {rankedModules.slice(0, 3).map(({ module, score }, index) => (
+                        <div key={module} className="lifespace-module-mini-row">
+                          <span className="lifespace-module-mini-rank">0{index + 1}</span>
+                          <span className="lifespace-module-mini-name">
+                            {module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}
+                          </span>
+                          <strong>{score}%</strong>
+                        </div>
                       ))}
                     </div>
-
-                    <div className="lifespace-bars">
-                      {LIFESPACE_MODULES.map((module) => {
-                        const score = effectiveLifetimeScores[module];
-
-                        return (
-                          <div key={module} className="lifespace-bar-slot">
-                            <div className="lifespace-bar-shell">
-                              <div
-                                className={`lifespace-bar-fill ${getBarTone(score)} ${selectedModule === module ? "is-selected" : ""}`}
-                                style={{ height: `${Math.max(score, 6)}%` }}
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              className={`lifespace-module-word ${selectedModule === module ? "is-active" : ""}`}
-                              onClick={() => setSelectedModule(module)}
-                              aria-label={LIFESPACE_MODULE_LABELS[module]}
-                              aria-pressed={selectedModule === module}
-                            >
-                              {moduleLetters[module]}
-                            </button>
-                            <span className="lifespace-module-caption">
-                              {module === "sensory" ? "Sensory" : LIFESPACE_MODULE_LABELS[module]}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  </aside>
                 </div>
+              </section>
+            </div>
+          </section>
 
-                <aside className="lifespace-module-popup">
-                  <div className="lifespace-module-card-top">
-                    <span className="lifespace-module-score">{selectedModuleScore}%</span>
-                    <span className={`lifespace-tone-pill tone-${getBarTone(selectedModuleScore)}`}>
-                      {selectedModuleScore >= 80 ? "Strong" : selectedModuleScore >= 55 ? "Building" : "Needs support"}
-                    </span>
-                  </div>
-                  <h2>{selectedModuleLabel}</h2>
-                  <p>{moduleDescriptions[selectedModule]}</p>
-
-                  <div className="lifespace-module-mini-list">
-                    {rankedModules.slice(0, 3).map(({ module, score }, index) => (
-                      <div key={module} className="lifespace-module-mini-row">
-                        <span className="lifespace-module-mini-rank">0{index + 1}</span>
-                        <span className="lifespace-module-mini-name">
-                          {module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}
-                        </span>
-                        <strong>{score}%</strong>
-                      </div>
-                    ))}
-                  </div>
-                </aside>
+          <section className="lifespace-prescription-card" id="lifespace-prescription">
+            <div className="lifespace-prescription-header">
+              <div>
+                <p className="eyebrow">LIFESPACE Prescription</p>
+                <h2>Focus on these top priorities over the next seven days.</h2>
               </div>
-            </section>
-          </div>
-        </section>
+              <div className="lifespace-prescription-summary">
+                <span>Recommended emphasis</span>
+                <strong>{effectivePrescriptionModules.length} guided priorities</strong>
+              </div>
+            </div>
+            <div className="lifespace-prescription-list">
+              {effectivePrescriptionModules.map((module, index) => (
+                <article key={module} className="lifespace-priority-card">
+                  <div className="lifespace-priority-index">{index + 1}</div>
+                  <div>
+                    <h3>{module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}</h3>
+                    <p>{prescriptionCopy[module]}</p>
+                  </div>
+                  <div className="lifespace-priority-score">{effectiveLifetimeScores[module]}%</div>
+                </article>
+              ))}
+            </div>
+          </section>
 
-        <section className="lifespace-prescription-card" id="lifespace-prescription">
-          <div className="lifespace-prescription-header">
-            <div>
-              <p className="eyebrow">LIFESPACE Prescription</p>
-              <h2>Focus on these top priorities over the next seven days.</h2>
-            </div>
-            <div className="lifespace-prescription-summary">
-              <span>Recommended emphasis</span>
-              <strong>{effectivePrescriptionModules.length} guided priorities</strong>
-            </div>
-          </div>
-          <div className="lifespace-prescription-list">
-            {effectivePrescriptionModules.map((module, index) => (
-              <article key={module} className="lifespace-priority-card">
-                <div className="lifespace-priority-index">{index + 1}</div>
-                <div>
-                  <h3>{module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}</h3>
-                  <p>{prescriptionCopy[module]}</p>
-                </div>
-                <div className="lifespace-priority-score">{effectiveLifetimeScores[module]}%</div>
-              </article>
+          <footer className="lifespace-footer">
+            {footerLinks.map((item) => (
+              <a key={item} href="#" className="lifespace-footer-link">
+                {item}
+              </a>
             ))}
-          </div>
+          </footer>
         </section>
-
-        <footer className="lifespace-footer">
-          {footerLinks.map((item) => (
-            <a key={item} href="#" className="lifespace-footer-link">
-              {item}
-            </a>
-          ))}
-        </footer>
-      </section>
-      ) : (
-        <section className="lifespace-shell">
-          <section className="lifespace-results-panel lifespace-results-panel-auth">
-            <div className="lifespace-web-auth-shell">
-              <div className={`lifespace-web-auth-card${authStep === "code" ? " is-code-step" : ""}`}>
-                <p className="eyebrow">LIFESPACE Web</p>
-                {authStep === "code" ? (
-                  <>
-                    <div className="lifespace-web-auth-code-layout">
-                      <div className="lifespace-web-auth-copy-block">
-                        <h1>Enter app user code</h1>
-                        <p>Use the code from your LIFESPACE iPhone app to unlock your web dashboard.</p>
+        ) : (
+          <section className="lifespace-shell">
+            <section className="lifespace-results-panel lifespace-results-panel-auth">
+              <div className="lifespace-web-auth-shell">
+                <div className={`lifespace-web-auth-card${authStep === "code" ? " is-code-step" : ""}`}>
+                  <p className="eyebrow">LIFESPACE Web</p>
+                  {authStep === "code" ? (
+                    <>
+                      <div className="lifespace-web-auth-code-layout">
+                        <div className="lifespace-web-auth-copy-block">
+                          <h1>Enter app user code</h1>
+                          <p>Use the code from your LIFESPACE iPhone app to unlock your web dashboard.</p>
+                        </div>
+                        <div className="lifespace-web-auth-form-block">
+                          <input
+                            className="lifespace-web-auth-input"
+                            value={codeInput}
+                            onChange={(event) => setCodeInput(formatLifespaceCodeInput(event.target.value))}
+                            placeholder="LS-XXXXXX"
+                            aria-label="Enter app user code"
+                            autoCapitalize="characters"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            inputMode="text"
+                            maxLength={9}
+                          />
+                          {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                          <button
+                            type="button"
+                            className="lifespace-primary-action lifespace-web-auth-button"
+                            onClick={() => void handleCodeSubmit()}
+                            disabled={authBusy}
+                          >
+                            {authBusy ? "Checking..." : "Next"}
+                          </button>
+                        </div>
                       </div>
-                      <div className="lifespace-web-auth-form-block">
-                        <input
-                          className="lifespace-web-auth-input"
-                          value={codeInput}
-                          onChange={(event) => setCodeInput(formatLifespaceCodeInput(event.target.value))}
-                          placeholder="LS-XXXXXX"
-                          aria-label="Enter app user code"
-                          autoCapitalize="characters"
-                          autoCorrect="off"
-                          spellCheck={false}
-                          inputMode="text"
-                          maxLength={9}
-                        />
-                        {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                    </>
+                  ) : (
+                    <>
+                      <h1>Create username &amp; password</h1>
+                      <p>{`Code accepted: ${verifiedCode}`}</p>
+                      <div className="lifespace-web-auth-grid">
+                        <input className="lifespace-web-auth-input" value={setupUsername} onChange={(event) => setSetupUsername(event.target.value)} placeholder="Username" aria-label="Username" />
+                        <input className="lifespace-web-auth-input" value={confirmUsername} onChange={(event) => setConfirmUsername(event.target.value)} placeholder="Confirm username" aria-label="Confirm username" />
+                        <input className="lifespace-web-auth-input" type="password" value={setupPassword} onChange={(event) => setSetupPassword(event.target.value)} placeholder="Password" aria-label="Password" />
+                        <input className="lifespace-web-auth-input" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm password" aria-label="Confirm password" />
+                        <input className="lifespace-web-auth-input" type="email" value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="Recovery email" aria-label="Recovery email" />
+                      </div>
+                      {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                      <div className="lifespace-web-auth-actions">
+                        <button
+                          type="button"
+                          className="lifespace-secondary-action"
+                          onClick={() => {
+                            setAuthStep("code");
+                            setAuthError("");
+                          }}
+                        >
+                          Back
+                        </button>
                         <button
                           type="button"
                           className="lifespace-primary-action lifespace-web-auth-button"
-                          onClick={() => void handleCodeSubmit()}
+                          onClick={() => void handleAccountCreate()}
                           disabled={authBusy}
                         >
-                          {authBusy ? "Checking..." : "Next"}
+                          {authBusy ? "Creating..." : "Create account"}
                         </button>
                       </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h1>Create username &amp; password</h1>
-                    <p>{`Code accepted: ${verifiedCode}`}</p>
-                    <div className="lifespace-web-auth-grid">
-                      <input className="lifespace-web-auth-input" value={setupUsername} onChange={(event) => setSetupUsername(event.target.value)} placeholder="Username" aria-label="Username" />
-                      <input className="lifespace-web-auth-input" value={confirmUsername} onChange={(event) => setConfirmUsername(event.target.value)} placeholder="Confirm username" aria-label="Confirm username" />
-                      <input className="lifespace-web-auth-input" type="password" value={setupPassword} onChange={(event) => setSetupPassword(event.target.value)} placeholder="Password" aria-label="Password" />
-                      <input className="lifespace-web-auth-input" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm password" aria-label="Confirm password" />
-                      <input className="lifespace-web-auth-input" type="email" value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="Recovery email" aria-label="Recovery email" />
-                    </div>
-                    {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
-                    <div className="lifespace-web-auth-actions">
-                      <button
-                        type="button"
-                        className="lifespace-secondary-action"
-                        onClick={() => {
-                          setAuthStep("code");
-                          setAuthError("");
-                        }}
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="button"
-                        className="lifespace-primary-action lifespace-web-auth-button"
-                        onClick={() => void handleAccountCreate()}
-                        disabled={authBusy}
-                      >
-                        {authBusy ? "Creating..." : "Create account"}
-                      </button>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
+                <Link href="/" className="lifespace-web-auth-back-link">
+                  ← Back to Astrology Today
+                </Link>
               </div>
-              <Link href="/" className="lifespace-web-auth-back-link">
-                ← Back to Astrology Today
-              </Link>
-            </div>
+            </section>
           </section>
-        </section>
-      )}
+        )}
+      </ScaledPageCanvas>
 
       {pageMode === "construction" ? (
         <div className="lifespace-under-construction">
