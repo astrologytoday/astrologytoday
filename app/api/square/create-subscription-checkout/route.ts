@@ -22,7 +22,7 @@ type SquareCreatePaymentLinkResponse = {
   }>;
 };
 
-function normalizeSquareToken(value: string | undefined) {
+function normalizeEnvString(value: string | undefined) {
   if (!value) return undefined;
 
   return value
@@ -48,10 +48,10 @@ export async function POST(request: NextRequest) {
   }
 
   const rawAccessToken = process.env.SQUARE_ACCESS_TOKEN;
-  const accessToken = normalizeSquareToken(rawAccessToken);
-  const locationId = process.env.SQUARE_LOCATION_ID;
-  const environment = process.env.SQUARE_ENVIRONMENT ?? "sandbox";
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const accessToken = normalizeEnvString(rawAccessToken);
+  const locationId = normalizeEnvString(process.env.SQUARE_LOCATION_ID);
+  const environment = (normalizeEnvString(process.env.SQUARE_ENVIRONMENT) ?? "sandbox").toLowerCase();
+  const siteUrl = normalizeEnvString(process.env.NEXT_PUBLIC_SITE_URL) ?? request.nextUrl.origin;
 
   console.log("[square-checkout] env check", {
     hasAccessToken: Boolean(accessToken),
@@ -81,8 +81,6 @@ export async function POST(request: NextRequest) {
   const paymentNoteParts = [
     `Client Subscription checkout: ${plan.key}.`,
     intakeId ? `Intake ID: ${intakeId}.` : null,
-    `If using subscription plan variations later, replace placeholder ${plan.squareSubscriptionPlanVariationId}.`,
-    `Cancel return: ${cancelUrl}`,
   ].filter(Boolean);
 
   /**
@@ -115,7 +113,6 @@ export async function POST(request: NextRequest) {
       },
       checkout_options: {
         redirect_url: successUrl,
-        merchant_support_email: "mariosbardella@protonmail.com",
       },
       payment_note: paymentNoteParts.join(" "),
     }),
