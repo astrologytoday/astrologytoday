@@ -31,6 +31,17 @@ const languageColumns = [
   ],
 ] satisfies { code: SupportedLocale; label: string }[][];
 
+type FooterItem = {
+  label: string;
+  href: string;
+  disabled?: boolean;
+};
+
+type FooterColumn = {
+  heading: string;
+  items: FooterItem[];
+};
+
 export default function SiteFooter({
   locale = defaultLocale,
   currentPath = "/",
@@ -50,7 +61,7 @@ export default function SiteFooter({
 }) {
   const copy = getHomeCopy(locale);
   const localizedHref = (href: string) => withLocale(locale, href);
-  const footerColumns = [
+  const footerColumns: FooterColumn[] = [
     {
       heading: copy.footer.discover,
       items: [
