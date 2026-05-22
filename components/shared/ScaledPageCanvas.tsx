@@ -9,6 +9,7 @@ type ScaledPageCanvasProps = {
   bleedTop?: number;
   children: ReactNode;
   className?: string;
+  clipViewportOverflow?: boolean;
   designWidth: number;
   offsetX?: number;
   offsetY?: number;
@@ -23,6 +24,7 @@ export default function ScaledPageCanvas({
   bleedTop = 0,
   children,
   className,
+  clipViewportOverflow = false,
   designWidth,
   offsetX = 0,
   offsetY = 0,
@@ -58,7 +60,10 @@ export default function ScaledPageCanvas({
   const appliedScale = viewportWidth > 0 ? Math.min(scale, viewportWidth / designWidth) : scale;
 
   const viewportStyle: CSSProperties | undefined = surfaceHeight
-    ? { height: `${Math.ceil(surfaceHeight * appliedScale)}px` }
+    ? {
+        height: `${Math.ceil(offsetY + surfaceHeight * appliedScale)}px`,
+        overflow: clipViewportOverflow ? "clip" : undefined,
+      }
     : undefined;
 
   const surfaceStyle: CSSProperties = {

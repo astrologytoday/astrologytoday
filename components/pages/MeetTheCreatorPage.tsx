@@ -895,16 +895,14 @@ export default function MeetTheCreatorPage({
                 }}
                 onMouseDown={startDragTransform("primaryButton", primaryButtonDebug)}
               >
-                <a
-                  href="https://calendar.app.google/Md7ZeRnkSWogEA5P9"
+                <Link
+                  href={withLocale(locale, "/pricing")}
                   className="creator-primary-action creator-primary-action-circle"
-                  target="_blank"
-                  rel="noreferrer"
                 >
                   <span>Book</span>
                   <span>a</span>
                   <span>Session</span>
-                </a>
+                </Link>
               </div>
               <div
                 className={`creator-action-debug${

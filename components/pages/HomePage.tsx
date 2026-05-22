@@ -1315,6 +1315,7 @@ export default function HomePage({
         bleedLeft={HOME_CANVAS_BLEED_LEFT}
         bleedRight={HOME_CANVAS_BLEED_RIGHT}
         className="home-page-mock home-page-canvas"
+        clipViewportOverflow
         designWidth={HOME_CANVAS_WIDTH}
         offsetX={HOME_CANVAS_OFFSET_X}
         offsetY={HOME_CANVAS_OFFSET_Y}
@@ -1598,14 +1599,12 @@ export default function HomePage({
                   >
                     {copy.hero.relationshipCalculator}
                   </Link>
-                  <a
-                    href="https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ2SOGGpII-qzuaecTRwMUtWfa--GK2PWBBRkJqHZcU6CI3xOksXQjS02AdKNqAWJGsPa1RwrXwi"
+                  <Link
+                    href={localizedHref("/pricing")}
                     className="secondary-link"
-                    target="_blank"
-                    rel="noreferrer"
                   >
                     {copy.hero.bookSession}
-                  </a>
+                  </Link>
                 </div>
               </div>
             </section>
