@@ -1,13 +1,22 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
+function normalizeEnvString(value: string | undefined) {
+  if (!value) return undefined;
+
+  return value
+    .trim()
+    .replace(/^"(.*)"$/, "$1")
+    .replace(/^'(.*)'$/, "$1");
+}
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_API_KEY),
+  authDomain: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN),
+  projectId: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID),
+  storageBucket: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET),
+  messagingSenderId: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID),
+  appId: normalizeEnvString(process.env.NEXT_PUBLIC_FIREBASE_APP_ID),
 };
 
 export function isFirebaseConfigured() {
@@ -26,4 +35,3 @@ export function getFirestoreDb() {
   const app = getFirebaseApp();
   return app ? getFirestore(app) : null;
 }
-
