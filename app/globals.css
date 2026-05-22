@@ -9531,6 +9531,7 @@ select {
 }
 
 .at-plus-field input,
+.at-plus-field select,
 .at-plus-field textarea {
   width: 100%;
   border: 1px solid rgba(67, 54, 42, 0.18);
@@ -9549,6 +9550,7 @@ select {
 }
 
 .at-plus-field input:focus,
+.at-plus-field select:focus,
 .at-plus-field textarea:focus {
   outline: 2px solid rgba(50, 93, 121, 0.24);
   border-color: rgba(50, 93, 121, 0.45);

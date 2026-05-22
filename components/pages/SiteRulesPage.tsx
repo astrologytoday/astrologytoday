@@ -220,7 +220,7 @@ const sections: RuleSection[] = [
     id: "wellness",
     title: "4. Wellness And Advice Boundaries",
     body: [
-      "Astrology Today does not provide medical, legal, mental health, tax, or financial advice. Our content is intended for educational, editorial, and inspirational purposes only.",
+      "Astrology Today may provide mental health, wellness, and personal development guidance, but it does not provide medical, legal, tax, or financial advice. Our content is intended for educational, editorial, and inspirational purposes only.",
       "Readers should use independent judgment and seek qualified professionals when making serious personal, health, legal, or financial decisions. Content that encourages dependency, fear, or absolute certainty about life outcomes is outside the spirit of this site.",
     ],
   },

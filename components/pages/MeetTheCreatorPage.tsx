@@ -124,7 +124,7 @@ const SECTION_TARGETS: SectionTarget[] = [
 ];
 const DEFAULT_SECTION_DEBUG: Record<SectionTarget, TransformDebug> = {
   title: { x: 0, y: 0, scale: 1 },
-  signsPanel: { x: 99, y: 1, scale: 0.92 },
+  signsPanel: { x: 114, y: 1, scale: 0.92 },
   intro: { x: 0, y: 0, scale: 1.08 },
   fusion: { x: 0, y: 16, scale: 1 },
   fusionSecond: { x: 359, y: -462, scale: 1.08 },
@@ -671,10 +671,9 @@ export default function MeetTheCreatorPage({
               onMouseDown={startDragTransform("fusionSecond", sectionDebug.fusionSecond)}
             >
               <p className="creator-fusion-second-paragraph">
-                He was first awakened to spirituality following a formative experience on
-                September 23, 2016, which began a personal relationship with Jesus Christ,
-                whom he views as a central figure in spiritual purification and personal
-                development.
+                He was first awakened to spirituality following a formative experience which
+                began a personal relationship with Jesus Christ, whom he views as a central
+                figure in spiritual purification and personal development.
               </p>
             </div>
 
@@ -687,11 +686,10 @@ export default function MeetTheCreatorPage({
             >
               <h2>Innovations in Wellness</h2>
               <p>
-                This brand of psychospirituality integrates two primary wellness models designed
-                to support recovery from complex conditions, including anxiety, bipolar disorder,
-                ADHD, and schizophrenia. Through lifestyle transformation and integrative
-                therapy, patients come to realize their full potential and become able to
-                reintegrate into society.
+                This brand of psychology integrates signature wellness models designed to support
+                recovery from complex conditions, including anxiety, bipolar disorder, ADHD, and
+                schizophrenia. Through lifestyle transformation and integrative therapy, patients
+                come to realize their full potential and become able to reintegrate into society.
               </p>
             </div>
             <div
@@ -855,9 +853,10 @@ export default function MeetTheCreatorPage({
                 psychospiritual counseling in faith-based and digital peer-support environments.
               </p>
               <p>
-                He collaborates with leading experts in the field, including nutritionists like
-                Julia Ross (The Mood Cure) and Christina Veselak, to ensure his models are
-                grounded in the latest nutritional science.
+                In 2016, he began a YouTube channel dedicated to spirituality-focused
+                documentaries that have amassed millions of views across his body of online work.
+                He has also won two prizes for his writing and been listed in the Top 500 Writers
+                on Medium.com for his articles on NASA and SpaceX.
               </p>
             </div>
 

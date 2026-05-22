@@ -73,7 +73,7 @@ export default function SiteFooter({
         },
         {
           label: copy.footer.support,
-          href: "mailto:mariosbardella@protonmail.com?subject=Support%20Inquiry",
+          href: "/support",
         },
       ],
     },
