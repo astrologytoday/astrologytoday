@@ -591,12 +591,25 @@ export default function ClientSubscriptionQuestionnairePage({
         }),
       });
 
-      const payload = (await response.json()) as {
+      const responseText = await response.text();
+      let payload: {
         checkoutUrl?: string;
         paymentLinkId?: string | null;
         orderId?: string | null;
         error?: string;
-      };
+      } = {};
+
+      if (responseText) {
+        try {
+          payload = JSON.parse(responseText) as typeof payload;
+        } catch {
+          throw new Error(
+            response.ok
+              ? "Checkout returned an unexpected response."
+              : "Checkout endpoint is unavailable right now.",
+          );
+        }
+      }
 
       if (!response.ok || !payload.checkoutUrl) {
         throw new Error(payload.error || "Square checkout could not be created.");
