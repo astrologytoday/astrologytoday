@@ -10,7 +10,7 @@ import {
   withLocale,
 } from "../../lib/i18n";
 import { getHomeCopy } from "../../lib/copy";
-import { SHOW_DEBUGGERS } from "../../lib/debug";
+import { SHOW_AD_DEBUGGERS, SHOW_DEBUGGERS } from "../../lib/debug";
 import {
   authenticateLifespaceAccount,
   getStoredLifespaceSession,
@@ -20,6 +20,7 @@ import {
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
 import { getWebAccountByUsername, upsertMailingListSignup } from "../../lib/firebase/lifespace";
+import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 
 type NavLink = {
@@ -91,7 +92,9 @@ const HOME_TOP_CARD_EXTEND_LOCKED = 0;
 const HOME_BOTTOM_CARD_EXTEND_LOCKED = 84;
 const HOME_PREVIEW_CARD_EXTEND_LOCKED = 333;
 const HOME_MAIN_LOCKED: TransformDebug = { x: 0, y: -28, scale: 1 };
-const HOME_AD_EXAMPLE_LOCKED: TransformDebug = { x: -94, y: 1102, scale: 1.24 };
+const HOME_AD_EXAMPLE_LOCKED: TransformDebug = { x: -68, y: 1164, scale: 1.24 };
+const HOME_AD_EXAMPLE_WIDTH_LOCKED = 220;
+const HOME_AD_EXAMPLE_HEIGHT_LOCKED = 708;
 const HOME_TITLE_LOCKED: TransformDebug = { x: 345, y: 140, scale: 0.54 };
 const HOME_TITLE_CIRCLE_LOCKED: TransformDebug = { x: 60, y: 32, scale: 1.82 };
 const HOME_TITLE_CIRCLE_2_LOCKED: TransformDebug = { x: 118, y: 47, scale: 1.42 };
@@ -157,6 +160,7 @@ const HOME_TITLE_BAR_VISIBLE_LOCKED = true;
 const HOME_TITLE_BAR_2_VISIBLE_LOCKED = true;
 const HOME_TITLE_GLOW_LOCKED = 0.64;
 const HOME_TITLE_BRIGHTNESS_LOCKED = 2;
+const HOME_AD_DEBUGGER_OFFSET_LOCKED = { x: 0, y: 0 };
 const HOME_GLOW_LOCKED: GlowState = {
   topCard: 0,
   bottomCard: 0,
@@ -417,6 +421,11 @@ export default function HomePage({
   const [previewCardExtend, setPreviewCardExtend] = useState(HOME_PREVIEW_CARD_EXTEND_LOCKED);
   const [mainDebug, setMainDebug] = useState(HOME_MAIN_LOCKED);
   const [adExampleDebug, setAdExampleDebug] = useState(HOME_AD_EXAMPLE_LOCKED);
+  const [adExampleWidth, setAdExampleWidth] = useState(HOME_AD_EXAMPLE_WIDTH_LOCKED);
+  const [adExampleHeight, setAdExampleHeight] = useState(HOME_AD_EXAMPLE_HEIGHT_LOCKED);
+  const [adDebuggerVisible, setAdDebuggerVisible] = useState(true);
+  const [adDebuggerOffset, setAdDebuggerOffset] = useState(HOME_AD_DEBUGGER_OFFSET_LOCKED);
+  const [adCopyStatus, setAdCopyStatus] = useState("");
   const [emblemDebug, setEmblemDebug] = useState(HOME_EMBLEM_LOCKED);
   const [titleDebug, setTitleDebug] = useState(HOME_TITLE_LOCKED);
   const [titleCircleDebug, setTitleCircleDebug] = useState(HOME_TITLE_CIRCLE_LOCKED);
@@ -503,6 +512,18 @@ export default function HomePage({
     initialX: number;
     initialY: number;
   } | null>(null);
+  const [adDragging, setAdDragging] = useState<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+  const [adDebuggerDragging, setAdDebuggerDragging] = useState<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
   const [resizingSection, setResizingSection] = useState<{
     target: "topCard" | "bottomCard" | "previewCard";
     startY: number;
@@ -581,6 +602,8 @@ export default function HomePage({
         previewCardExtend?: number;
         main?: TransformDebug;
         adExample?: TransformDebug;
+        adExampleWidth?: number;
+        adExampleHeight?: number;
         emblem?: TransformDebug;
         title?: TransformDebug;
         titleCircle?: TransformDebug;
@@ -647,6 +670,8 @@ export default function HomePage({
       if (typeof parsed.previewCardExtend === "number") setPreviewCardExtend(parsed.previewCardExtend);
       if (parsed.main) setMainDebug({ ...HOME_MAIN_LOCKED, ...parsed.main });
       if (parsed.adExample) setAdExampleDebug({ ...HOME_AD_EXAMPLE_LOCKED, ...parsed.adExample });
+      if (typeof parsed.adExampleWidth === "number") setAdExampleWidth(parsed.adExampleWidth);
+      if (typeof parsed.adExampleHeight === "number") setAdExampleHeight(parsed.adExampleHeight);
       if (parsed.emblem) setEmblemDebug({ ...HOME_EMBLEM_LOCKED, ...parsed.emblem });
       if (parsed.title) setTitleDebug({ ...HOME_TITLE_LOCKED, ...parsed.title });
       if (parsed.titleCircle) setTitleCircleDebug({ ...HOME_TITLE_CIRCLE_LOCKED, ...parsed.titleCircle });
@@ -775,6 +800,8 @@ export default function HomePage({
         previewCardExtend,
         main: mainDebug,
         adExample: adExampleDebug,
+        adExampleWidth,
+        adExampleHeight,
         emblem: emblemDebug,
         title: titleDebug,
         titleCircle: titleCircleDebug,
@@ -837,7 +864,7 @@ export default function HomePage({
         glowState,
       }),
     );
-  }, [adExampleDebug, appDebug, appHeight, appWidth, bottomCardExtend, buttonDebug, emblemDebug, fieldDebug, footerBarDebug, footerBarWidth, footerCreditDebug, footerLogoDebug, footerMetaDebug, glowState, loggedInFieldDebug, magazineDebug, magazineScrollDuration, mainDebug, marqueeDebug, marqueeHeight, marqueeWidth, menuDebug, monthlyDebug, newsletterFormDebug, newsletterTitleDebug, passwordFieldWidth, previewBenefitsDebug, previewButtonDebug, previewCardExtend, previewCopyDebug, previewDebug, titleBar2Color, titleBar2Debug, titleBar2Opacity, titleBar2Texture, titleBar2Visible, titleBarColor, titleBarDebug, titleBarOpacity, titleBarTexture, titleBarVisible, titleBrightness, titleCircle2Color, titleCircle2Debug, titleCircle2Opacity, titleCircle2Texture, titleCircle2Visible, titleCircle3Color, titleCircle3Debug, titleCircle3Opacity, titleCircle3Texture, titleCircle3Visible, titleCircle4Color, titleCircle4Debug, titleCircle4Opacity, titleCircle4Texture, titleCircle4Visible, titleCircleColor, titleCircleDebug, titleCircleOpacity, titleCircleTexture, titleCircleVisible, titleDebug, titleGlow, topCardExtend]);
+  }, [adExampleDebug, adExampleHeight, adExampleWidth, appDebug, appHeight, appWidth, bottomCardExtend, buttonDebug, emblemDebug, fieldDebug, footerBarDebug, footerBarWidth, footerCreditDebug, footerLogoDebug, footerMetaDebug, glowState, loggedInFieldDebug, magazineDebug, magazineScrollDuration, mainDebug, marqueeDebug, marqueeHeight, marqueeWidth, menuDebug, monthlyDebug, newsletterFormDebug, newsletterTitleDebug, passwordFieldWidth, previewBenefitsDebug, previewButtonDebug, previewCardExtend, previewCopyDebug, previewDebug, titleBar2Color, titleBar2Debug, titleBar2Opacity, titleBar2Texture, titleBar2Visible, titleBarColor, titleBarDebug, titleBarOpacity, titleBarTexture, titleBarVisible, titleBrightness, titleCircle2Color, titleCircle2Debug, titleCircle2Opacity, titleCircle2Texture, titleCircle2Visible, titleCircle3Color, titleCircle3Debug, titleCircle3Opacity, titleCircle3Texture, titleCircle3Visible, titleCircle4Color, titleCircle4Debug, titleCircle4Opacity, titleCircle4Texture, titleCircle4Visible, titleCircleColor, titleCircleDebug, titleCircleOpacity, titleCircleTexture, titleCircleVisible, titleDebug, titleGlow, topCardExtend]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -1040,6 +1067,49 @@ export default function HomePage({
   }, [dragging]);
 
   useEffect(() => {
+    if (!adDragging) return;
+
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDragging.startX;
+      const dy = event.clientY - adDragging.startY;
+      setAdExampleDebug((current) => ({
+        ...current,
+        x: adDragging.initialX + dx,
+        y: adDragging.initialY + dy,
+      }));
+    };
+
+    const onUp = () => setAdDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDragging]);
+
+  useEffect(() => {
+    if (!adDebuggerDragging) return;
+
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDebuggerDragging.startX;
+      const dy = event.clientY - adDebuggerDragging.startY;
+      setAdDebuggerOffset({
+        x: adDebuggerDragging.initialX + dx,
+        y: adDebuggerDragging.initialY + dy,
+      });
+    };
+
+    const onUp = () => setAdDebuggerDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDebuggerDragging]);
+
+  useEffect(() => {
     if (!debuggerDragging) return;
 
     const onMove = (event: MouseEvent) => {
@@ -1199,6 +1269,24 @@ export default function HomePage({
       ...current,
       [debugTarget]: Number(Math.max(0, Math.min(1.5, (current[debugTarget] ?? 0) + delta)).toFixed(2)),
     }));
+
+  const copyAdValues = async () => {
+    const payload = [
+      "Homepage ad debugger values",
+      `home ad: x ${adExampleDebug.x}, y ${adExampleDebug.y}, width ${adExampleWidth}, height ${adExampleHeight}`,
+      `ad debugger panel: x ${adDebuggerOffset.x}, y ${adDebuggerOffset.y}`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      setAdCopyStatus("Values copied.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
+    } catch {
+      setAdCopyStatus("Copy failed.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
+    }
+  };
+
 
   const nudgeTransform = (axis: "x" | "y", amount: number) => {
     if (debugTarget === "topCard" || debugTarget === "bottomCard" || debugTarget === "previewCard") return;
@@ -1603,6 +1691,46 @@ export default function HomePage({
                 </a>
               ))}
             </nav>
+
+            <div
+              className={`home-ad-example-wrap${glowState.adExample > 0 ? " home-glow-animated" : ""}`}
+              style={{
+                transform: `translate(calc(-50% + ${adExampleDebug.x}px), ${adExampleDebug.y}px) scale(${adExampleDebug.scale})`,
+                transformOrigin: "top center",
+                filter: edgeDropGlow(glowState.adExample, "236, 248, 245", 1),
+              }}
+              onMouseDown={
+                SHOW_AD_DEBUGGERS
+                  ? (event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setAdDragging({
+                        startX: event.clientX,
+                        startY: event.clientY,
+                        initialX: adExampleDebug.x,
+                        initialY: adExampleDebug.y,
+                      });
+                    }
+                  : undefined
+              }
+            >
+              <div
+                className="home-ad-example-card"
+                style={{
+                  width: `${adExampleWidth}px`,
+                  minHeight: `${adExampleHeight}px`,
+                }}
+              >
+                <GoogleAdSenseUnit
+                  adSlot="4962871033"
+                  className="home-ad-example-unit"
+                  style={{
+                    display: "block",
+                    minHeight: `${Math.max(180, adExampleHeight - 20)}px`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -2127,6 +2255,100 @@ export default function HomePage({
         </p>
       </div>
       </ScaledPageCanvas>
+
+      {SHOW_AD_DEBUGGERS ? (adDebuggerVisible ? (
+        <aside
+          className="home-ad-compact-debugger"
+          style={{ transform: `translate(${adDebuggerOffset.x}px, ${adDebuggerOffset.y}px)` }}
+        >
+          <div className="home-ad-compact-debugger-header">
+            <p className="home-ad-compact-debugger-title">Homepage Ad Debugger</p>
+            <button
+              type="button"
+              className="home-ad-compact-debugger-toggle-button home-ad-compact-debugger-toggle-button-inline"
+              onClick={() => {
+                setAdDebuggerDragging(null);
+                setAdDebuggerVisible(false);
+              }}
+            >
+              Hide
+            </button>
+          </div>
+          <div
+            className="home-ad-compact-debugger-dragbar"
+            onMouseDown={(event) =>
+              setAdDebuggerDragging({
+                startX: event.clientX,
+                startY: event.clientY,
+                initialX: adDebuggerOffset.x,
+                initialY: adDebuggerOffset.y,
+              })
+            }
+          >
+            Drag panel
+          </div>
+          <p className="home-ad-compact-debugger-readout">
+            X {Math.round(adExampleDebug.x)} Y {Math.round(adExampleDebug.y)} W {Math.round(adExampleWidth)} H {Math.round(adExampleHeight)}
+          </p>
+          <p className="home-ad-compact-debugger-readout">
+            Arrow keys move the ad. Hold Shift for larger steps.
+          </p>
+          <div className="home-ad-compact-debugger-grid">
+            <button type="button" onClick={() => setAdExampleDebug((current) => ({ ...current, y: current.y - 8 }))}>
+              Up
+            </button>
+            <button type="button" onClick={() => setAdExampleDebug((current) => ({ ...current, x: current.x - 8 }))}>
+              Left
+            </button>
+            <button type="button" onClick={() => setAdExampleDebug((current) => ({ ...current, x: current.x + 8 }))}>
+              Right
+            </button>
+            <button type="button" onClick={() => setAdExampleDebug((current) => ({ ...current, y: current.y + 8 }))}>
+              Down
+            </button>
+            <button type="button" onClick={() => setAdExampleWidth((current) => Math.max(140, current - 8))}>
+              Narrower
+            </button>
+            <button type="button" onClick={() => setAdExampleWidth((current) => Math.min(340, current + 8))}>
+              Wider
+            </button>
+            <button type="button" onClick={() => setAdExampleHeight((current) => Math.max(240, current - 12))}>
+              Shorter
+            </button>
+            <button type="button" onClick={() => setAdExampleHeight((current) => Math.min(1200, current + 12))}>
+              Taller
+            </button>
+          </div>
+          <div className="home-ad-compact-debugger-actions">
+            <button type="button" className="home-ad-compact-debugger-reset" onClick={copyAdValues}>
+              Copy Values
+            </button>
+            <button
+              type="button"
+              className="home-ad-compact-debugger-reset"
+              onClick={() => {
+                setAdExampleDebug(HOME_AD_EXAMPLE_LOCKED);
+                setAdExampleWidth(HOME_AD_EXAMPLE_WIDTH_LOCKED);
+                setAdExampleHeight(HOME_AD_EXAMPLE_HEIGHT_LOCKED);
+                setAdDebuggerOffset(HOME_AD_DEBUGGER_OFFSET_LOCKED);
+              }}
+            >
+              Reset
+            </button>
+          </div>
+          {adCopyStatus ? <p className="home-ad-compact-debugger-status">{adCopyStatus}</p> : null}
+        </aside>
+      ) : (
+        <button
+          type="button"
+          className="home-ad-compact-debugger-toggle-button"
+          onClick={() => setAdDebuggerVisible(true)}
+          aria-label="Show homepage ad tools"
+          title="Show homepage ad tools"
+        >
+          A
+        </button>
+      )) : null}
 
       {SHOW_DEBUGGERS ? (debuggerVisible ? (
         <aside

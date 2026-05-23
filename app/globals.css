@@ -396,6 +396,185 @@
   letter-spacing: -0.02em;
 }
 
+.services-sidebar-ads {
+  position: relative;
+  width: 100%;
+  height: 0;
+  margin-top: 44px;
+  overflow: visible;
+}
+
+.services-sidebar-ad-wrap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  cursor: grab;
+  user-select: none;
+}
+
+.services-sidebar-ad-wrap:active {
+  cursor: grabbing;
+}
+
+.services-sidebar-ad-card {
+  width: 212px;
+  min-height: 708px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(18, 105, 112, 0.2);
+  border: 1px solid rgba(228, 244, 244, 0.16);
+  box-shadow: 0 16px 28px rgba(6, 46, 50, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.services-sidebar-ad-unit {
+  width: 100%;
+  min-height: 688px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.services-ad-compact-debugger {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: min(320px, calc(100vw - 36px));
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.64);
+  box-shadow: 0 22px 44px rgba(7, 28, 32, 0.22);
+  backdrop-filter: blur(14px);
+  color: #f3fffc;
+}
+
+.services-ad-compact-debugger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.services-ad-compact-debugger-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.services-ad-compact-debugger-dragbar {
+  margin-top: 10px;
+  margin-bottom: 12px;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px dashed rgba(236, 255, 250, 0.28);
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.services-ad-compact-debugger-dragbar:active {
+  cursor: grabbing;
+}
+
+.services-ad-compact-debugger-toggle-button {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.68);
+  box-shadow: 0 18px 34px rgba(7, 28, 32, 0.2);
+  color: #f3fffc;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.services-ad-compact-debugger-toggle-button-inline {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+}
+
+.services-ad-compact-debugger-select-wrap {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 12px;
+}
+
+.services-ad-compact-debugger-select-wrap span {
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.services-ad-compact-debugger-select {
+  width: 100%;
+  border: 1px solid rgba(236, 255, 250, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3fffc;
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+}
+
+.services-ad-compact-debugger-readout,
+.services-ad-compact-debugger-status {
+  margin-bottom: 12px;
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+}
+
+.services-ad-compact-debugger-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.services-ad-compact-debugger-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 12px;
+}
+
+.services-ad-compact-debugger-grid button,
+.services-ad-compact-debugger-reset,
+.services-ad-compact-debugger-toggle-button {
+  border: 1px solid rgba(236, 255, 250, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3fffc;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.services-ad-compact-debugger-grid button,
+.services-ad-compact-debugger-reset {
+  min-height: 2.5rem;
+  padding: 0.65rem 0.75rem;
+  font-weight: 700;
+}
+
+.services-ad-compact-debugger-reset {
+  width: 100%;
+}
+
 .services-main {
   min-width: 0;
   max-width: 1120px;
@@ -1380,6 +1559,161 @@
   font-family: "Eleven Eleven", "Avenir Next", "Segoe UI", sans-serif;
   font-weight: 400;
   letter-spacing: -0.02em;
+}
+
+.about-sidebar-ads {
+  position: relative;
+  width: 100%;
+  height: 0;
+  margin-top: 44px;
+  overflow: visible;
+}
+
+.about-sidebar-ad-wrap {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 4;
+  cursor: grab;
+  user-select: none;
+}
+
+.about-sidebar-ad-wrap:active {
+  cursor: grabbing;
+}
+
+.about-sidebar-ad-card {
+  width: 212px;
+  min-height: 708px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(18, 105, 112, 0.2);
+  border: 1px solid rgba(228, 244, 244, 0.16);
+  box-shadow: 0 16px 28px rgba(6, 46, 50, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.about-sidebar-ad-unit {
+  width: 100%;
+  min-height: 688px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.about-ad-compact-debugger {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: min(320px, calc(100vw - 36px));
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.64);
+  box-shadow: 0 22px 44px rgba(7, 28, 32, 0.22);
+  backdrop-filter: blur(14px);
+  color: #f3fffc;
+}
+
+.about-ad-compact-debugger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.about-ad-compact-debugger-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.about-ad-compact-debugger-dragbar {
+  margin-top: 10px;
+  margin-bottom: 12px;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px dashed rgba(236, 255, 250, 0.28);
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.about-ad-compact-debugger-dragbar:active {
+  cursor: grabbing;
+}
+
+.about-ad-compact-debugger-toggle-button {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.68);
+  box-shadow: 0 18px 34px rgba(7, 28, 32, 0.2);
+  color: #f3fffc;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.about-ad-compact-debugger-toggle-button-inline {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+}
+
+.about-ad-compact-debugger-readout,
+.about-ad-compact-debugger-status {
+  margin-bottom: 12px;
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+}
+
+.about-ad-compact-debugger-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.about-ad-compact-debugger-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 12px;
+}
+
+.about-ad-compact-debugger-grid button,
+.about-ad-compact-debugger-reset,
+.about-ad-compact-debugger-toggle-button {
+  border: 1px solid rgba(236, 255, 250, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3fffc;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.about-ad-compact-debugger-grid button,
+.about-ad-compact-debugger-reset {
+  min-height: 2.5rem;
+  padding: 0.65rem 0.75rem;
+  font-weight: 700;
+}
+
+.about-ad-compact-debugger-reset {
+  width: 100%;
 }
 
 .about-main {
@@ -3630,7 +3964,7 @@ body {
 .home-ad-example-wrap {
   position: absolute;
   top: 0;
-  left: 0;
+  left: 50%;
   z-index: 22;
   cursor: grab;
   user-select: none;
@@ -3638,6 +3972,140 @@ body {
 
 .home-ad-example-wrap:active {
   cursor: grabbing;
+}
+
+.home-ad-example-card {
+  width: 228px;
+  min-height: 720px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(18, 105, 112, 0.2);
+  border: 1px solid rgba(228, 244, 244, 0.16);
+  box-shadow: 0 16px 28px rgba(6, 46, 50, 0.18);
+  backdrop-filter: blur(12px);
+}
+
+.home-ad-example-unit {
+  width: 100%;
+  min-height: 700px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.home-ad-compact-debugger {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: min(320px, calc(100vw - 36px));
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.64);
+  box-shadow: 0 22px 44px rgba(7, 28, 32, 0.22);
+  backdrop-filter: blur(14px);
+  color: #f3fffc;
+}
+
+.home-ad-compact-debugger-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.home-ad-compact-debugger-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-ad-compact-debugger-dragbar {
+  margin-top: 10px;
+  margin-bottom: 12px;
+  padding: 0.55rem 0.8rem;
+  border-radius: 999px;
+  border: 1px dashed rgba(236, 255, 250, 0.28);
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+  text-align: center;
+  cursor: grab;
+  user-select: none;
+}
+
+.home-ad-compact-debugger-dragbar:active {
+  cursor: grabbing;
+}
+
+.home-ad-compact-debugger-toggle-button {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9999;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(236, 255, 250, 0.18);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06)),
+    rgba(10, 65, 71, 0.68);
+  box-shadow: 0 18px 34px rgba(7, 28, 32, 0.2);
+  color: #f3fffc;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.home-ad-compact-debugger-toggle-button-inline {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+}
+
+.home-ad-compact-debugger-readout,
+.home-ad-compact-debugger-status {
+  margin-bottom: 12px;
+  color: rgba(236, 249, 246, 0.9);
+  font-size: 0.82rem;
+}
+
+.home-ad-compact-debugger-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.home-ad-compact-debugger-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 12px;
+}
+
+.home-ad-compact-debugger-grid button,
+.home-ad-compact-debugger-reset,
+.home-ad-compact-debugger-toggle-button {
+  border: 1px solid rgba(236, 255, 250, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f3fffc;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.home-ad-compact-debugger-grid button,
+.home-ad-compact-debugger-reset {
+  min-height: 2.5rem;
+  padding: 0.65rem 0.75rem;
+  font-weight: 700;
+}
+
+.home-ad-compact-debugger-reset {
+  width: 100%;
 }
 
 .home-ad-example-image {
@@ -4950,7 +5418,7 @@ body {
   color: rgba(239, 250, 248, 0.74);
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  padding-bottom: 0;
+  padding-bottom: 12px;
   font-family: "Eleven Eleven", "Avenir Next", "Segoe UI", sans-serif;
 }
 

@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
+import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import { getHomeCopy } from "../../lib/copy";
-import { SHOW_DEBUGGERS } from "../../lib/debug";
+import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
 type AboutDebugTarget =
@@ -50,12 +51,27 @@ type AboutDebugState = {
   };
 };
 
+type AboutAdDebug = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 const ABOUT_DEBUG_STORAGE_KEY = "about-debug-v4";
+const ABOUT_AD_DEBUG_STORAGE_KEY = "about-ad-debug-v1";
 const ABOUT_DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
+const ABOUT_AD_DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
 const ABOUT_CANVAS_SCALE = 0.71;
 const ABOUT_CANVAS_WIDTH = 1760;
 const ABOUT_CANVAS_OFFSET_X = 0;
 const ABOUT_CANVAS_OFFSET_Y = 16;
+const ABOUT_AD_DEFAULT_DEBUG: AboutAdDebug = {
+  x: -200,
+  y: 184,
+  width: 276,
+  height: 840,
+};
 const ABOUT_DEFAULT_DEBUG: AboutDebugState = {
   pageLogo: {
     x: -454,
@@ -145,6 +161,10 @@ export default function AboutPage({
   const [debugState, setDebugState] = useState<AboutDebugState>(ABOUT_DEFAULT_DEBUG);
   const [debuggerOffset, setDebuggerOffset] = useState(ABOUT_DEFAULT_DEBUGGER_OFFSET);
   const [copyStatus, setCopyStatus] = useState("");
+  const [adDebug, setAdDebug] = useState<AboutAdDebug>(ABOUT_AD_DEFAULT_DEBUG);
+  const [adDebuggerVisible, setAdDebuggerVisible] = useState(true);
+  const [adDebuggerOffset, setAdDebuggerOffset] = useState(ABOUT_AD_DEFAULT_DEBUGGER_OFFSET);
+  const [adCopyStatus, setAdCopyStatus] = useState("");
   const [debuggerDragging, setDebuggerDragging] = useState<{
     startX: number;
     startY: number;
@@ -152,6 +172,18 @@ export default function AboutPage({
     initialY: number;
   } | null>(null);
   const [logoDragging, setLogoDragging] = useState<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+  const [adDragging, setAdDragging] = useState<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+  const [adDebuggerDragging, setAdDebuggerDragging] = useState<{
     startX: number;
     startY: number;
     initialX: number;
@@ -205,6 +237,38 @@ export default function AboutPage({
   }, [debugState, debugTarget, debuggerOffset]);
 
   useEffect(() => {
+    const stored = window.localStorage.getItem(ABOUT_AD_DEBUG_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored) as {
+        adDebug?: Partial<AboutAdDebug>;
+        adDebuggerOffset?: { x?: number; y?: number };
+      };
+
+      if (parsed.adDebug) {
+        setAdDebug({ ...ABOUT_AD_DEFAULT_DEBUG, ...parsed.adDebug });
+      }
+
+      if (parsed.adDebuggerOffset) {
+        setAdDebuggerOffset({
+          x: Number(parsed.adDebuggerOffset.x ?? 0),
+          y: Number(parsed.adDebuggerOffset.y ?? 0),
+        });
+      }
+    } catch {
+      window.localStorage.removeItem(ABOUT_AD_DEBUG_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      ABOUT_AD_DEBUG_STORAGE_KEY,
+      JSON.stringify({ adDebug, adDebuggerOffset }),
+    );
+  }, [adDebug, adDebuggerOffset]);
+
+  useEffect(() => {
     if (!debuggerDragging) return;
     const onMove = (event: MouseEvent) => {
       const dx = event.clientX - debuggerDragging.startX;
@@ -245,6 +309,75 @@ export default function AboutPage({
       window.removeEventListener("mouseup", onUp);
     };
   }, [logoDragging]);
+
+  useEffect(() => {
+    if (!adDragging) return;
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDragging.startX;
+      const dy = event.clientY - adDragging.startY;
+      setAdDebug((current) => ({
+        ...current,
+        x: adDragging.initialX + dx,
+        y: adDragging.initialY + dy,
+      }));
+    };
+    const onUp = () => setAdDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDragging]);
+
+  useEffect(() => {
+    if (!adDebuggerDragging) return;
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDebuggerDragging.startX;
+      const dy = event.clientY - adDebuggerDragging.startY;
+      setAdDebuggerOffset({
+        x: adDebuggerDragging.initialX + dx,
+        y: adDebuggerDragging.initialY + dy,
+      });
+    };
+    const onUp = () => setAdDebuggerDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDebuggerDragging]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
+      if (["input", "textarea", "select"].includes(activeTag)) return;
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+
+      event.preventDefault();
+      const step = event.shiftKey ? 10 : 2;
+
+      setAdDebug((current) => ({
+        ...current,
+        x:
+          event.key === "ArrowLeft"
+            ? current.x - step
+            : event.key === "ArrowRight"
+              ? current.x + step
+              : current.x,
+        y:
+          event.key === "ArrowUp"
+            ? current.y - step
+            : event.key === "ArrowDown"
+              ? current.y + step
+              : current.y,
+      }));
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const adjustTarget = (delta: number) => {
     setDebugState((current) => {
@@ -442,7 +575,24 @@ export default function AboutPage({
         ? "Italics Off"
         : debugTarget === "articleCard"
           ? "Skinnier"
-          : "Smaller";
+        : "Smaller";
+
+  const copyAdValues = async () => {
+    const payload = [
+      "About ad debugger values",
+      `about ad: x ${adDebug.x}, y ${adDebug.y}, width ${adDebug.width}, height ${adDebug.height}`,
+      `ad debugger panel: x ${adDebuggerOffset.x}, y ${adDebuggerOffset.y}`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      setAdCopyStatus("Values copied.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
+    } catch {
+      setAdCopyStatus("Copy failed.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
+    }
+  };
 
   return (
     <main className="about-page">
@@ -479,6 +629,45 @@ export default function AboutPage({
                   </Link>
                 ))}
               </nav>
+              <div className="about-sidebar-ads">
+                <div
+                  className="about-sidebar-ad-wrap"
+                  style={{
+                    transform: `translate(calc(-50% + ${adDebug.x}px), ${adDebug.y}px)`,
+                  }}
+                  onMouseDown={
+                    SHOW_AD_DEBUGGERS
+                      ? (event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setAdDragging({
+                            startX: event.clientX,
+                            startY: event.clientY,
+                            initialX: adDebug.x,
+                            initialY: adDebug.y,
+                          });
+                        }
+                      : undefined
+                  }
+                >
+                  <div
+                    className="about-sidebar-ad-card"
+                    style={{
+                      width: `${adDebug.width}px`,
+                      minHeight: `${adDebug.height}px`,
+                    }}
+                  >
+                    <GoogleAdSenseUnit
+                      adSlot="8974268239"
+                      className="about-sidebar-ad-unit"
+                      style={{
+                        display: "block",
+                        minHeight: `${Math.max(180, adDebug.height - 20)}px`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </aside>
 
             <div className="about-main">
@@ -581,95 +770,99 @@ export default function AboutPage({
           </div>
           <SiteFooter locale={locale} currentPath="/about" className="site-section-footer" />
 
-          {SHOW_DEBUGGERS ? (debuggerVisible ? (
-            <div
-              className="home-logo-debugger"
-              style={{
-                transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)`,
-              }}
-            >
-              <div
-                className="home-logo-debugger-header"
-                onMouseDown={(event) =>
-                  setDebuggerDragging({
-                    startX: event.clientX,
-                    startY: event.clientY,
-                    initialX: debuggerOffset.x,
-                    initialY: debuggerOffset.y,
-                  })
-                }
-              >
-                <p>About Debugger</p>
-                <button
-                  type="button"
-                  className="home-logo-debugger-toggle-button home-logo-debugger-toggle-button-inline"
-                  onClick={() => setDebuggerVisible(false)}
-                >
-                  Hide
-                </button>
-              </div>
-
-              <label className="home-logo-debugger-select-wrap">
-                <span>Element</span>
-                <select
-                  className="home-logo-debugger-select"
-                  value={debugTarget}
-                  onChange={(event) => setDebugTarget(event.target.value as AboutDebugTarget)}
-                >
-                  <option value="pageLogo">pageLogo</option>
-                  <option value="contentBlock">contentBlock</option>
-                  <option value="title">title</option>
-                  <option value="bodyText">bodyText</option>
-                  <option value="glowText">glowText</option>
-                  <option value="boldText">boldText</option>
-                  <option value="ctaButton">ctaButton</option>
-                  <option value="articleCard">articleCard</option>
-                </select>
-              </label>
-
-              <p className="home-logo-debugger-readout">{activeReadout}</p>
-
-              <div className="home-logo-debugger-tabs">
-                <button type="button" onClick={resetTarget}>
-                  Reset
-                </button>
-                <button type="button" onClick={copyValues}>
-                  Copy Values
-                </button>
-                <button type="button" onClick={() => adjustTarget(1)}>
-                  {primaryAdjustLabel}
-                </button>
-                <button type="button" onClick={() => adjustTarget(-1)}>
-                  {secondaryAdjustLabel}
-                </button>
-                <button type="button" onClick={() => nudgeTarget("left")}>
-                  Left
-                </button>
-                <button type="button" onClick={() => nudgeTarget("right")}>
-                  Right
-                </button>
-                <button type="button" onClick={() => nudgeTarget("up")}>
-                  Up
-                </button>
-                <button type="button" onClick={() => nudgeTarget("down")}>
-                  Down
-                </button>
-              </div>
-
-              {copyStatus ? <p className="home-logo-debugger-readout">{copyStatus}</p> : null}
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="home-logo-debugger-toggle-button"
-              onClick={() => setDebuggerVisible(true)}
-              aria-label="Show about debugger"
-            >
-              D
-            </button>
-          )) : null}
         </section>
       </ScaledPageCanvas>
+      {SHOW_AD_DEBUGGERS ? (adDebuggerVisible ? (
+        <aside
+          className="about-ad-compact-debugger"
+          style={{ transform: `translate(${adDebuggerOffset.x}px, ${adDebuggerOffset.y}px)` }}
+        >
+          <div className="about-ad-compact-debugger-header">
+            <p className="about-ad-compact-debugger-title">About Ad Debugger</p>
+            <button
+              type="button"
+              className="about-ad-compact-debugger-toggle-button about-ad-compact-debugger-toggle-button-inline"
+              onClick={() => {
+                setAdDebuggerDragging(null);
+                setAdDebuggerVisible(false);
+              }}
+            >
+              Hide
+            </button>
+          </div>
+          <div
+            className="about-ad-compact-debugger-dragbar"
+            onMouseDown={(event) =>
+              setAdDebuggerDragging({
+                startX: event.clientX,
+                startY: event.clientY,
+                initialX: adDebuggerOffset.x,
+                initialY: adDebuggerOffset.y,
+              })
+            }
+          >
+            Drag panel
+          </div>
+          <p className="about-ad-compact-debugger-readout">
+            X {Math.round(adDebug.x)} Y {Math.round(adDebug.y)} W {Math.round(adDebug.width)} H {Math.round(adDebug.height)}
+          </p>
+          <p className="about-ad-compact-debugger-readout">
+            Arrow keys move the ad. Hold Shift for larger steps.
+          </p>
+          <div className="about-ad-compact-debugger-grid">
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, y: current.y - 8 }))}>
+              Up
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, x: current.x - 8 }))}>
+              Left
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, x: current.x + 8 }))}>
+              Right
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, y: current.y + 8 }))}>
+              Down
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, width: Math.max(140, current.width - 8) }))}>
+              Narrower
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, width: Math.min(340, current.width + 8) }))}>
+              Wider
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, height: Math.max(240, current.height - 12) }))}>
+              Shorter
+            </button>
+            <button type="button" onClick={() => setAdDebug((current) => ({ ...current, height: Math.min(1200, current.height + 12) }))}>
+              Taller
+            </button>
+          </div>
+          <div className="about-ad-compact-debugger-actions">
+            <button type="button" className="about-ad-compact-debugger-reset" onClick={copyAdValues}>
+              Copy Values
+            </button>
+            <button
+              type="button"
+              className="about-ad-compact-debugger-reset"
+              onClick={() => {
+                setAdDebug(ABOUT_AD_DEFAULT_DEBUG);
+                setAdDebuggerOffset(ABOUT_AD_DEFAULT_DEBUGGER_OFFSET);
+              }}
+            >
+              Reset
+            </button>
+          </div>
+          {adCopyStatus ? <p className="about-ad-compact-debugger-status">{adCopyStatus}</p> : null}
+        </aside>
+      ) : (
+        <button
+          type="button"
+          className="about-ad-compact-debugger-toggle-button"
+          onClick={() => setAdDebuggerVisible(true)}
+          aria-label="Show about ad tools"
+          title="Show about ad tools"
+        >
+          A
+        </button>
+      )) : null}
     </main>
   );
 }

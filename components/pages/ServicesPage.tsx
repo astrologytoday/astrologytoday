@@ -4,11 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
+import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import { getHomeCopy } from "../../lib/copy";
-import { SHOW_DEBUGGERS } from "../../lib/debug";
+import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
 type ServicesDebugTarget = "footer" | "footerLogo" | "pageLogo";
+type ServicesAdDebugTarget = "adOne" | "adTwo" | "adThree" | "adFour";
+
+type ServicesAdDebug = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 type ServicesDebugState = {
   footer: {
@@ -25,14 +34,20 @@ type ServicesDebugState = {
     scale: number;
     visible: boolean;
   };
+  adOne: ServicesAdDebug;
+  adTwo: ServicesAdDebug;
+  adThree: ServicesAdDebug;
+  adFour: ServicesAdDebug;
 };
 
 const SERVICES_DEBUG_STORAGE_KEY = "services-debug-v3";
+const SERVICES_AD_DEBUG_STORAGE_KEY = "services-ad-debug-v1";
 const SERVICES_DEFAULT_DEBUGGER_OFFSET = { x: 0, y: 0 };
 const SERVICES_CANVAS_SCALE = 0.71;
 const SERVICES_CANVAS_WIDTH = 1760;
 const SERVICES_CANVAS_OFFSET_X = 0;
 const SERVICES_CANVAS_OFFSET_Y = 16;
+const SERVICES_AD_DEFAULT_DEBUGGER_OFFSET = { x: -280, y: -120 };
 const SERVICES_DEFAULT_DEBUG: ServicesDebugState = {
   footer: {
     spacing: 120,
@@ -47,6 +62,30 @@ const SERVICES_DEFAULT_DEBUG: ServicesDebugState = {
     y: 23,
     scale: 1.58,
     visible: true,
+  },
+  adOne: {
+    x: -16,
+    y: 67,
+    width: 212,
+    height: 708,
+  },
+  adTwo: {
+    x: -15,
+    y: 38,
+    width: 212,
+    height: 708,
+  },
+  adThree: {
+    x: -244,
+    y: -1432,
+    width: 212,
+    height: 708,
+  },
+  adFour: {
+    x: -244,
+    y: -1462,
+    width: 212,
+    height: 708,
   },
 };
 
@@ -90,6 +129,10 @@ export default function ServicesPage({
   const [debugState, setDebugState] = useState<ServicesDebugState>(SERVICES_DEFAULT_DEBUG);
   const [debuggerOffset, setDebuggerOffset] = useState(SERVICES_DEFAULT_DEBUGGER_OFFSET);
   const [copyStatus, setCopyStatus] = useState("");
+  const [adDebugTarget, setAdDebugTarget] = useState<ServicesAdDebugTarget>("adOne");
+  const [adDebuggerOffset, setAdDebuggerOffset] = useState(SERVICES_AD_DEFAULT_DEBUGGER_OFFSET);
+  const [adDebuggerVisible, setAdDebuggerVisible] = useState(true);
+  const [adCopyStatus, setAdCopyStatus] = useState("");
   const [debuggerDragging, setDebuggerDragging] = useState<{
     startX: number;
     startY: number;
@@ -97,6 +140,19 @@ export default function ServicesPage({
     initialY: number;
   } | null>(null);
   const [logoDragging, setLogoDragging] = useState<{
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+  const [adDragging, setAdDragging] = useState<{
+    target: ServicesAdDebugTarget;
+    startX: number;
+    startY: number;
+    initialX: number;
+    initialY: number;
+  } | null>(null);
+  const [adDebuggerDragging, setAdDebuggerDragging] = useState<{
     startX: number;
     startY: number;
     initialX: number;
@@ -113,6 +169,10 @@ export default function ServicesPage({
           footer?: Partial<ServicesDebugState["footer"]>;
           footerLogo?: Partial<ServicesDebugState["footerLogo"]>;
           pageLogo?: Partial<ServicesDebugState["pageLogo"]>;
+          adOne?: Partial<ServicesDebugState["adOne"]>;
+          adTwo?: Partial<ServicesDebugState["adTwo"]>;
+          adThree?: Partial<ServicesDebugState["adThree"]>;
+          adFour?: Partial<ServicesDebugState["adFour"]>;
         }>;
         debuggerOffset?: { x?: number; y?: number };
         debugTarget?: ServicesDebugTarget;
@@ -123,6 +183,10 @@ export default function ServicesPage({
           footer: { ...SERVICES_DEFAULT_DEBUG.footer, ...parsed.debugState.footer },
           footerLogo: { ...SERVICES_DEFAULT_DEBUG.footerLogo, ...parsed.debugState.footerLogo },
           pageLogo: { ...SERVICES_DEFAULT_DEBUG.pageLogo, ...parsed.debugState.pageLogo },
+          adOne: { ...SERVICES_DEFAULT_DEBUG.adOne, ...parsed.debugState.adOne },
+          adTwo: { ...SERVICES_DEFAULT_DEBUG.adTwo, ...parsed.debugState.adTwo },
+          adThree: { ...SERVICES_DEFAULT_DEBUG.adThree, ...parsed.debugState.adThree },
+          adFour: { ...SERVICES_DEFAULT_DEBUG.adFour, ...parsed.debugState.adFour },
         });
       }
 
@@ -151,6 +215,43 @@ export default function ServicesPage({
       JSON.stringify({ debugState, debugTarget, debuggerOffset }),
     );
   }, [debugState, debuggerOffset, debugTarget]);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(SERVICES_AD_DEBUG_STORAGE_KEY);
+    if (!stored) return;
+
+    try {
+      const parsed = JSON.parse(stored) as {
+        adDebugTarget?: ServicesAdDebugTarget;
+        adDebuggerOffset?: { x?: number; y?: number };
+      };
+
+      if (
+        parsed.adDebugTarget === "adOne"
+        || parsed.adDebugTarget === "adTwo"
+        || parsed.adDebugTarget === "adThree"
+        || parsed.adDebugTarget === "adFour"
+      ) {
+        setAdDebugTarget(parsed.adDebugTarget);
+      }
+
+      if (parsed.adDebuggerOffset) {
+        setAdDebuggerOffset({
+          x: Number(parsed.adDebuggerOffset.x ?? 0),
+          y: Number(parsed.adDebuggerOffset.y ?? 0),
+        });
+      }
+    } catch {
+      window.localStorage.removeItem(SERVICES_AD_DEBUG_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      SERVICES_AD_DEBUG_STORAGE_KEY,
+      JSON.stringify({ adDebugTarget, adDebuggerOffset }),
+    );
+  }, [adDebugTarget, adDebuggerOffset]);
 
   useEffect(() => {
     if (!debuggerDragging) return;
@@ -199,10 +300,84 @@ export default function ServicesPage({
   }, [logoDragging]);
 
   useEffect(() => {
+    if (!adDebuggerDragging) return;
+
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDebuggerDragging.startX;
+      const dy = event.clientY - adDebuggerDragging.startY;
+      setAdDebuggerOffset({
+        x: adDebuggerDragging.initialX + dx,
+        y: adDebuggerDragging.initialY + dy,
+      });
+    };
+
+    const onUp = () => setAdDebuggerDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDebuggerDragging]);
+
+  useEffect(() => {
+    if (!adDragging) return;
+
+    const onMove = (event: MouseEvent) => {
+      const dx = event.clientX - adDragging.startX;
+      const dy = event.clientY - adDragging.startY;
+
+      setDebugState((current) => ({
+        ...current,
+        [adDragging.target]: {
+          ...current[adDragging.target],
+          x: adDragging.initialX + dx,
+          y: adDragging.initialY + dy,
+        },
+      }));
+    };
+
+    const onUp = () => setAdDragging(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [adDragging]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (!debuggerVisible) return;
       const activeTag = (document.activeElement?.tagName || "").toLowerCase();
       if (["input", "textarea", "select"].includes(activeTag)) return;
+
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 10 : 2;
+        const target = adDebugTarget;
+
+        setDebugState((current) => ({
+          ...current,
+          [target]: {
+            ...current[target],
+            x:
+              event.key === "ArrowLeft"
+                ? current[target].x - step
+                : event.key === "ArrowRight"
+                  ? current[target].x + step
+                  : current[target].x,
+            y:
+              event.key === "ArrowUp"
+                ? current[target].y - step
+                : event.key === "ArrowDown"
+                  ? current[target].y + step
+                  : current[target].y,
+          },
+        }));
+        return;
+      }
+
+      if (!debuggerVisible) return;
       if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
 
       event.preventDefault();
@@ -267,7 +442,7 @@ export default function ServicesPage({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [debugTarget, debuggerVisible]);
+  }, [adDebugTarget, debugTarget, debuggerVisible]);
 
   const sidebarLinks = [
     { label: copy.nav.home, href: withLocale(locale, "/") },
@@ -302,6 +477,69 @@ export default function ServicesPage({
     } catch {
       setCopyStatus("Copy failed.");
       window.setTimeout(() => setCopyStatus(""), 1800);
+    }
+  };
+
+  const activeAdDebug = debugState[adDebugTarget];
+
+  const startAdDrag = (target: ServicesAdDebugTarget) => (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setAdDebugTarget(target);
+    setAdDragging({
+      target,
+      startX: event.clientX,
+      startY: event.clientY,
+      initialX: debugState[target].x,
+      initialY: debugState[target].y,
+    });
+  };
+
+  const adjustActiveAdSize = (dimension: "width" | "height", amount: number) => {
+    const min = dimension === "width" ? 140 : 240;
+    const max = dimension === "width" ? 340 : 1200;
+
+    setDebugState((current) => ({
+      ...current,
+      [adDebugTarget]: {
+        ...current[adDebugTarget],
+        [dimension]: Math.max(min, Math.min(max, current[adDebugTarget][dimension] + amount)),
+      },
+    }));
+  };
+
+  const resetAdTarget = () => {
+    const defaultsByTarget: Record<ServicesAdDebugTarget, ServicesAdDebug> = {
+      adOne: SERVICES_DEFAULT_DEBUG.adOne,
+      adTwo: SERVICES_DEFAULT_DEBUG.adTwo,
+      adThree: SERVICES_DEFAULT_DEBUG.adThree,
+      adFour: SERVICES_DEFAULT_DEBUG.adFour,
+    };
+
+    setDebugState((current) => ({
+      ...current,
+      [adDebugTarget]: defaultsByTarget[adDebugTarget],
+    }));
+  };
+
+  const copyAdValues = async () => {
+    const payload = [
+      "Services ad debugger values",
+      `ad one: x ${debugState.adOne.x}, y ${debugState.adOne.y}, width ${debugState.adOne.width}, height ${debugState.adOne.height}`,
+      `ad two: x ${debugState.adTwo.x}, y ${debugState.adTwo.y}, width ${debugState.adTwo.width}, height ${debugState.adTwo.height}`,
+      `ad three: x ${debugState.adThree.x}, y ${debugState.adThree.y}, width ${debugState.adThree.width}, height ${debugState.adThree.height}`,
+      `ad four: x ${debugState.adFour.x}, y ${debugState.adFour.y}, width ${debugState.adFour.width}, height ${debugState.adFour.height}`,
+      `ad debugger panel: x ${adDebuggerOffset.x}, y ${adDebuggerOffset.y}`,
+      `active target: ${adDebugTarget}`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(payload);
+      setAdCopyStatus("Values copied.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
+    } catch {
+      setAdCopyStatus("Copy failed.");
+      window.setTimeout(() => setAdCopyStatus(""), 1800);
     }
   };
 
@@ -340,6 +578,104 @@ export default function ServicesPage({
                   </Link>
                 ))}
               </nav>
+              <div className="services-sidebar-ads">
+                <div
+                  className="services-sidebar-ad-wrap"
+                  style={{
+                    transform: `translate(calc(-50% + ${debugState.adOne.x}px), ${debugState.adOne.y}px)`,
+                  }}
+                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adOne") : undefined}
+                >
+                  <div
+                    className="services-sidebar-ad-card"
+                    style={{
+                      width: `${debugState.adOne.width}px`,
+                      minHeight: `${debugState.adOne.height}px`,
+                    }}
+                  >
+                    <GoogleAdSenseUnit
+                      adSlot="7724388444"
+                      className="services-sidebar-ad-unit"
+                      style={{
+                        display: "block",
+                        minHeight: `${Math.max(180, debugState.adOne.height - 20)}px`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  className="services-sidebar-ad-wrap"
+                  style={{
+                    transform: `translate(calc(-50% + ${debugState.adTwo.x}px), calc(${debugState.adOne.height + 42}px + ${debugState.adTwo.y}px))`,
+                  }}
+                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adTwo") : undefined}
+                >
+                  <div
+                    className="services-sidebar-ad-card"
+                    style={{
+                      width: `${debugState.adTwo.width}px`,
+                      minHeight: `${debugState.adTwo.height}px`,
+                    }}
+                  >
+                    <GoogleAdSenseUnit
+                      adSlot="9065767574"
+                      className="services-sidebar-ad-unit"
+                      style={{
+                        display: "block",
+                        minHeight: `${Math.max(180, debugState.adTwo.height - 20)}px`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  className="services-sidebar-ad-wrap"
+                  style={{
+                    transform: `translate(calc(-50% + ${debugState.adThree.x}px), calc(${debugState.adOne.height + debugState.adTwo.height + 84}px + ${debugState.adThree.y}px))`,
+                  }}
+                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adThree") : undefined}
+                >
+                  <div
+                    className="services-sidebar-ad-card"
+                    style={{
+                      width: `${debugState.adThree.width}px`,
+                      minHeight: `${debugState.adThree.height}px`,
+                    }}
+                  >
+                    <GoogleAdSenseUnit
+                      adSlot="5118783707"
+                      className="services-sidebar-ad-unit"
+                      style={{
+                        display: "block",
+                        minHeight: `${Math.max(180, debugState.adThree.height - 20)}px`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  className="services-sidebar-ad-wrap"
+                  style={{
+                    transform: `translate(calc(-50% + ${debugState.adFour.x}px), calc(${debugState.adOne.height + debugState.adTwo.height + debugState.adThree.height + 126}px + ${debugState.adFour.y}px))`,
+                  }}
+                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adFour") : undefined}
+                >
+                  <div
+                    className="services-sidebar-ad-card"
+                    style={{
+                      width: `${debugState.adFour.width}px`,
+                      minHeight: `${debugState.adFour.height}px`,
+                    }}
+                  >
+                    <GoogleAdSenseUnit
+                      adSlot="5259904412"
+                      className="services-sidebar-ad-unit"
+                      style={{
+                        display: "block",
+                        minHeight: `${Math.max(180, debugState.adFour.height - 20)}px`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </aside>
 
             <div className="services-main">
@@ -520,266 +856,101 @@ export default function ServicesPage({
           />
         </section>
       </ScaledPageCanvas>
-      {SHOW_DEBUGGERS ? (debuggerVisible ? (
+      {SHOW_AD_DEBUGGERS ? (adDebuggerVisible ? (
         <aside
-          className="downloads-debugger"
-          style={{ transform: `translate(${debuggerOffset.x}px, ${debuggerOffset.y}px)` }}
+          className="services-ad-compact-debugger"
+          style={{ transform: `translate(${adDebuggerOffset.x}px, ${adDebuggerOffset.y}px)` }}
         >
-          <div className="downloads-debugger-header">
-            <p className="downloads-debugger-title">Layout Debugger</p>
+          <div className="services-ad-compact-debugger-header">
+            <p className="services-ad-compact-debugger-title">Services Ad Debugger</p>
             <button
               type="button"
-              className="downloads-debugger-toggle-button downloads-debugger-toggle-button-inline"
+              className="services-ad-compact-debugger-toggle-button services-ad-compact-debugger-toggle-button-inline"
               onClick={() => {
-                setDebuggerDragging(null);
-                setLogoDragging(null);
-                setDebuggerVisible(false);
+                setAdDebuggerDragging(null);
+                setAdDebuggerVisible(false);
               }}
             >
               Hide
             </button>
           </div>
           <div
-            className="downloads-debugger-dragbar"
+            className="services-ad-compact-debugger-dragbar"
             onMouseDown={(event) =>
-              setDebuggerDragging({
+              setAdDebuggerDragging({
                 startX: event.clientX,
                 startY: event.clientY,
-                initialX: debuggerOffset.x,
-                initialY: debuggerOffset.y,
+                initialX: adDebuggerOffset.x,
+                initialY: adDebuggerOffset.y,
               })
             }
           >
             Drag panel
           </div>
-          <label className="downloads-debugger-select-wrap">
+          <label className="services-ad-compact-debugger-select-wrap">
             <span>Target</span>
             <select
-              className="downloads-debugger-select"
-              value={debugTarget}
-              onChange={(event) => setDebugTarget(event.target.value as ServicesDebugTarget)}
+              className="services-ad-compact-debugger-select"
+              value={adDebugTarget}
+              onChange={(event) => setAdDebugTarget(event.target.value as ServicesAdDebugTarget)}
             >
-              <option value="pageLogo">services logo</option>
-              <option value="footer">footer spacing</option>
-              <option value="footerLogo">footer logo</option>
+              <option value="adOne">services ad 1</option>
+              <option value="adTwo">services ad 2</option>
+              <option value="adThree">services ad 3</option>
+              <option value="adFour">services ad 4</option>
             </select>
           </label>
-          <div className="downloads-debugger-readout">{activeReadout}</div>
-          {debugTarget === "pageLogo" ? (
-            <div className="downloads-debugger-grid">
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: { ...current.pageLogo, y: current.pageLogo.y - 8 },
-                  }))
-                }
-              >
-                Up
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: { ...current.pageLogo, x: current.pageLogo.x - 8 },
-                  }))
-                }
-              >
-                Left
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: { ...current.pageLogo, x: current.pageLogo.x + 8 },
-                  }))
-                }
-              >
-                Right
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: { ...current.pageLogo, y: current.pageLogo.y + 8 },
-                  }))
-                }
-              >
-                Down
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: {
-                      ...current.pageLogo,
-                      scale: Number(Math.max(0.4, current.pageLogo.scale - 0.04).toFixed(2)),
-                    },
-                  }))
-                }
-              >
-                Smaller
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: {
-                      ...current.pageLogo,
-                      scale: Number((current.pageLogo.scale + 0.04).toFixed(2)),
-                    },
-                  }))
-                }
-              >
-                Bigger
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    pageLogo: { ...current.pageLogo, visible: !current.pageLogo.visible },
-                  }))
-                }
-              >
-                {debugState.pageLogo.visible ? "Hide Logo" : "Show Logo"}
-              </button>
-            </div>
-          ) : null}
-          {debugTarget === "footer" ? (
-            <div className="downloads-debugger-grid">
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footer: { spacing: Math.max(24, current.footer.spacing - 20) },
-                  }))
-                }
-              >
-                Less Space
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footer: { spacing: current.footer.spacing + 20 },
-                  }))
-                }
-              >
-                More Space
-              </button>
-            </div>
-          ) : null}
-          {debugTarget === "footerLogo" ? (
-            <div className="downloads-debugger-grid">
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: { ...current.footerLogo, y: current.footerLogo.y - 8 },
-                  }))
-                }
-              >
-                Up
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: { ...current.footerLogo, x: current.footerLogo.x - 8 },
-                  }))
-                }
-              >
-                Left
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: { ...current.footerLogo, x: current.footerLogo.x + 8 },
-                  }))
-                }
-              >
-                Right
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: { ...current.footerLogo, y: current.footerLogo.y + 8 },
-                  }))
-                }
-              >
-                Down
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: {
-                      ...current.footerLogo,
-                      scale: Number(Math.max(0.4, current.footerLogo.scale - 0.04).toFixed(2)),
-                    },
-                  }))
-                }
-              >
-                Smaller
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setDebugState((current) => ({
-                    ...current,
-                    footerLogo: {
-                      ...current.footerLogo,
-                      scale: Number((current.footerLogo.scale + 0.04).toFixed(2)),
-                    },
-                  }))
-                }
-              >
-                Bigger
-              </button>
-            </div>
-          ) : null}
-          <div className="downloads-debugger-actions">
-            <button type="button" className="downloads-debugger-reset" onClick={copyValues}>
-              Copy Values
+          <div className="services-ad-compact-debugger-readout">
+            X {Math.round(activeAdDebug.x)} Y {Math.round(activeAdDebug.y)} W {Math.round(activeAdDebug.width)} H {Math.round(activeAdDebug.height)}
+          </div>
+          <div className="services-ad-compact-debugger-readout">
+            Arrow keys move the selected ad. Hold Shift for larger steps.
+          </div>
+          <div className="services-ad-compact-debugger-grid">
+            <button type="button" onClick={() => setDebugState((current) => ({ ...current, [adDebugTarget]: { ...current[adDebugTarget], y: current[adDebugTarget].y - 8 } }))}>
+              Up
             </button>
-            <button
-              type="button"
-              className="downloads-debugger-reset"
-              onClick={() => {
-                setDebugState(SERVICES_DEFAULT_DEBUG);
-                setDebuggerOffset(SERVICES_DEFAULT_DEBUGGER_OFFSET);
-              }}
-            >
-              Reset All
+            <button type="button" onClick={() => setDebugState((current) => ({ ...current, [adDebugTarget]: { ...current[adDebugTarget], x: current[adDebugTarget].x - 8 } }))}>
+              Left
+            </button>
+            <button type="button" onClick={() => setDebugState((current) => ({ ...current, [adDebugTarget]: { ...current[adDebugTarget], x: current[adDebugTarget].x + 8 } }))}>
+              Right
+            </button>
+            <button type="button" onClick={() => setDebugState((current) => ({ ...current, [adDebugTarget]: { ...current[adDebugTarget], y: current[adDebugTarget].y + 8 } }))}>
+              Down
+            </button>
+            <button type="button" onClick={() => adjustActiveAdSize("width", -8)}>
+              Narrower
+            </button>
+            <button type="button" onClick={() => adjustActiveAdSize("width", 8)}>
+              Wider
+            </button>
+            <button type="button" onClick={() => adjustActiveAdSize("height", -12)}>
+              Shorter
+            </button>
+            <button type="button" onClick={() => adjustActiveAdSize("height", 12)}>
+              Taller
             </button>
           </div>
-          {copyStatus ? <div className="downloads-debugger-status">{copyStatus}</div> : null}
+          <div className="services-ad-compact-debugger-actions">
+            <button type="button" className="services-ad-compact-debugger-reset" onClick={copyAdValues}>
+              Copy Values
+            </button>
+            <button type="button" className="services-ad-compact-debugger-reset" onClick={resetAdTarget}>
+              Reset Target
+            </button>
+          </div>
+          {adCopyStatus ? <div className="services-ad-compact-debugger-status">{adCopyStatus}</div> : null}
         </aside>
       ) : (
         <button
           type="button"
-          className="downloads-debugger-toggle-button"
-          onClick={() => setDebuggerVisible(true)}
-          aria-label="Show debugger"
-          title="Show debugger"
+          className="services-ad-compact-debugger-toggle-button"
+          onClick={() => setAdDebuggerVisible(true)}
+          aria-label="Show services ad tools"
+          title="Show services ad tools"
         >
-          D
+          A
         </button>
       )) : null}
     </main>
