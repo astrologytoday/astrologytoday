@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   defaultLocale,
   localeLabels,
@@ -331,6 +331,8 @@ export default function HomePage({
   locale?: SupportedLocale;
 }) {
   const copy = getHomeCopy(locale);
+  const marqueeRef = useRef<HTMLDivElement | null>(null);
+  const marqueeGroupRef = useRef<HTMLDivElement | null>(null);
   const homeNavLinks: NavLink[] = [
     { label: copy.nav.home, href: "/" },
     { label: copy.nav.services, href: "/services" },
@@ -475,6 +477,8 @@ export default function HomePage({
   const [titleGlow, setTitleGlow] = useState(HOME_TITLE_GLOW_LOCKED);
   const [titleBrightness, setTitleBrightness] = useState(HOME_TITLE_BRIGHTNESS_LOCKED);
   const [glowState, setGlowState] = useState<GlowState>(HOME_GLOW_LOCKED);
+  const [marqueeViewportWidth, setMarqueeViewportWidth] = useState(0);
+  const [marqueeCycleWidth, setMarqueeCycleWidth] = useState(0);
   const [selectedSign, setSelectedSign] = useState("Aries");
   const [activePreviewIndex, setActivePreviewIndex] = useState(0);
   const [loginErrorMessage, setLoginErrorMessage] = useState("");
@@ -522,6 +526,25 @@ export default function HomePage({
   }, []);
 
   useEffect(() => {
+    const measure = () => {
+      if (marqueeRef.current) setMarqueeViewportWidth(marqueeRef.current.clientWidth);
+      if (marqueeGroupRef.current) setMarqueeCycleWidth(marqueeGroupRef.current.offsetWidth);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    if (marqueeRef.current) observer.observe(marqueeRef.current);
+    if (marqueeGroupRef.current) observer.observe(marqueeGroupRef.current);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!DEBUGGER_VISIBLE_TARGETS.includes(debugTarget)) {
       setDebugTarget("preview");
     }
@@ -539,6 +562,13 @@ export default function HomePage({
         : null),
     [debugTarget, lifespaceSession],
   );
+
+  const marqueeIntroDelaySeconds = 1.2;
+  const marqueeIntroDurationSeconds =
+    marqueeViewportWidth > 0 && marqueeCycleWidth > 0
+      ? (44 * marqueeViewportWidth) / marqueeCycleWidth
+      : 22;
+  const marqueeLoopDelaySeconds = marqueeIntroDelaySeconds + marqueeIntroDurationSeconds;
 
   useEffect(() => {
     const stored = window.localStorage.getItem(HOME_DEBUG_STORAGE_KEY);
@@ -1320,9 +1350,11 @@ export default function HomePage({
         offsetX={HOME_CANVAS_OFFSET_X}
         offsetY={HOME_CANVAS_OFFSET_Y}
         scale={HOME_CANVAS_SCALE}
+        viewportTrimBottom={40}
         viewportClassName="home-page-canvas-viewport"
       >
       <div
+        ref={marqueeRef}
         className="home-marquee home-marquee-animated"
         aria-label="Libra week marquee"
         style={{
@@ -1330,33 +1362,38 @@ export default function HomePage({
           transformOrigin: "top center",
           ["--marquee-width" as string]: `${marqueeWidth}px`,
           ["--marquee-height" as string]: `${marqueeHeight}px`,
+          ["--marquee-intro-delay" as string]: `${marqueeIntroDelaySeconds}s`,
+          ["--marquee-intro-duration" as string]: `${marqueeIntroDurationSeconds}s`,
+          ["--marquee-loop-delay" as string]: `${marqueeLoopDelaySeconds}s`,
         }}
         onMouseDown={startDragTransform("marquee", marqueeDebug)}
-      >
-        <div className="home-marquee-track">
-          <div className="home-marquee-group">
-            <div className="home-marquee-spacer" aria-hidden="true" />
-            <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
-            <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-            <span>♀ ⋅ GEMINI VENUS ⋅ 04/24 - 05/18 ⋅ GEMINI VENUS ⋅ ♀</span>
-            <span>☽ ⋅ CANCER NEW MOON ⋅ 05/19 - 05/20 ⋅ CANCER NEW MOON ⋅ ☽</span>
-            <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
-            <span>☽ ⋅ LEO MOON ⋅ 05/21 - 05/22 ⋅ LEO MOON ⋅ ☽</span>
-            <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-            <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
-            <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
-          </div>
-          <div className="home-marquee-group" aria-hidden="true">
-            <div className="home-marquee-spacer" aria-hidden="true" />
-            <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
-            <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-            <span>♀ ⋅ GEMINI VENUS ⋅ 04/24 - 05/18 ⋅ GEMINI VENUS ⋅ ♀</span>
-            <span>☽ ⋅ CANCER NEW MOON ⋅ 05/19 - 05/20 ⋅ CANCER NEW MOON ⋅ ☽</span>
-            <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
-            <span>☽ ⋅ LEO MOON ⋅ 05/21 - 05/22 ⋅ LEO MOON ⋅ ☽</span>
-            <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-            <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
-            <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
+        >
+        <div className="home-marquee-intro-track">
+          <div className="home-marquee-track">
+            <div ref={marqueeGroupRef} className="home-marquee-group">
+              <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
+              <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
+              <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
+              <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
+              <span>☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽</span>
+              <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
+              <span>☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽</span>
+              <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
+            </div>
+            <div className="home-marquee-group" aria-hidden="true">
+              <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
+              <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
+              <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
+              <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
+              <span>☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽</span>
+              <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
+              <span>☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽</span>
+              <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
+            </div>
           </div>
         </div>
       </div>

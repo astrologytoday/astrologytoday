@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { blogPosts } from "../../lib/blog";
@@ -108,12 +108,13 @@ type GalleryCard = {
 const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
   "☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉",
-  "♀ ⋅ GEMINI VENUS ⋅ 04/24 - 05/18 ⋅ GEMINI VENUS ⋅ ♀",
-  "☽ ⋅ CANCER NEW MOON ⋅ 05/19 - 05/20 ⋅ CANCER NEW MOON ⋅ ☽",
-  "☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿",
-  "☽ ⋅ LEO MOON ⋅ 05/21 - 05/22 ⋅ LEO MOON ⋅ ☽",
-  "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
   "☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽",
+  "☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿",
+  "☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽",
+  "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
+  "☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽",
+  "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
+  "☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽",
   "♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀",
 ];
 
@@ -136,6 +137,8 @@ export default function BlogPage({
 }: {
   locale?: SupportedLocale;
 }) {
+  const marqueeRef = useRef<HTMLDivElement | null>(null);
+  const marqueeGroupRef = useRef<HTMLDivElement | null>(null);
   const copy = getHomeCopy(locale);
   const navLinks = [
     { label: copy.nav.home, href: withLocale(locale, "/") },
@@ -177,6 +180,27 @@ export default function BlogPage({
   const [footerSpacing, setFooterSpacing] = useState(120);
   const [footerLogoDebug, setFooterLogoDebug] = useState(defaultTransforms.footerLogo);
   const [opacities, setOpacities] = useState(defaultOpacities);
+  const [marqueeViewportWidth, setMarqueeViewportWidth] = useState(0);
+  const [marqueeCycleWidth, setMarqueeCycleWidth] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      if (marqueeRef.current) setMarqueeViewportWidth(marqueeRef.current.clientWidth);
+      if (marqueeGroupRef.current) setMarqueeCycleWidth(marqueeGroupRef.current.offsetWidth);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => measure());
+    if (marqueeRef.current) observer.observe(marqueeRef.current);
+    if (marqueeGroupRef.current) observer.observe(marqueeGroupRef.current);
+    window.addEventListener("resize", measure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(BLOG_DEBUG_STORAGE_KEY);
@@ -512,6 +536,13 @@ export default function BlogPage({
       ? `X ${titleBar2Debug.x} Y ${titleBar2Debug.y} W ${titleBar2Debug.width} H ${titleBar2Debug.height} S ${titleBar2Debug.scale.toFixed(2)} O ${opacities.titleBar2.toFixed(2)}`
       : `X ${activeTransform.x} Y ${activeTransform.y} S ${activeTransform.scale.toFixed(2)} O ${opacities[debugTarget].toFixed(2)}`;
 
+  const marqueeIntroDelaySeconds = 1.25;
+  const marqueeIntroDurationSeconds =
+    marqueeViewportWidth > 0 && marqueeCycleWidth > 0
+      ? (44 * marqueeViewportWidth) / marqueeCycleWidth
+      : 22;
+  const marqueeLoopDelaySeconds = marqueeIntroDelaySeconds + marqueeIntroDurationSeconds;
+
   const copyValues = async () => {
     const payload = [
       "Blog debugger values",
@@ -544,23 +575,29 @@ export default function BlogPage({
   return (
     <main className="blog-page blog-gallery-page">
       <div
+        ref={marqueeRef}
         className="home-marquee home-marquee-animated blog-page-marquee"
         aria-label="Astrology Today marquee"
-        style={marqueeStyle}
+        style={{
+          ...marqueeStyle,
+          ["--marquee-intro-delay" as string]: `${marqueeIntroDelaySeconds}s`,
+          ["--marquee-intro-duration" as string]: `${marqueeIntroDurationSeconds}s`,
+          ["--marquee-loop-delay" as string]: `${marqueeLoopDelaySeconds}s`,
+        }}
         onMouseDown={startDragTransform("marquee", marqueeDebug)}
       >
-        <div className="home-marquee-track">
-          <div className="home-marquee-group">
-            <div className="home-marquee-spacer" aria-hidden="true" />
-            {marqueeItems.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-          <div className="home-marquee-group" aria-hidden="true">
-            <div className="home-marquee-spacer" aria-hidden="true" />
-            {marqueeItems.map((item) => (
-              <span key={`duplicate-${item}`}>{item}</span>
-            ))}
+        <div className="home-marquee-intro-track">
+          <div className="home-marquee-track">
+            <div ref={marqueeGroupRef} className="home-marquee-group">
+              {marqueeItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <div className="home-marquee-group" aria-hidden="true">
+              {marqueeItems.map((item) => (
+                <span key={`duplicate-${item}`}>{item}</span>
+              ))}
+            </div>
           </div>
         </div>
       </div>

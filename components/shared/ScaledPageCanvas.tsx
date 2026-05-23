@@ -14,6 +14,7 @@ type ScaledPageCanvasProps = {
   offsetX?: number;
   offsetY?: number;
   scale: number;
+  viewportTrimBottom?: number;
   viewportClassName?: string;
 };
 
@@ -29,6 +30,7 @@ export default function ScaledPageCanvas({
   offsetX = 0,
   offsetY = 0,
   scale,
+  viewportTrimBottom = 0,
   viewportClassName,
 }: ScaledPageCanvasProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -61,7 +63,7 @@ export default function ScaledPageCanvas({
 
   const viewportStyle: CSSProperties | undefined = surfaceHeight
     ? {
-        height: `${Math.ceil(offsetY + surfaceHeight * appliedScale)}px`,
+        height: `${Math.max(0, Math.ceil(offsetY + surfaceHeight * appliedScale - viewportTrimBottom))}px`,
         overflow: clipViewportOverflow ? "clip" : undefined,
       }
     : undefined;
