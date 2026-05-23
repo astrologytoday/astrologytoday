@@ -61,14 +61,14 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body>
-        <Script
-          id="google-adsense-site-verification"
+      <head>
+        <script
           async
-          strategy="beforeInteractive"
           src={adsenseSrc}
           crossOrigin="anonymous"
         />
+      </head>
+      <body>
         <Script id="locale-preference-boot" strategy="beforeInteractive">
           {localeBootstrap}
         </Script>
