@@ -23,7 +23,7 @@ export default function GoogleAdSenseUnit({
   className = "",
   style,
 }: GoogleAdSenseUnitProps) {
-  const adRef = useRef<HTMLElement | null>(null);
+  const adRef = useRef<HTMLModElement | null>(null);
   const [hostname, setHostname] = useState("");
 
   useEffect(() => {
