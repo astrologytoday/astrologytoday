@@ -20,6 +20,8 @@ export default function RootLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const adsenseClient = "ca-pub-1548886446795369";
+  const adsenseSrc = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`;
   const localeBootstrap = `
     (function () {
       var supportedLocales = ${JSON.stringify(supportedLocales)};
@@ -60,6 +62,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <Script
+          id="google-adsense-site-verification"
+          async
+          strategy="beforeInteractive"
+          src={adsenseSrc}
+          crossOrigin="anonymous"
+        />
         <Script id="locale-preference-boot" strategy="beforeInteractive">
           {localeBootstrap}
         </Script>

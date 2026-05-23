@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import Script from "next/script";
 
 declare global {
   interface Window {
@@ -16,7 +15,6 @@ type GoogleAdSenseUnitProps = {
 };
 
 const ADSENSE_CLIENT = "ca-pub-1548886446795369";
-const ADSENSE_SRC = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
 
 export default function GoogleAdSenseUnit({
   adSlot,
@@ -54,25 +52,14 @@ export default function GoogleAdSenseUnit({
   }, [shouldLoadAds]);
 
   return (
-    <>
-      {shouldLoadAds ? (
-        <Script
-          id="google-adsense-script"
-          async
-          strategy="afterInteractive"
-          src={ADSENSE_SRC}
-          crossOrigin="anonymous"
-        />
-      ) : null}
-      <ins
-        ref={adRef}
-        className={`adsbygoogle ${className}`.trim()}
-        style={style}
-        data-ad-client={ADSENSE_CLIENT}
-        data-ad-slot={adSlot}
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      />
-    </>
+    <ins
+      ref={adRef}
+      className={`adsbygoogle ${className}`.trim()}
+      style={style}
+      data-ad-client={ADSENSE_CLIENT}
+      data-ad-slot={adSlot}
+      data-ad-format="auto"
+      data-full-width-responsive="true"
+    />
   );
 }
