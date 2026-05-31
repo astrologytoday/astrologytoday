@@ -110,13 +110,13 @@ type GalleryCard = {
 const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
   "☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉",
-  "☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽",
-  "☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿",
-  "☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽",
+  "☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽",
+  "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿",
+  "☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽",
   "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
-  "☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽",
+  "☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽",
   "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
-  "☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽",
+  "☽ ⋅ TAURUS NEW MOON ⋅ 06/11 - 06/12 ⋅ TAURUS NEW MOON ⋅ ☽",
   "♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀",
 ];
 

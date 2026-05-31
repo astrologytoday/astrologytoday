@@ -1461,25 +1461,25 @@ export default function HomePage({
             <div ref={marqueeGroupRef} className="home-marquee-group">
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
-              <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
+              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽</span>
+              <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
               <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽</span>
+              <span>☽ ⋅ TAURUS NEW MOON ⋅ 06/11 - 06/12 ⋅ TAURUS NEW MOON ⋅ ☽</span>
               <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
             </div>
             <div className="home-marquee-group" aria-hidden="true">
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ VIRGO MOON ⋅ 05/23 - 05/24 ⋅ VIRGO MOON ⋅ ☽</span>
-              <span>☿ ⋅ GEMINI MERCURY ⋅ 05/17 - 05/31 ⋅ GEMINI MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ LIBRA MOON ⋅ 05/25 - 05/26 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
+              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ SCORPIO FULL MOON ⋅ 05/27 - 05/29 ⋅ SCORPIO FULL MOON ⋅ ☽</span>
+              <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
               <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ SAGITTARIUS FULL MOON ⋅ 05/30 - 06/01 ⋅ SAGITTARIUS FULL MOON ⋅ ☽</span>
+              <span>☽ ⋅ TAURUS NEW MOON ⋅ 06/11 - 06/12 ⋅ TAURUS NEW MOON ⋅ ☽</span>
               <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
             </div>
           </div>
