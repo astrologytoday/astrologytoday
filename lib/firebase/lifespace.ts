@@ -427,3 +427,60 @@ export async function attachSquareCheckoutToIntake(input: {
     { merge: true },
   );
 }
+
+export type LoveComputerCloudState = {
+  savedCharts: unknown[];
+  modalNotes: Record<string, string>;
+  updatedAt: Date | null;
+};
+
+export async function getLoveComputerCloudState(usernameLower: string) {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  const normalizedUsername = usernameLower.trim().toLowerCase();
+  if (!normalizedUsername) return null;
+
+  const snapshot = await getDoc(doc(db, "lifespaceWebAccounts", normalizedUsername, "privateData", "loveComputer"));
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data();
+  return {
+    savedCharts: Array.isArray(data.savedCharts) ? data.savedCharts : [],
+    modalNotes:
+      data.modalNotes && typeof data.modalNotes === "object"
+        ? Object.fromEntries(
+            Object.entries(data.modalNotes as Record<string, unknown>).filter(
+              (entry): entry is [string, string] => typeof entry[0] === "string" && typeof entry[1] === "string"
+            )
+          )
+        : {},
+    updatedAt: toDate(data.updatedAt),
+  } satisfies LoveComputerCloudState;
+}
+
+export async function setLoveComputerCloudState(
+  usernameLower: string,
+  input: {
+    savedCharts: unknown[];
+    modalNotes: Record<string, string>;
+  }
+) {
+  const db = getFirestoreDb();
+  if (!db) throw new Error("Firebase is not configured.");
+
+  const normalizedUsername = usernameLower.trim().toLowerCase();
+  if (!normalizedUsername) {
+    throw new Error("A username is required to save Love Computer data.");
+  }
+
+  await setDoc(
+    doc(db, "lifespaceWebAccounts", normalizedUsername, "privateData", "loveComputer"),
+    {
+      savedCharts: input.savedCharts,
+      modalNotes: input.modalNotes,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}

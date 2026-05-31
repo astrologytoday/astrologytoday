@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import RootDocument from "../../components/shared/RootDocument";
 import { isSupportedLocale, supportedLocales } from "../../lib/i18n";
+import { rootMetadata } from "../../lib/rootMetadata";
+import "../globals.css";
+
+export const metadata = rootMetadata;
 
 export function generateStaticParams() {
   return supportedLocales.map((locale) => ({ locale }));
@@ -19,5 +24,5 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  return children;
+  return <RootDocument lang={locale}>{children}</RootDocument>;
 }

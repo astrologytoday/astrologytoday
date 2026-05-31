@@ -24,9 +24,13 @@ export type BlogPost = {
   title: string;
   subtitle?: string;
   publishedLabel: string;
+  publishedTime?: string;
+  modifiedTime?: string;
   issueLabel: string;
   readTime: string;
   excerpt: string;
+  keywords?: string[];
+  section?: string;
   deck?: string;
   coverImage: string;
   coverImageAlt: string;
@@ -47,10 +51,20 @@ export const blogPosts: BlogPost[] = [
     title: "The History of Medicinal Astrology",
     subtitle: "Why Hippocrates Might Not Have Approved of Modern Medicine",
     publishedLabel: "Apr 2026",
+    publishedTime: "2026-04-01T00:00:00-04:00",
+    modifiedTime: "2026-04-01T00:00:00-04:00",
     issueLabel: "Astrology Today Journal",
     readTime: "8 min read",
     excerpt:
       "Why Hippocrates might not have approved of modern medicine, and how older physicians once used the zodiac as part of diagnosis, timing, and holistic care.",
+    keywords: [
+      "medical astrology",
+      "history of astrology",
+      "Hippocrates astrology",
+      "zodiac body correspondences",
+      "holistic health astrology",
+    ],
+    section: "Astrology",
     coverImage: "/blog/history-of-medicinal-astrology/photo-1.webp",
     coverImageAlt:
       "Historic zodiac anatomy diagram showing the astrological ailments mapped across the body.",
@@ -175,10 +189,20 @@ export const blogPosts: BlogPost[] = [
     title: "Trataka: The Ancient Spiritual Practice of Yogic Gazing",
     subtitle: undefined,
     publishedLabel: "May 2026",
+    publishedTime: "2026-05-01T00:00:00-04:00",
+    modifiedTime: "2026-05-01T00:00:00-04:00",
     issueLabel: "Astrology Today Journal",
     readTime: "7 min read",
     excerpt:
       "An introduction to Trataka, the yogic practice of fixed-point gazing, with notes on breathing, nervous system regulation, and ways to practice at home.",
+    keywords: [
+      "trataka",
+      "candle gazing meditation",
+      "yogic gazing",
+      "mirror work meditation",
+      "autonomic nervous system meditation",
+    ],
+    section: "Meditation",
     deck: undefined,
     coverImage: "/blog/trataka-yogic-gazing/image-1.jpg",
     coverImageAlt:

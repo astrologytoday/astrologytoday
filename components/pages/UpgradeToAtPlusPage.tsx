@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+import { getUpgradeToAtPlusCopy } from "../../lib/upgradeToAtPlusCopy";
 
 const LEGAL_CANVAS_SCALE = 0.71;
 const LEGAL_CANVAS_WIDTH = 1760;
@@ -15,6 +16,7 @@ export default function UpgradeToAtPlusPage({
 }: {
   locale?: SupportedLocale;
 }) {
+  const copy = getUpgradeToAtPlusCopy(locale);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [ideas, setIdeas] = useState("");
@@ -22,15 +24,15 @@ export default function UpgradeToAtPlusPage({
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const subject = "AstrologyToday+ Feature Request";
+    const subject = copy.subject;
     const body = [
-      "AstrologyToday+ interest form submission",
+      copy.bodyHeader,
       "",
-      `Name: ${name || "Not provided"}`,
-      `Email: ${email || "Not provided"}`,
+      `${copy.bodyLabels.name}: ${name || copy.bodyLabels.notProvided}`,
+      `${copy.bodyLabels.email}: ${email || copy.bodyLabels.notProvided}`,
       "",
-      "Requested additions:",
-      ideas || "No feature ideas provided.",
+      `${copy.bodyLabels.ideas}:`,
+      ideas || copy.bodyLabels.noIdeas,
     ].join("\n");
 
     window.location.href = `mailto:mariosbardella@protonmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -52,44 +54,39 @@ export default function UpgradeToAtPlusPage({
         <section className="site-rules-shell">
           <section className="site-rules-document at-plus-form-card">
             <div className="site-rules-intro">
-              <h2 className="site-rules-legal-heading">AstrologyToday+ Interest Form</h2>
-              <p>
-                AstrologyToday+ is not yet available for public users. What additions to the
-                program would you like to see included in this feature?
-              </p>
-              <p>
-                Tell us what would make AstrologyToday+ feel genuinely valuable to you. Your
-                response will open as a ready-to-send email addressed to Mario.
-              </p>
+              <h2 className="site-rules-legal-heading">{copy.heading}</h2>
+              {copy.intro.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
 
             <form className="at-plus-form" onSubmit={handleSubmit}>
               <label className="at-plus-field">
-                <span>Name</span>
+                <span>{copy.nameLabel}</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Your name"
+                  placeholder={copy.namePlaceholder}
                 />
               </label>
 
               <label className="at-plus-field">
-                <span>Email</span>
+                <span>{copy.emailLabel}</span>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Your email"
+                  placeholder={copy.emailPlaceholder}
                 />
               </label>
 
               <label className="at-plus-field">
-                <span>What additions would you like to see?</span>
+                <span>{copy.ideasLabel}</span>
                 <textarea
                   value={ideas}
                   onChange={(event) => setIdeas(event.target.value)}
-                  placeholder="Ideas for premium reports, tools, reader features, app integrations, or anything else you'd want included in AstrologyToday+."
+                  placeholder={copy.ideasPlaceholder}
                   rows={9}
                   required
                 />
@@ -97,10 +94,10 @@ export default function UpgradeToAtPlusPage({
 
               <div className="at-plus-actions">
                 <button type="submit" className="at-plus-submit">
-                  Send Feedback
+                  {copy.submitLabel}
                 </button>
                 <Link href={withLocale(locale, "/")} className="site-rules-home-link">
-                  Return to Astrology Today
+                  {copy.returnLabel}
                 </Link>
               </div>
             </form>

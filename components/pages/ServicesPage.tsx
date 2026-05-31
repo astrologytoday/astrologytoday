@@ -6,6 +6,7 @@ import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import { getHomeCopy } from "../../lib/copy";
+import { getServicesCopy } from "../../lib/servicesCopy";
 import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
@@ -89,41 +90,13 @@ const SERVICES_DEFAULT_DEBUG: ServicesDebugState = {
   },
 };
 
-const couplesBullets = [
-  "Explore how you are perceiving one another versus who you really are",
-  "Identify aggression cycles and gain insight into each other's emotional worlds",
-  "Trace insecurities and uncover the deeper reasons behind gut-level reactions",
-  "Solve long-standing problems and unresolved wounds caused by differences in personality, values, or identity",
-];
-
-const singlesBullets = [
-  "Discover what drives you",
-  "Improve your coping style",
-  "Explore how you seek wealth",
-  "Explore your love and attraction style",
-];
-
-const reportBullets = [
-  "Personality insights",
-  "Love and relationship dynamics",
-  "Career direction and growth mindset",
-  "Social life and communication",
-  "Or any other theme you want explored",
-];
-
-const peerSupportBullets = [
-  "Daily planning, goal setting, and morning calls",
-  "30-minute bi-weekly coaching calls",
-  "LIFESPACE app monitoring for brain optimization",
-  "Monthly personalized astrological reports",
-];
-
 export default function ServicesPage({
   locale = defaultLocale,
 }: {
   locale?: SupportedLocale;
 }) {
   const copy = getHomeCopy(locale);
+  const servicesCopy = getServicesCopy(locale);
   const [debuggerVisible, setDebuggerVisible] = useState(false);
   const [debugTarget, setDebugTarget] = useState<ServicesDebugTarget>("pageLogo");
   const [debugState, setDebugState] = useState<ServicesDebugState>(SERVICES_DEFAULT_DEBUG);
@@ -449,7 +422,7 @@ export default function ServicesPage({
     { label: copy.nav.services, href: withLocale(locale, "/services"), active: true },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog") },
   ];
@@ -703,144 +676,98 @@ export default function ServicesPage({
                 />
               ) : null}
               <div className="services-hero">
-                <p className="services-kicker">Services</p>
-                <h1>Support for relationships, families, and deeper self-understanding.</h1>
+                <p className="services-kicker">{servicesCopy.hero.kicker}</p>
+                <h1>{servicesCopy.hero.title}</h1>
                 <p className="services-hero-copy">
-                  These services are designed to help individuals better understand the deeper emotional,
-                  psychological, and relational forces shaping their interactions.
+                  {servicesCopy.hero.lead}
                 </p>
               </div>
 
               <div className="services-grid">
                 <article className="services-panel">
-                  <p className="services-section-label">Couples &amp; Family Services</p>
-                  <h2>Relationship &amp; Family Counseling</h2>
-                  <p>
-                    Relationships fail due to communication breakdown, emotional distance, and difficulty
-                    understanding one another&apos;s needs. This work focuses on bringing greater clarity to the
-                    relationship dynamic as a whole.
-                  </p>
-                  <p>
-                    By understanding one another better, the door to more compassion, better communication,
-                    and more grounded solutions can be opened.
-                  </p>
+                  <p className="services-section-label">{servicesCopy.sections.couples.label}</p>
+                  <h2>{servicesCopy.sections.couples.title}</h2>
+                  <p>{servicesCopy.sections.couples.paragraphs[0]}</p>
+                  <p>{servicesCopy.sections.couples.paragraphs[1]}</p>
                   <ul className="services-bullet-list">
-                    {couplesBullets.map((item) => (
+                    {servicesCopy.sections.couples.bullets.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <p>
-                    Family counseling focuses on the larger emotional system of the family and the roles
-                    each person plays within it. Many family conflicts are shaped by long-standing
-                    patterns, unspoken expectations, unresolved wounds, and differences in personality,
-                    values, or identity.
-                  </p>
+                  <p>{servicesCopy.sections.couples.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
                       href="mailto:mariosbardella@protonmail.com?subject=Relationship%20or%20Family%20Counseling%20Inquiry"
                       className="services-inline-cta-button"
                     >
-                      Learn More
+                      {servicesCopy.sections.couples.cta}
                     </a>
                   </div>
                 </article>
 
                 <article className="services-panel">
-                  <p className="services-section-label">Singles Services</p>
-                  <h2>Introspection Therapy</h2>
+                  <p className="services-section-label">{servicesCopy.sections.singles.label}</p>
+                  <h2>{servicesCopy.sections.singles.title}</h2>
                   <p className="services-quote">
-                    &quot;Gnothi Seauton&quot; is an Ancient Proverb that means: Know Yourself.
+                    {servicesCopy.sections.singles.quote}
                   </p>
-                  <p>
-                    Introspection Therapy is a deep self-exploration process focused on identity, unseen
-                    inner conflicts, emotional patterns, and personal growth. This is meant to help you
-                    better understand who you are, how you relate to others, as well as other life aspects
-                    such as:
-                  </p>
+                  <p>{servicesCopy.sections.singles.paragraphs[0]}</p>
                   <ul className="services-bullet-list">
-                    {singlesBullets.map((item) => (
+                    {servicesCopy.sections.singles.bullets.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <p>
-                    Sessions may explore the ego, the mind, the heart, personal values, philosophy of
-                    life, and the ongoing tension between one&apos;s higher nature and shadow.
-                  </p>
-                  <p>
-                    This service also includes career counseling and support for unrequited love, helping
-                    clients gain clarity around purpose, direction, relationship patterns, and how to live
-                    your best life.
-                  </p>
+                  <p>{servicesCopy.sections.singles.paragraphs[1]}</p>
+                  <p>{servicesCopy.sections.singles.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
                       href="mailto:mariosbardella@protonmail.com?subject=Introspection%20Therapy%20Inquiry"
                       className="services-inline-cta-button"
                     >
-                      Learn More
+                      {servicesCopy.sections.singles.cta}
                     </a>
                   </div>
                 </article>
 
                 <article className="services-panel">
-                  <p className="services-section-label">Couples &amp; Singles Services</p>
-                  <h2>Astrological Reports</h2>
-                  <p>
-                    Each report is a personalized, in-depth astrological analysis designed to give you
-                    clear insight into yourself, your relationships, and your life direction.
-                  </p>
-                  <p>
-                    These reports are written in a direct, readable style and focus on real patterns such
-                    as...
-                  </p>
+                  <p className="services-section-label">{servicesCopy.sections.reports.label}</p>
+                  <h2>{servicesCopy.sections.reports.title}</h2>
+                  <p>{servicesCopy.sections.reports.paragraphs[0]}</p>
+                  <p>{servicesCopy.sections.reports.paragraphs[1]}</p>
                   <ul className="services-bullet-list">
-                    {reportBullets.map((item) => (
+                    {servicesCopy.sections.reports.bullets.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <p>
-                    Each report is detailed, structured, and have full astrological calculations included
-                    for each of your seven planets and interactions.
-                  </p>
+                  <p>{servicesCopy.sections.reports.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
                       href="mailto:mariosbardella@protonmail.com?subject=Astrological%20Report%20Inquiry"
                       className="services-inline-cta-button"
                     >
-                      Learn More
+                      {servicesCopy.sections.reports.cta}
                     </a>
                   </div>
                 </article>
 
                 <article className="services-panel">
-                  <p className="services-section-label">Singles Services</p>
-                  <h2>1-on-1 Peer Support</h2>
-                  <p>
-                    1-on-1 Peer Support is a more practical, structured, and supportive service designed
-                    to help clients stay grounded, motivated, and accountable in daily life.
-                  </p>
-                  <p>
-                    This service is ideal for individuals who benefit from regular encouragement,
-                    routine-building, and consistent support as they work toward personal goals.
-                  </p>
-                  <p>
-                    Personal life coaching involves...
-                  </p>
+                  <p className="services-section-label">{servicesCopy.sections.peerSupport.label}</p>
+                  <h2>{servicesCopy.sections.peerSupport.title}</h2>
+                  <p>{servicesCopy.sections.peerSupport.paragraphs[0]}</p>
+                  <p>{servicesCopy.sections.peerSupport.paragraphs[1]}</p>
+                  <p>{servicesCopy.sections.peerSupport.paragraphs[2]}</p>
                   <ul className="services-bullet-list">
-                    {peerSupportBullets.map((item) => (
+                    {servicesCopy.sections.peerSupport.bullets.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
-                  <p>
-                    This service is especially helpful for clients who are trying to build momentum,
-                    improve discipline, stay emotionally on track, or move through difficult periods with
-                    steady support and structure.
-                  </p>
+                  <p>{servicesCopy.sections.peerSupport.paragraphs[3]}</p>
                   <div className="services-inline-cta">
                     <a
                       href="mailto:mariosbardella@protonmail.com?subject=1-on-1%20Peer%20Support%20Inquiry"
                       className="services-inline-cta-button"
                     >
-                      Learn More
+                      {servicesCopy.sections.peerSupport.cta}
                     </a>
                   </div>
                 </article>

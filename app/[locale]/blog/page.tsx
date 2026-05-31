@@ -1,12 +1,26 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BlogPage from "../../../components/pages/BlogPage";
-import { isSupportedLocale } from "../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../lib/i18n";
+import { getBlogPageCopy } from "../../../lib/blogPageCopy";
+import { buildPageMetadata } from "../../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Blog | Astrology Today",
-  description: "Browse Astrology Today essays, articles, and long-form astrology writing.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const blogCopy = getBlogPageCopy(locale);
+
+  return buildPageMetadata({
+    title: blogCopy.metaTitle,
+    description: blogCopy.metaDescription,
+    pathname: "/blog",
+    locale,
+    images: ["/june-2026-issue.png"],
+  });
+}
 
 export default async function LocaleBlogPage({
   params,

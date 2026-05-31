@@ -1,13 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ClientSubscriptionQuestionnairePage from "../../../../components/pages/ClientSubscriptionQuestionnairePage";
-import { isSupportedLocale } from "../../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../../lib/i18n";
+import { getClientQuestionnaireCopy } from "../../../../lib/clientQuestionnaireCopy";
+import { buildPageMetadata } from "../../../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Client Questionnaire | Astrology Today",
-  description:
-    "Client subscription intake questionnaire for Astrology Today memberships.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const questionnaireCopy = getClientQuestionnaireCopy(locale);
+
+  return buildPageMetadata({
+    title: questionnaireCopy.metaTitle,
+    description: questionnaireCopy.metaDescription,
+    pathname: "/pricing/client-questionnaire",
+    locale,
+  });
+}
 
 export default async function LocaleClientQuestionnaireRoute({
   params,

@@ -3838,6 +3838,98 @@ h2 {
   cursor: pointer;
 }
 
+.love-computer-auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(245, 222, 160, 0.42), transparent 32%),
+    radial-gradient(circle at 80% 18%, rgba(255, 249, 230, 0.82), transparent 30%),
+    linear-gradient(180deg, #f7edd8 0%, #f4e7cc 100%);
+}
+
+.love-computer-auth-card {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 1rem;
+  padding: 28px;
+  border-radius: 28px;
+  background: rgba(255, 251, 245, 0.92);
+  border: 1px solid rgba(98, 84, 66, 0.12);
+  box-shadow: 0 24px 60px rgba(96, 74, 34, 0.12);
+  text-align: center;
+}
+
+.love-computer-auth-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(2rem, 5vw, 2.7rem);
+  line-height: 0.98;
+}
+
+.love-computer-auth-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.love-computer-auth-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.love-computer-auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--ink);
+  padding: 13px 15px;
+}
+
+.love-computer-auth-input::placeholder {
+  color: rgba(96, 74, 34, 0.55);
+}
+
+.love-computer-auth-error {
+  color: #a04848;
+  font-size: 0.92rem;
+}
+
+.love-computer-auth-button {
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #efe4bd 0%, #e1c680 100%);
+  color: var(--ink);
+  padding: 0.9rem 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.love-computer-auth-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(126, 102, 58, 0.12);
+  border-color: rgba(140, 103, 48, 0.26);
+}
+
+.love-computer-auth-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.love-computer-auth-signup a {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.love-computer-auth-signup a:hover {
+  text-decoration: underline;
+}
+
 .home-downloads-panel {
   padding: 18px;
   display: grid;
@@ -6522,6 +6614,18 @@ body {
   transform-origin: center center;
 }
 
+.love-computer-seo-reference {
+  position: absolute;
+  left: -99999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: normal;
+}
+
 .report-shell-teal {
   --paper: #f1ece0;
   --paper-strong: #e2d8c5;
@@ -6701,6 +6805,12 @@ body {
   display: grid;
   grid-template-columns: 320px 320px minmax(420px, 1fr);
   gap: 20px;
+  align-items: start;
+}
+
+.report-top-tools {
+  display: grid;
+  gap: 18px;
   align-items: start;
 }
 
@@ -8580,7 +8690,7 @@ select {
 }
 
 .summary-grid-tools {
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: stretch;
 }
 
@@ -8784,8 +8894,28 @@ select {
 }
 
 .clock-card {
-  grid-template-rows: auto auto auto 1fr auto;
-  height: 100%;
+  grid-template-rows: auto auto auto;
+  gap: 0.68rem;
+  height: auto;
+  padding: 17px 18px 10px;
+}
+
+.clock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: nowrap;
+}
+
+.clock-card h2 {
+  margin: 0;
+  font-size: 1.9rem;
+  line-height: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  padding-top: 0.14rem;
+  white-space: nowrap;
 }
 
 .astro-tool-select {
@@ -8814,6 +8944,13 @@ select {
   gap: 1rem;
 }
 
+.houses-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
 .houses-target-toggle {
   display: flex;
   justify-content: flex-start;
@@ -8822,7 +8959,7 @@ select {
   padding-top: 0.1rem;
 }
 
-.houses-save-button {
+.houses-clear-button {
   border: 1px solid rgba(98, 84, 66, 0.16);
   border-radius: 999px;
   background: linear-gradient(135deg, #efe4bd 0%, #e1c680 100%);
@@ -8833,16 +8970,80 @@ select {
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
-.houses-save-button:hover {
+.houses-clear-button:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 24px rgba(126, 102, 58, 0.12);
   border-color: rgba(140, 103, 48, 0.26);
 }
 
-.houses-save-button.is-saved {
-  background: linear-gradient(135deg, #dff3c6 0%, #b9df92 100%);
-  border-color: rgba(97, 132, 56, 0.3);
-  box-shadow: 0 12px 24px rgba(97, 132, 56, 0.14);
+.houses-clear-button.is-cleared {
+  background: linear-gradient(135deg, #d7ebff 0%, #9ecbff 100%);
+  border-color: rgba(83, 132, 201, 0.3);
+  box-shadow: 0 12px 24px rgba(83, 132, 201, 0.14);
+}
+
+.houses-undo-button {
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  background: rgba(255, 251, 245, 0.92);
+  color: var(--ink);
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.houses-undo-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(126, 102, 58, 0.12);
+  border-color: rgba(140, 103, 48, 0.26);
+}
+
+.houses-undo-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.houses-confirm-card {
+  max-width: 420px;
+  padding: 22px;
+}
+
+.houses-confirm-card h2 {
+  margin: 0;
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+
+.houses-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.1rem;
+}
+
+.houses-confirm-button {
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 251, 245, 0.92);
+  color: var(--ink);
+  padding: 0.78rem 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.houses-confirm-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(126, 102, 58, 0.12);
+  border-color: rgba(140, 103, 48, 0.26);
+}
+
+.houses-confirm-button.is-confirm {
+  background: linear-gradient(135deg, #efe4bd 0%, #e1c680 100%);
 }
 
 .houses-target-button {
@@ -8869,22 +9070,44 @@ select {
 }
 
 .houses-row {
-  display: grid;
-  grid-template-columns: 38px minmax(132px, 168px) 120px 120px minmax(180px, 1fr);
+  display: flex;
   gap: 0.95rem;
   align-items: center;
+  flex-wrap: nowrap;
 }
 
 .houses-number {
   font-weight: 700;
   color: var(--muted);
   font-size: 1rem;
+  flex: 0 0 auto;
 }
 
 .houses-row .astro-tool-select {
   min-height: 54px;
   padding: 12px 14px;
   font-size: 0.98rem;
+}
+
+.houses-slots {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+  flex: 0 1 auto;
+}
+
+.houses-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 0 0 auto;
+}
+
+.houses-sign-select {
+  min-width: 164px;
 }
 
 .houses-copy {
@@ -8899,20 +9122,90 @@ select {
   color: var(--muted);
   font-size: 0.97rem;
   line-height: 1.25;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.house-note-wrap {
+  flex: 0 0 auto;
+  padding-top: 0;
+}
+
+.house-note-wrap .sticky-note-tab {
+  width: 26px;
+  min-height: 26px;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.house-note-tab-label {
+  display: grid;
+  place-items: center;
+  font-size: 0.42rem;
+  line-height: 1;
+  text-shadow: none;
+  color: #fffdf3;
+  transform: translate(-2px, -1px);
+}
+
+.house-note-wrap .sticky-note-wrap.is-open .sticky-note-tab {
+  display: none;
+}
+
+.house-note-pad {
+  width: 110px;
+  min-height: 100px;
+  padding: 8px 8px 7px;
+  border-radius: 8px;
+}
+
+.house-note-pad textarea {
+  min-height: 72px;
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .houses-planet-select {
   text-align: center;
+  min-width: 74px;
+  width: 74px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.houses-add-button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  background: rgba(255, 251, 245, 0.92);
+  color: var(--ink);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.houses-add-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(126, 102, 58, 0.12);
+  border-color: rgba(140, 103, 48, 0.26);
 }
 
 .clock-controls {
-  display: grid;
-  gap: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.72rem;
+  flex-wrap: nowrap;
+  flex: 0 0 auto;
 }
 
 .clock-control {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.25rem;
+  flex: 0 0 auto;
 }
 
 .clock-control-day {
@@ -8923,24 +9216,28 @@ select {
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .clock-time-selects {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
   flex-wrap: nowrap;
 }
 
 .clock-time-selects .astro-tool-select {
-  min-width: 92px;
+  min-width: 64px;
   flex: 0 0 auto;
+  min-height: 34px;
+  padding: 5px 8px;
 }
 
 .clock-day-field {
-  width: 184px;
+  width: 156px;
   max-width: 100%;
+  min-height: 34px;
+  padding: 5px 8px;
 }
 
 .clock-time-field {
@@ -8949,17 +9246,18 @@ select {
 }
 
 .clock-time-field-hour {
-  width: 76px;
+  width: 54px;
 }
 
 .clock-time-field-minute {
-  width: 84px;
+  width: 62px;
 }
 
 .clock-colon,
 .clock-meridiem {
   color: var(--ink);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .clock-table {
@@ -8968,63 +9266,78 @@ select {
   overflow: hidden;
   border: 1px solid rgba(98, 84, 66, 0.1);
   align-content: start;
+  background: rgba(255, 252, 246, 0.82);
+}
+
+.clock-table-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clock-column {
+  display: grid;
+}
+
+.clock-column + .clock-column {
+  border-left: 1px solid rgba(98, 84, 66, 0.08);
 }
 
 .clock-row {
   display: grid;
-  grid-template-columns: 120px 64px minmax(0, 1fr);
+  grid-template-columns: 176px 46px minmax(0, 1fr);
   align-items: center;
-  min-height: 52px;
-  background: rgba(255, 251, 245, 0.72);
+  min-height: 40px;
+  background: transparent;
 }
 
-.clock-row:nth-child(even) {
-  background: rgba(252, 247, 239, 0.92);
+.clock-column .clock-row:nth-child(even) {
+  background: rgba(252, 247, 239, 0.82);
 }
 
-.clock-row + .clock-row {
+.clock-column .clock-row + .clock-row {
   border-top: 1px solid rgba(98, 84, 66, 0.08);
 }
 
 .clock-time,
 .clock-word {
-  padding: 0 0.9rem;
+  padding: 0 0.76rem;
 }
 
 .clock-time {
   font-weight: 700;
   color: var(--muted);
+  line-height: 1.25;
+  white-space: nowrap;
+  font-size: 0.88rem;
 }
 
 .clock-planet {
   display: grid;
   place-items: center;
-  min-height: 52px;
-  border-left: 1px solid rgba(98, 84, 66, 0.08);
-  border-right: 1px solid rgba(98, 84, 66, 0.08);
-  font-size: 1.45rem;
+  min-height: 40px;
+  font-size: 0.9rem;
   color: var(--ink);
 }
 
 .clock-word {
   font-weight: 700;
   letter-spacing: 0.06em;
+  font-size: 0.82rem;
 }
 
 .clock-mode-toggle {
   display: flex;
   justify-content: flex-end;
-  gap: 0.7rem;
+  gap: 0.5rem;
 }
 
 .clock-mode-button {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   border: 1px solid rgba(98, 84, 66, 0.14);
   background: rgba(255, 251, 245, 0.86);
   color: var(--ink);
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -9445,6 +9758,10 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .report-top-tools {
+    grid-template-columns: 1fr;
+  }
+
   .sticky-note-pad {
     transform: none;
   }
@@ -9509,9 +9826,25 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .houses-row,
-  .clock-row {
+  .houses-row {
+    display: grid;
     grid-template-columns: 1fr;
+    flex-wrap: initial;
+  }
+
+  .houses-slots {
+    overflow-x: visible;
+    flex-wrap: wrap;
+    flex: initial;
+  }
+
+  .houses-copy {
+    white-space: normal;
+    flex: initial;
+  }
+
+  .house-note-wrap {
+    justify-items: start;
   }
 
   .houses-target-toggle {
@@ -9524,9 +9857,33 @@ select {
     align-items: stretch;
   }
 
-  .clock-planet {
+  .houses-action-buttons {
+    justify-content: stretch;
+  }
+
+  .clock-controls {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .clock-header {
+    display: grid;
+  }
+
+  .clock-table-split {
+    grid-template-columns: 1fr;
+  }
+
+  .clock-column + .clock-column {
     border-left: 0;
-    border-right: 0;
+    border-top: 1px solid rgba(98, 84, 66, 0.08);
+  }
+
+  .clock-row {
+    grid-template-columns: 1fr;
+  }
+
+  .clock-planet {
     border-top: 1px solid rgba(98, 84, 66, 0.08);
     border-bottom: 1px solid rgba(98, 84, 66, 0.08);
   }

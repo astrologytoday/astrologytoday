@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+import { getWebsiteServicesCopy } from "../../lib/websiteServicesCopy";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 
 const WEBSITE_SERVICES_CANVAS_SCALE = 0.7455;
@@ -15,6 +16,8 @@ export default function WebsiteServicesPage({
 }: {
   locale?: SupportedLocale;
 }) {
+  const copy = getWebsiteServicesCopy(locale);
+
   return (
     <main className="website-services-page">
       <div className="website-services-glow website-services-glow-one" aria-hidden="true" />
@@ -38,8 +41,8 @@ export default function WebsiteServicesPage({
         >
           <div className="website-services-content">
             <h1>
-              <span>Like the website?</span>
-              <span>Email us and we can build one for you!</span>
+              <span>{copy.lineOne}</span>
+              <span>{copy.lineTwo}</span>
             </h1>
 
             <div className="website-services-actions">
@@ -47,10 +50,10 @@ export default function WebsiteServicesPage({
                 href="mailto:mariosbardella@protonmail.com?subject=Website%20Building%20Inquiry"
                 className="website-services-primary"
               >
-                Inquire Now
+                {copy.primaryLabel}
               </a>
               <Link href={withLocale(locale, "/")} className="website-services-secondary">
-                Back to Astrology Today
+                {copy.secondaryLabel}
               </Link>
             </div>
           </div>

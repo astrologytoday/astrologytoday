@@ -1,13 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import WebsiteServicesPage from "../../../components/pages/WebsiteServicesPage";
-import { isSupportedLocale } from "../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../lib/i18n";
+import { getWebsiteServicesCopy } from "../../../lib/websiteServicesCopy";
+import { buildPageMetadata } from "../../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Website Services | Astrology Today",
-  description:
-    "Like the website? Reach out to inquire about custom website design and development services.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const copy = getWebsiteServicesCopy(locale);
+
+  return buildPageMetadata({
+    title: copy.metadataTitle,
+    description: copy.metadataDescription,
+    pathname: "/website-services",
+    locale,
+  });
+}
 
 export default async function LocaleWebsiteServicesPage({
   params,

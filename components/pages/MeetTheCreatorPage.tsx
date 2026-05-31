@@ -5,43 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
-
-const creationHealthFeatures = [
-  "Psychotherapy and skill-building centers.",
-  "Gardens, meditation areas, and fitness facilities.",
-  "Occupational therapy through community contribution (e.g., landscaping and cooking).",
-  "A research center for professionals to study the efficacy of holistic, non-drug-based recovery models.",
-];
-
-const upcomingBooks = [
-  {
-    title: "The Neurotransmitter Food Bible",
-    description:
-      "A nutritional guide for the treatment of various psychological disorders that explores the critical link between diet and mental health.",
-  },
-  {
-    title: "We Don't Hear Voices, We Are the Voices",
-    description:
-      "A non-fiction exploration of schizophrenia recovery, including over 100+ interviews that detail the harrowing experiences of those who suffered under psychiatric malpractice.",
-  },
-  {
-    title: "LIFESPACE: Theory and Methods",
-    description:
-      "Scientific methods for brain optimization, neuroplasticity, and sustainable mental restoration through soul-centered care and holistic lifestyle transformation.",
-  },
-  {
-    title: "Spiritual Psychometrics",
-    description:
-      "A comprehensive guide which provides tools for understanding behavioral patterns through the lens of astrology, as well as qualitative and quantitative psychometric frameworks.",
-  },
-];
-
-const services = [
-  "Detailed astrological readings and counseling",
-  "Relationship and compatibility insights",
-  "Career direction guidance",
-  "Personalized life coaching and practical wellness plans",
-];
+import { getMeetTheCreatorCopy } from "../../lib/meetTheCreatorCopy";
 
 type TransformDebug = {
   x: number;
@@ -143,6 +107,7 @@ export default function MeetTheCreatorPage({
 }: {
   locale?: SupportedLocale;
 }) {
+  const copy = getMeetTheCreatorCopy(locale);
   const [settings, setSettings] = useState<PortraitSettings>(DEFAULT_PORTRAIT_SETTINGS);
   const [primaryButtonDebug, setPrimaryButtonDebug] = useState<TransformDebug>(DEFAULT_PRIMARY_BUTTON);
   const [secondaryButtonDebug, setSecondaryButtonDebug] = useState<TransformDebug>(
@@ -577,7 +542,7 @@ export default function MeetTheCreatorPage({
         <div className="creator-shell">
           <article className="creator-article">
           <header className="creator-article-header">
-            <span className="creator-eyebrow">Astrology Today</span>
+            <span className="creator-eyebrow">{copy.eyebrow}</span>
             <span className="creator-header-star" aria-hidden="true">
               ★
             </span>
@@ -588,9 +553,7 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("title", sectionDebug.title)}
               onMouseDown={startDragTransform("title", sectionDebug.title)}
             >
-              <h1 style={{ ["--creator-title-size" as string]: `${titleTextSize}rem` }}>
-                Meet the Creator
-              </h1>
+              <h1 style={{ ["--creator-title-size" as string]: `${titleTextSize}rem` }}>{copy.pageTitle}</h1>
             </div>
           </header>
 
@@ -616,13 +579,7 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("intro", sectionDebug.intro)}
               onMouseDown={startDragTransform("intro", sectionDebug.intro)}
             >
-              <p>
-                Mario Sbardella is a Toronto-based holistic mental health practitioner, writer,
-                and astrologer dedicated to a visionary reform of the psychiatric landscape. His
-                practice is built upon a compassionate, non-pathologizing, and soul-centered
-                approach that seeks to move beyond mere symptom suppression toward the full
-                restoration of the person: body, mind, and spirit.
-              </p>
+              <p>{copy.intro}</p>
             </div>
 
             <div
@@ -632,14 +589,8 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("fusion", sectionDebug.fusion)}
               onMouseDown={startDragTransform("fusion", sectionDebug.fusion)}
             >
-              <h2>A Fusion of Science and Spirit</h2>
-              <p>
-                Mario&apos;s therapeutic philosophy bridges the gap between modern neuroscience and
-                ancient spiritual wisdom. By combining traditional psychotherapy with lenses such
-                as astrology, yoga, and meditation, he helps clients gain profound clarity into
-                their behaviors and relationship
-                patterns.
-              </p>
+              <h2>{copy.fusionTitle}</h2>
+              <p>{copy.fusionBody}</p>
               <figure
                 className={`creator-inline-portrait creator-inline-portrait-${settings.side}${
                   dragging?.target === "portrait" ? " is-dragging" : ""
@@ -670,11 +621,7 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("fusionSecond", sectionDebug.fusionSecond)}
               onMouseDown={startDragTransform("fusionSecond", sectionDebug.fusionSecond)}
             >
-              <p className="creator-fusion-second-paragraph">
-                He was first awakened to spirituality following a formative experience which
-                began a personal relationship with Jesus Christ, whom he views as a central
-                figure in spiritual purification and personal development.
-              </p>
+              <p className="creator-fusion-second-paragraph">{copy.fusionSecond}</p>
             </div>
 
             <div
@@ -684,13 +631,8 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("innovations", sectionDebug.innovations)}
               onMouseDown={startDragTransform("innovations", sectionDebug.innovations)}
             >
-              <h2>Innovations in Wellness</h2>
-              <p>
-                This brand of psychology integrates signature wellness models designed to support
-                recovery from complex conditions, including anxiety, bipolar disorder, ADHD, and
-                schizophrenia. Through lifestyle transformation and integrative therapy, patients
-                come to realize their full potential and become able to reintegrate into society.
-              </p>
+              <h2>{copy.innovationsTitle}</h2>
+              <p>{copy.innovationsBody}</p>
             </div>
             <div
               className={`creator-flow-block${
@@ -699,12 +641,7 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("innovationsFollow", sectionDebug.innovationsFollow)}
               onMouseDown={startDragTransform("innovationsFollow", sectionDebug.innovationsFollow)}
             >
-              <p>
-                In addition to LIFESPACE, Mario developed the Relationship Rorschach Test
-                <span className="creator-inline-symbol">™</span>, a
-                specialized tool for therapists to help couples explore unconscious emotions and
-                gain deeper insights into their shared dynamics.
-              </p>
+              <p>{copy.innovationsFollow}</p>
             </div>
 
             <div
@@ -714,13 +651,8 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("creationVision", sectionDebug.creationVision)}
               onMouseDown={startDragTransform("creationVision", sectionDebug.creationVision)}
             >
-              <h2>Creation Health: A Visionary Wellness Community</h2>
-              <p>
-                Mario&apos;s plan culminates in the establishment of Creation Health, a revolutionary
-                healing arts and spirituality brand. This visionary wellness community concept is
-                designed to replace traditional psychiatric in-patient programs with a
-                self-sufficient operational model.
-              </p>
+              <h2>{copy.creationVisionTitle}</h2>
+              <p>{copy.creationVisionBody}</p>
             </div>
             <figure
               className={`creator-concept-figure${
@@ -745,7 +677,7 @@ export default function MeetTheCreatorPage({
               >
                 <img
                   src="/creation-health-concept-art.png"
-                  alt="Concept art for the Creation Health wellness community"
+                  alt={copy.conceptImageAlt}
                   className="creator-concept-image"
                 />
               </button>
@@ -756,7 +688,7 @@ export default function MeetTheCreatorPage({
                 style={getFlowBlockStyle("conceptCaption", sectionDebug.conceptCaption)}
                 onMouseDown={startDragTransform("conceptCaption", sectionDebug.conceptCaption)}
               >
-                Creation Health Mockup: An outdoor psychiatric inpatient/outpatient program
+                {copy.conceptCaption}
               </figcaption>
             </figure>
             <div
@@ -766,9 +698,9 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("creationFacilities", sectionDebug.creationFacilities)}
               onMouseDown={startDragTransform("creationFacilities", sectionDebug.creationFacilities)}
             >
-              <p>The Creation Health facility is envisioned as a space featuring:</p>
+              <p>{copy.creationFeaturesLead}</p>
               <ul className="creator-list">
-                {creationHealthFeatures.map((item) => (
+                {copy.creationHealthFeatures.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -781,14 +713,10 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("author", sectionDebug.author)}
               onMouseDown={startDragTransform("author", sectionDebug.author)}
             >
-              <h2>Author &amp; Researcher</h2>
-              <p>
-                As an independent researcher and a Top 1,000 writer on Medium, Mario&apos;s work
-                emphasizes medical autonomy and the limitations of forced medicalization. His
-                upcoming books include:
-              </p>
+              <h2>{copy.authorTitle}</h2>
+              <p>{copy.authorLead}</p>
               <ul className="creator-list">
-                {upcomingBooks.map((item) => (
+                {copy.upcomingBooks.map((item) => (
                   <li key={item.title}>
                     <strong>{item.title}</strong>: {item.description}
                   </li>
@@ -844,20 +772,10 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("background", sectionDebug.background)}
               onMouseDown={startDragTransform("background", sectionDebug.background)}
             >
-              <h2>Professional Background</h2>
-              <p>
-                Mario holds a Bachelor of Arts (Honours) in Psychology from the University of
-                Ottawa and is currently pursuing an MSc in Psychology. His diverse experience
-                ranges from running a successful landscaping business, GardenStyle, which he
-                utilized as a form of occupational therapy for clients, to providing
-                psychospiritual counseling in faith-based and digital peer-support environments.
-              </p>
-              <p>
-                In 2016, he began a YouTube channel dedicated to spirituality-focused
-                documentaries that have amassed millions of views across his body of online work.
-                He has also won two prizes for his writing and been listed in the Top 500 Writers
-                on Medium.com for his articles on NASA and SpaceX.
-              </p>
+              <h2>{copy.professionalBackgroundTitle}</h2>
+              {copy.professionalBackgroundBody.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
 
             <div
@@ -867,21 +785,18 @@ export default function MeetTheCreatorPage({
               style={getFlowBlockStyle("work", sectionDebug.work)}
               onMouseDown={startDragTransform("work", sectionDebug.work)}
             >
-              <h2>Work With Mario</h2>
-              <p>
-                Sessions are judgment-free, gender-inclusive, and trauma-aware. Whether you are
-                seeking clarity in your career, your relationships, or your personal wellness
-                journey, Mario offers a safe space to explore your path naturally.
-              </p>
-              <p>Services include:</p>
+              <h2>{copy.workWithMarioTitle}</h2>
+              {copy.workWithMarioBody.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+              <p>{copy.servicesLead}</p>
               <ul className="creator-list">
-                {services.map((item) => (
+                {copy.services.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
               <p className="creator-location-line">
-                <strong>Location:</strong> Available online via Zoom or in-person in Toronto,
-                Ontario.
+                <strong>{copy.locationLabel}</strong> {copy.locationValue}
               </p>
 
               <div className="creator-hero-actions">
@@ -899,9 +814,9 @@ export default function MeetTheCreatorPage({
                   href={withLocale(locale, "/pricing")}
                   className="creator-primary-action creator-primary-action-circle"
                 >
-                  <span>Book</span>
-                  <span>a</span>
-                  <span>Session</span>
+                  <span>{copy.bookSessionLabel[0]}</span>
+                  <span>{copy.bookSessionLabel[1]}</span>
+                  <span>{copy.bookSessionLabel[2]}</span>
                 </Link>
               </div>
               <div
@@ -915,7 +830,7 @@ export default function MeetTheCreatorPage({
                 onMouseDown={startDragTransform("secondaryButton", secondaryButtonDebug)}
               >
                 <Link href={withLocale(locale, "/")} className="creator-secondary-action">
-                  Back to Astrology Today
+                  {copy.backToAstrologyToday}
                 </Link>
               </div>
             </div>
@@ -1164,15 +1079,15 @@ export default function MeetTheCreatorPage({
               className="creator-lightbox-close"
               onClick={() => setConceptLightboxOpen(false)}
             >
-              Close
+              {copy.lightboxClose}
             </button>
             <img
               src="/creation-health-concept-art.png"
-              alt="Creation Health concept image enlarged"
+              alt={copy.lightboxAlt}
               className="creator-lightbox-image"
             />
             <p className="creator-lightbox-caption">
-              Creation Health Mockup: An outdoor psychiatric inpatient/outpatient program
+              {copy.lightboxCaption}
             </p>
           </div>
         </div>

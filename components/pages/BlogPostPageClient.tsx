@@ -7,6 +7,7 @@ import type { BlogPost } from "../../lib/blog";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
+import { getBlogArticlePageCopy } from "../../lib/blogArticlePageCopy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
@@ -109,9 +110,16 @@ export default function BlogPostPageClient({
   post: BlogPost;
   locale?: SupportedLocale;
 }) {
+  const articleCopy = getBlogArticlePageCopy(locale);
   const titleLines =
-    post.title === "The History of Medicinal Astrology"
-      ? ["The History of", "Medicinal Astrology"]
+    post.slug === "history-of-medicinal-astrology"
+      ? locale === "fr"
+        ? ["L'histoire de", "l'astrologie médicinale"]
+        : locale === "it"
+          ? ["La storia", "dell'astrologia medica"]
+          : locale === "es"
+            ? ["La historia de la", "astrología medicinal"]
+            : ["The History of", "Medicinal Astrology"]
       : [post.title];
   const copy = getHomeCopy(locale);
   const sidebarLinks = [
@@ -119,7 +127,7 @@ export default function BlogPostPageClient({
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog"), active: true },
   ];
@@ -351,18 +359,18 @@ export default function BlogPostPageClient({
               ) : null}
               <div className="blog-article-back-row">
                 <Link href={withLocale(locale, "/blog")} className="blog-article-back-link">
-                  ← Back to Blog
+                  ← {articleCopy.backToBlog}
                 </Link>
               </div>
 
               <header className="blog-article-hero-panel">
                 <div className="blog-article-hero-copy">
                   <p className="blog-kicker">{post.issueLabel}</p>
-                  <div className="blog-article-title-stack">
+                  <h1 className="blog-article-title-stack">
                     {titleLines.map((line, index) => (
                       <span key={`${line}-${index}`}>{line}</span>
                     ))}
-                  </div>
+                  </h1>
                   {post.subtitle ? <p className="blog-article-subtitle">{post.subtitle}</p> : null}
                   <p className="blog-article-meta">
                     {post.publishedLabel} · {post.readTime}
@@ -514,7 +522,7 @@ export default function BlogPostPageClient({
                                 ))}
                               </div>
                               <figcaption>
-                                ‘Microcosmus Melothesia’ by B.A. Vierling and Dr. J.H. McLean’s Family Almanac (1874)
+                                {articleCopy.imagePairCaption}
                               </figcaption>
                             </figure>
                           ) : null}
@@ -531,7 +539,7 @@ export default function BlogPostPageClient({
                         {showMatrixAfterSection ? (
                           <section className="blog-medical-grid-section has-bottom-spacing">
                             <div>
-                              <p>Let’s review some of the ailments caused by astrological placements…</p>
+                              <p>{articleCopy.zodiacReviewIntro}</p>
                             </div>
 
                             <div className="blog-zodiac-grid">

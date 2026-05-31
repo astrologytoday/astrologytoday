@@ -6,6 +6,7 @@ import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+import { getClientQuestionnaireCopy } from "../../lib/clientQuestionnaireCopy";
 import { getClientSubscriptionPlanKey } from "../../lib/square";
 import {
   attachSquareCheckoutToIntake,
@@ -18,6 +19,11 @@ const QUESTIONNAIRE_CANVAS_SCALE = 0.71;
 const QUESTIONNAIRE_CANVAS_WIDTH = 1760;
 const QUESTIONNAIRE_CANVAS_OFFSET_X = 0;
 const QUESTIONNAIRE_CANVAS_OFFSET_Y = 16;
+
+type OptionItem = {
+  value: string;
+  label: string;
+};
 
 const countries = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
@@ -253,16 +259,235 @@ const QUESTIONNAIRE_LOCKED_FOOTER_DEBUG: Partial<Record<StepId, QuestionnaireFoo
   },
 };
 
+const countryCodeMap: Record<string, string> = {
+  Afghanistan: "AF",
+  Albania: "AL",
+  Algeria: "DZ",
+  Andorra: "AD",
+  Angola: "AO",
+  "Antigua and Barbuda": "AG",
+  Argentina: "AR",
+  Armenia: "AM",
+  Australia: "AU",
+  Austria: "AT",
+  Azerbaijan: "AZ",
+  Bahamas: "BS",
+  Bahrain: "BH",
+  Bangladesh: "BD",
+  Barbados: "BB",
+  Belarus: "BY",
+  Belgium: "BE",
+  Belize: "BZ",
+  Benin: "BJ",
+  Bhutan: "BT",
+  Bolivia: "BO",
+  "Bosnia and Herzegovina": "BA",
+  Botswana: "BW",
+  Brazil: "BR",
+  Brunei: "BN",
+  Bulgaria: "BG",
+  "Burkina Faso": "BF",
+  Burundi: "BI",
+  "Cabo Verde": "CV",
+  Cambodia: "KH",
+  Cameroon: "CM",
+  Canada: "CA",
+  "Central African Republic": "CF",
+  Chad: "TD",
+  Chile: "CL",
+  China: "CN",
+  Colombia: "CO",
+  Comoros: "KM",
+  Congo: "CG",
+  "Costa Rica": "CR",
+  Croatia: "HR",
+  Cuba: "CU",
+  Cyprus: "CY",
+  "Czech Republic": "CZ",
+  "Democratic Republic of the Congo": "CD",
+  Denmark: "DK",
+  Djibouti: "DJ",
+  Dominica: "DM",
+  "Dominican Republic": "DO",
+  Ecuador: "EC",
+  Egypt: "EG",
+  "El Salvador": "SV",
+  "Equatorial Guinea": "GQ",
+  Eritrea: "ER",
+  Estonia: "EE",
+  Eswatini: "SZ",
+  Ethiopia: "ET",
+  Fiji: "FJ",
+  Finland: "FI",
+  France: "FR",
+  Gabon: "GA",
+  Gambia: "GM",
+  Georgia: "GE",
+  Germany: "DE",
+  Ghana: "GH",
+  Greece: "GR",
+  Grenada: "GD",
+  Guatemala: "GT",
+  Guinea: "GN",
+  "Guinea-Bissau": "GW",
+  Guyana: "GY",
+  Haiti: "HT",
+  Honduras: "HN",
+  Hungary: "HU",
+  Iceland: "IS",
+  India: "IN",
+  Indonesia: "ID",
+  Iran: "IR",
+  Iraq: "IQ",
+  Ireland: "IE",
+  Israel: "IL",
+  Italy: "IT",
+  Jamaica: "JM",
+  Japan: "JP",
+  Jordan: "JO",
+  Kazakhstan: "KZ",
+  Kenya: "KE",
+  Kiribati: "KI",
+  Kuwait: "KW",
+  Kyrgyzstan: "KG",
+  Laos: "LA",
+  Latvia: "LV",
+  Lebanon: "LB",
+  Lesotho: "LS",
+  Liberia: "LR",
+  Libya: "LY",
+  Liechtenstein: "LI",
+  Lithuania: "LT",
+  Luxembourg: "LU",
+  Madagascar: "MG",
+  Malawi: "MW",
+  Malaysia: "MY",
+  Maldives: "MV",
+  Mali: "ML",
+  Malta: "MT",
+  "Marshall Islands": "MH",
+  Mauritania: "MR",
+  Mauritius: "MU",
+  Mexico: "MX",
+  Micronesia: "FM",
+  Moldova: "MD",
+  Monaco: "MC",
+  Mongolia: "MN",
+  Montenegro: "ME",
+  Morocco: "MA",
+  Mozambique: "MZ",
+  Myanmar: "MM",
+  Namibia: "NA",
+  Nauru: "NR",
+  Nepal: "NP",
+  Netherlands: "NL",
+  "New Zealand": "NZ",
+  Nicaragua: "NI",
+  Niger: "NE",
+  Nigeria: "NG",
+  "North Korea": "KP",
+  "North Macedonia": "MK",
+  Norway: "NO",
+  Oman: "OM",
+  Pakistan: "PK",
+  Palau: "PW",
+  Palestine: "PS",
+  Panama: "PA",
+  "Papua New Guinea": "PG",
+  Paraguay: "PY",
+  Peru: "PE",
+  Philippines: "PH",
+  Poland: "PL",
+  Portugal: "PT",
+  Qatar: "QA",
+  Romania: "RO",
+  Russia: "RU",
+  Rwanda: "RW",
+  "Saint Kitts and Nevis": "KN",
+  "Saint Lucia": "LC",
+  "Saint Vincent and the Grenadines": "VC",
+  Samoa: "WS",
+  "San Marino": "SM",
+  "Sao Tome and Principe": "ST",
+  "Saudi Arabia": "SA",
+  Senegal: "SN",
+  Serbia: "RS",
+  Seychelles: "SC",
+  "Sierra Leone": "SL",
+  Singapore: "SG",
+  Slovakia: "SK",
+  Slovenia: "SI",
+  "Solomon Islands": "SB",
+  Somalia: "SO",
+  "South Africa": "ZA",
+  "South Korea": "KR",
+  "South Sudan": "SS",
+  Spain: "ES",
+  "Sri Lanka": "LK",
+  Sudan: "SD",
+  Suriname: "SR",
+  Sweden: "SE",
+  Switzerland: "CH",
+  Syria: "SY",
+  Taiwan: "TW",
+  Tajikistan: "TJ",
+  Tanzania: "TZ",
+  Thailand: "TH",
+  "Timor-Leste": "TL",
+  Togo: "TG",
+  Tonga: "TO",
+  "Trinidad and Tobago": "TT",
+  Tunisia: "TN",
+  Turkey: "TR",
+  Turkmenistan: "TM",
+  Tuvalu: "TV",
+  Uganda: "UG",
+  Ukraine: "UA",
+  "United Arab Emirates": "AE",
+  "United Kingdom": "GB",
+  "United States": "US",
+  Uruguay: "UY",
+  Uzbekistan: "UZ",
+  Vanuatu: "VU",
+  "Vatican City": "VA",
+  Venezuela: "VE",
+  Vietnam: "VN",
+  Yemen: "YE",
+  Zambia: "ZM",
+  Zimbabwe: "ZW",
+};
+
+function localizeCountries(locale: SupportedLocale) {
+  try {
+    const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+    return countries.map((country) => ({
+      value: country,
+      label: displayNames.of(countryCodeMap[country]) ?? country,
+    }));
+  } catch {
+    return countries.map((country) => ({ value: country, label: country }));
+  }
+}
+
+function localizeOptions(options: readonly string[], labels: Record<string, string>): OptionItem[] {
+  return options.map((option) => ({
+    value: option,
+    label: labels[option] ?? option,
+  }));
+}
+
 function WheelField({
   value,
   options,
   onChange,
   ariaLabel,
+  emptyLabel,
 }: {
   value: string;
-  options: string[];
+  options: OptionItem[];
   onChange: (next: string) => void;
   ariaLabel: string;
+  emptyLabel: string;
 }) {
   return (
     <div className="client-questionnaire-wheel-wrap">
@@ -274,11 +499,11 @@ function WheelField({
         onChange={(event) => onChange(event.target.value)}
       >
         <option value="" disabled>
-          Select an option
+          {emptyLabel}
         </option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
@@ -289,20 +514,27 @@ function WheelField({
 function YesNoField({
   value,
   onChange,
+  labels,
 }: {
   value: string;
   onChange: (next: string) => void;
+  labels: { yes: string; no: string };
 }) {
+  const options = [
+    { value: "Yes", label: labels.yes },
+    { value: "No", label: labels.no },
+  ];
+
   return (
     <div className="client-questionnaire-binary">
-      {["Yes", "No"].map((option) => (
+      {options.map((option) => (
         <button
-          key={option}
+          key={option.value}
           type="button"
-          className={`client-questionnaire-binary-option${value === option ? " is-selected" : ""}`}
-          onClick={() => onChange(option)}
+          className={`client-questionnaire-binary-option${value === option.value ? " is-selected" : ""}`}
+          onClick={() => onChange(option.value)}
         >
-          {option}
+          {option.label}
         </button>
       ))}
     </div>
@@ -318,6 +550,7 @@ export default function ClientSubscriptionQuestionnairePage({
 }: {
   locale?: SupportedLocale;
 }) {
+  const copy = getClientQuestionnaireCopy(locale);
   const [answers, setAnswers] = useState<QuestionnaireAnswers>(defaultAnswers);
   const [stepIndex, setStepIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -463,6 +696,40 @@ export default function ClientSubscriptionQuestionnairePage({
 
   const currentStep = steps[stepIndex];
   const activeFooterDebug = footerDebugByStep[currentStep] ?? QUESTIONNAIRE_DEFAULT_FOOTER_DEBUG;
+  const countryOptions = useMemo(() => localizeCountries(locale), [locale]);
+  const workFieldOptions = useMemo(
+    () => localizeOptions(workFields, copy.workFieldLabels),
+    [copy.workFieldLabels],
+  );
+  const sexualPreferenceOptions = useMemo(
+    () => localizeOptions(sexualPreferences, copy.sexualPreferenceLabels),
+    [copy.sexualPreferenceLabels],
+  );
+  const drugOptions = useMemo(() => localizeOptions(drugs, copy.drugLabels), [copy.drugLabels]);
+  const helpOptionItems = useMemo(
+    () => localizeOptions(helpOptions, copy.helpLabels),
+    [copy.helpLabels],
+  );
+  const spiritualAffiliationOptions = useMemo(
+    () => localizeOptions(spiritualAffiliations, copy.spiritualAffiliationLabels),
+    [copy.spiritualAffiliationLabels],
+  );
+  const socioeconomicOptionItems = useMemo(
+    () => localizeOptions(socioeconomicOptions, copy.socioeconomicLabels),
+    [copy.socioeconomicLabels],
+  );
+  const livingSituationOptions = useMemo(
+    () => localizeOptions(livingSituations, copy.livingSituationLabels),
+    [copy.livingSituationLabels],
+  );
+  const fastingOptionItems = useMemo(
+    () => localizeOptions(fastingOptions, copy.fastingLabels),
+    [copy.fastingLabels],
+  );
+  const workoutOptionItems = useMemo(
+    () => localizeOptions(workoutOptions, copy.workoutLabels),
+    [copy.workoutLabels],
+  );
 
   const updateAnswers = (partial: Partial<QuestionnaireAnswers>) => {
     setAnswers((current) => ({ ...current, ...partial }));
@@ -566,6 +833,7 @@ export default function ClientSubscriptionQuestionnairePage({
   );
 
   const progressLabel = `${stepIndex + 1} / ${steps.length}`;
+  const currentQuestionKicker = copy.questionLabel(stepIndex + 1);
 
   const proceedToCheckout = async () => {
     if (!selectedPlanKey || !sessionPrice || checkoutLoading) return;
@@ -676,7 +944,7 @@ export default function ClientSubscriptionQuestionnairePage({
               href={withLocale(locale, "/")}
               className="client-questionnaire-back-link"
             >
-              ← Back to Astrology Today
+              {`\u2190 ${copy.backToAstrologyToday}`}
             </Link>
             <span className="client-questionnaire-progress">{progressLabel}</span>
           </div>
@@ -690,10 +958,10 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "birth" ? (
               <>
-                <h1 className="client-questionnaire-question">Date of birth</h1>
+                <h1 className="client-questionnaire-question">{copy.birthTitle}</h1>
                 <div className="client-questionnaire-birth-fields">
                   <label className="client-questionnaire-birth-field">
-                    <span>Month (MM)</span>
+                    <span>{copy.monthLabel}</span>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -706,7 +974,7 @@ export default function ClientSubscriptionQuestionnairePage({
                     />
                   </label>
                   <label className="client-questionnaire-birth-field">
-                    <span>Day (DD)</span>
+                    <span>{copy.dayLabel}</span>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -719,7 +987,7 @@ export default function ClientSubscriptionQuestionnairePage({
                     />
                   </label>
                   <label className="client-questionnaire-birth-field">
-                    <span>Year (YYYY)</span>
+                    <span>{copy.yearLabel}</span>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -732,13 +1000,14 @@ export default function ClientSubscriptionQuestionnairePage({
                     />
                   </label>
                 </div>
-                <h2 className="client-questionnaire-subquestion">Country of Origin</h2>
+                <h2 className="client-questionnaire-subquestion">{copy.countryOfOrigin}</h2>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.countryOfOrigin}
-                    options={countries}
+                    options={countryOptions}
                     onChange={(next) => updateAnswers({ countryOfOrigin: next })}
-                    ariaLabel="Country of origin"
+                    ariaLabel={copy.countryOfOrigin}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -746,16 +1015,17 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "field" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 2</p>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
                 <h1 className="client-questionnaire-question">
-                  What is your field of work / field of interest?
+                  {copy.fieldTitle}
                 </h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.fieldOfWork}
-                    options={workFields}
+                    options={workFieldOptions}
                     onChange={(next) => updateAnswers({ fieldOfWork: next })}
-                    ariaLabel="Field of work or interest"
+                    ariaLabel={copy.fieldAria}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -763,14 +1033,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "sexualPreference" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 3</p>
-                <h1 className="client-questionnaire-question">Sexual Preference</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.sexualPreferenceTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.sexualPreference}
-                    options={sexualPreferences}
+                    options={sexualPreferenceOptions}
                     onChange={(next) => updateAnswers({ sexualPreference: next })}
-                    ariaLabel="Sexual preference"
+                    ariaLabel={copy.sexualPreferenceTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -778,19 +1049,19 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "drugUse" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 4</p>
-                <h1 className="client-questionnaire-question">Drug use?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.drugUseTitle}</h1>
                 <div className="client-questionnaire-checkbox-grid">
-                  {drugs.map((option) => {
-                    const checked = answers.drugUse.includes(option);
+                  {drugOptions.map((option) => {
+                    const checked = answers.drugUse.includes(option.value);
                     return (
-                      <label key={option} className={`client-questionnaire-checkbox${checked ? " is-selected" : ""}`}>
+                      <label key={option.value} className={`client-questionnaire-checkbox${checked ? " is-selected" : ""}`}>
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggleMulti("drugUse", option)}
+                          onChange={() => toggleMulti("drugUse", option.value)}
                         />
-                        <span>{option}</span>
+                        <span>{option.label}</span>
                       </label>
                     );
                   })}
@@ -800,21 +1071,21 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "help" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 5</p>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
                 <h1 className="client-questionnaire-question">
-                  What are you seeking help with today?
+                  {copy.helpTitle}
                 </h1>
                 <div className="client-questionnaire-checkbox-grid">
-                  {helpOptions.map((option) => {
-                    const checked = answers.helpSeeking.includes(option);
+                  {helpOptionItems.map((option) => {
+                    const checked = answers.helpSeeking.includes(option.value);
                     return (
-                      <label key={option} className={`client-questionnaire-checkbox${checked ? " is-selected" : ""}`}>
+                      <label key={option.value} className={`client-questionnaire-checkbox${checked ? " is-selected" : ""}`}>
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={() => toggleMulti("helpSeeking", option)}
+                          onChange={() => toggleMulti("helpSeeking", option.value)}
                         />
-                        <span>{option}</span>
+                        <span>{option.label}</span>
                       </label>
                     );
                   })}
@@ -824,14 +1095,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "spirituality" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 6</p>
-                <h1 className="client-questionnaire-question">What is your spiritual affiliation?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.spiritualityTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.spiritualAffiliation}
-                    options={spiritualAffiliations}
+                    options={spiritualAffiliationOptions}
                     onChange={(next) => updateAnswers({ spiritualAffiliation: next })}
-                    ariaLabel="Spiritual affiliation"
+                    ariaLabel={copy.spiritualityTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -839,14 +1111,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "socioeconomic" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 7</p>
-                <h1 className="client-questionnaire-question">What is your annual salary?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.socioeconomicTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.socioeconomicStatus}
-                    options={socioeconomicOptions}
+                    options={socioeconomicOptionItems}
                     onChange={(next) => updateAnswers({ socioeconomicStatus: next })}
-                    ariaLabel="Annual salary"
+                    ariaLabel={copy.socioeconomicTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -854,14 +1127,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "livingSituation" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 8</p>
-                <h1 className="client-questionnaire-question">What is your living situation?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.livingSituationTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.livingSituation}
-                    options={livingSituations}
+                    options={livingSituationOptions}
                     onChange={(next) => updateAnswers({ livingSituation: next, liveAlone: "" })}
-                    ariaLabel="Living situation"
+                    ariaLabel={copy.livingSituationTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -869,18 +1143,18 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "liveAlone" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 9</p>
-                <h1 className="client-questionnaire-question">Do you live alone?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.liveAloneTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <div className="client-questionnaire-choice-grid">
-                    {["Yes", "No", "Sometimes"].map((option) => (
+                    {(["Yes", "No", "Sometimes"] as const).map((option) => (
                       <button
                         key={option}
                         type="button"
                         className={`client-questionnaire-choice${answers.liveAlone === option ? " is-selected" : ""}`}
                         onClick={() => updateAnswers({ liveAlone: option })}
                       >
-                        {option}
+                        {copy.liveAloneLabels[option]}
                       </button>
                     ))}
                   </div>
@@ -890,14 +1164,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "fasting" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 10</p>
-                <h1 className="client-questionnaire-question">Have you ever fasted?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.fastingTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.fastingHistory}
-                    options={fastingOptions}
+                    options={fastingOptionItems}
                     onChange={(next) => updateAnswers({ fastingHistory: next })}
-                    ariaLabel="Fasting history"
+                    ariaLabel={copy.fastingTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -905,14 +1180,15 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "workout" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 11</p>
-                <h1 className="client-questionnaire-question">How often do you work out?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.workoutTitle}</h1>
                 <div className="client-questionnaire-answer-block">
                   <WheelField
                     value={answers.workoutFrequency}
-                    options={workoutOptions}
+                    options={workoutOptionItems}
                     onChange={(next) => updateAnswers({ workoutFrequency: next })}
-                    ariaLabel="Workout frequency"
+                    ariaLabel={copy.workoutTitle}
+                    emptyLabel={copy.selectOption}
                   />
                 </div>
               </>
@@ -920,39 +1196,36 @@ export default function ClientSubscriptionQuestionnairePage({
 
             {currentStep === "vitamins" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 12</p>
-                <h1 className="client-questionnaire-question">Do you take vitamins or amino acids?</h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.vitaminsTitle}</h1>
                 <YesNoField
                   value={answers.vitamins}
                   onChange={(next) => updateAnswers({ vitamins: next })}
+                  labels={{ yes: copy.yes, no: copy.no }}
                 />
               </>
             ) : null}
 
             {currentStep === "medications" ? (
               <>
-                <p className="client-questionnaire-kicker">Question 13</p>
-                <h1 className="client-questionnaire-question">
-                  Do you take any medications? Please specify.
-                </h1>
+                <p className="client-questionnaire-kicker">{currentQuestionKicker}</p>
+                <h1 className="client-questionnaire-question">{copy.medicationsTitle}</h1>
                 <textarea
                   className="client-questionnaire-textarea"
                   value={answers.medications}
                   onChange={(event) => updateAnswers({ medications: event.target.value })}
-                  placeholder="Type your response here"
+                  placeholder={copy.medicationsPlaceholder}
                 />
               </>
             ) : null}
 
             {currentStep === "session" ? (
               <>
-                <p className="client-questionnaire-kicker">Final Step</p>
-                <h1 className="client-questionnaire-question">
-                  Choose Session Frequency and Duration
-                </h1>
+                <p className="client-questionnaire-kicker">{copy.finalStep}</p>
+                <h1 className="client-questionnaire-question">{copy.sessionTitle}</h1>
                 <div className="client-questionnaire-final-grid">
                   <div className="client-questionnaire-final-group">
-                    <h2 className="client-questionnaire-subquestion">Frequency</h2>
+                    <h2 className="client-questionnaire-subquestion">{copy.frequency}</h2>
                     <div className="client-questionnaire-choice-grid">
                       {frequencyOptions.map((option) => (
                         <button
@@ -961,13 +1234,13 @@ export default function ClientSubscriptionQuestionnairePage({
                           className={`client-questionnaire-choice${answers.sessionFrequency === option ? " is-selected" : ""}`}
                           onClick={() => updateAnswers({ sessionFrequency: option })}
                         >
-                          {option}
+                          {copy.sessionFrequencyLabels[option]}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div className="client-questionnaire-final-group">
-                    <h2 className="client-questionnaire-subquestion">Duration</h2>
+                    <h2 className="client-questionnaire-subquestion">{copy.duration}</h2>
                     <div className="client-questionnaire-choice-grid">
                       {durationOptions.map((option) => (
                         <button
@@ -976,7 +1249,7 @@ export default function ClientSubscriptionQuestionnairePage({
                           className={`client-questionnaire-choice${answers.sessionDuration === option ? " is-selected" : ""}`}
                           onClick={() => updateAnswers({ sessionDuration: option })}
                         >
-                          {option}
+                          {copy.sessionDurationLabels[option]}
                         </button>
                       ))}
                     </div>
@@ -985,7 +1258,7 @@ export default function ClientSubscriptionQuestionnairePage({
 
                 {sessionPrice ? (
                   <div className="client-questionnaire-price-card">
-                    <p className="client-questionnaire-price-label">Estimated Membership Price</p>
+                    <p className="client-questionnaire-price-label">{copy.estimatedMembershipPrice}</p>
                     <p className="client-questionnaire-price">{sessionPrice}</p>
                   </div>
                 ) : null}
@@ -999,7 +1272,7 @@ export default function ClientSubscriptionQuestionnairePage({
                 onClick={goBack}
                 disabled={stepIndex === 0 || isTransitioning}
               >
-                Back
+                {copy.back}
               </button>
 
               {currentStep === "session" ? (
@@ -1009,7 +1282,7 @@ export default function ClientSubscriptionQuestionnairePage({
                   onClick={proceedToCheckout}
                   disabled={!canConfirmStep() || !selectedPlanKey || checkoutLoading}
                 >
-                  {checkoutLoading ? "Redirecting..." : "Proceed to checkout"}
+                  {checkoutLoading ? copy.redirecting : copy.proceedToCheckout}
                 </button>
               ) : (
                 <button
@@ -1018,7 +1291,7 @@ export default function ClientSubscriptionQuestionnairePage({
                   onClick={confirmStep}
                   disabled={!canConfirmStep() || isTransitioning}
                 >
-                  Next
+                  {copy.next}
                 </button>
               )}
             </div>

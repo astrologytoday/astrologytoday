@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { blogPosts } from "../../lib/blog";
+import { getBlogPageCopy } from "../../lib/blogPageCopy";
+import { getLocalizedBlogSummary } from "../../lib/blogSummaryCopy";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
@@ -120,16 +122,19 @@ const marqueeItems = [
 
 function buildGalleryCards(locale: SupportedLocale): GalleryCard[] {
   const localizedBlog = (slug: string) => withLocale(locale, `/blog/${slug}`);
-  return blogPosts.slice(1, 10).map((post) => ({
-    slug: post.slug,
-    href: localizedBlog(post.slug),
-    title: post.title,
-    meta: post.publishedLabel,
-    excerpt: post.excerpt,
-    badge: post.readTime,
-    image: post.coverImage,
-    imageAlt: post.coverImageAlt,
-  }));
+  return blogPosts.slice(1, 10).map((post) => {
+    const localizedPost = getLocalizedBlogSummary(post, locale);
+    return {
+      slug: localizedPost.slug,
+      href: localizedBlog(localizedPost.slug),
+      title: localizedPost.title,
+      meta: localizedPost.publishedLabel,
+      excerpt: localizedPost.excerpt,
+      badge: localizedPost.readTime,
+      image: localizedPost.coverImage,
+      imageAlt: localizedPost.coverImageAlt,
+    };
+  });
 }
 
 export default function BlogPage({
@@ -140,17 +145,18 @@ export default function BlogPage({
   const marqueeRef = useRef<HTMLDivElement | null>(null);
   const marqueeGroupRef = useRef<HTMLDivElement | null>(null);
   const copy = getHomeCopy(locale);
+  const blogCopy = getBlogPageCopy(locale);
   const navLinks = [
     { label: copy.nav.home, href: withLocale(locale, "/") },
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog"), active: true },
   ];
 
-  const featuredPost = blogPosts[0];
+  const featuredPost = getLocalizedBlogSummary(blogPosts[0], locale);
   const galleryCards = buildGalleryCards(locale);
 
   const [debuggerVisible, setDebuggerVisible] = useState(false);
@@ -786,10 +792,10 @@ export default function BlogPage({
                     }}
                     onMouseDown={startDragTransform("pageTitle", pageTitleDebug)}
                   >
-                    <h1>Blog</h1>
+                    <h1>{blogCopy.pageTitle}</h1>
                   </div>
                   <p className="blog-gallery-intro">
-                    A gallery for essays, articles, research, and Astrology Today journals.
+                    {blogCopy.intro}
                   </p>
                 </div>
 
@@ -799,7 +805,7 @@ export default function BlogPage({
                     className="blog-gallery-featured-card"
                   >
                     <div className="blog-gallery-featured-copy">
-                      <p className="blog-gallery-featured-label">Featured Blog</p>
+                      <p className="blog-gallery-featured-label">{blogCopy.featuredLabel}</p>
                       <h2>{featuredPost.title}</h2>
                       <p>{featuredPost.excerpt}</p>
                       <span>{featuredPost.publishedLabel} · {featuredPost.readTime}</span>
@@ -815,7 +821,7 @@ export default function BlogPage({
 
               <section className="blog-gallery-grid-section" aria-labelledby="blog-gallery-list">
                 <div className="blog-gallery-grid-header">
-                  <h2 id="blog-gallery-list">More Posts</h2>
+                  <h2 id="blog-gallery-list">{blogCopy.morePosts}</h2>
                 </div>
 
                 <div className="blog-gallery-grid">
@@ -840,7 +846,7 @@ export default function BlogPage({
                   ))}
                 </div>
 
-                <nav className="blog-gallery-pagination" aria-label="Blog gallery pages">
+                <nav className="blog-gallery-pagination" aria-label={blogCopy.paginationAriaLabel}>
                   <a href="#" className="is-active" aria-current="page">
                     1
                   </a>

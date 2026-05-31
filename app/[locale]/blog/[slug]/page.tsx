@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BlogPostPage from "../../../../components/pages/BlogPostPage";
-import { blogPosts, getBlogPostBySlug } from "../../../../lib/blog";
-import { isSupportedLocale, supportedLocales } from "../../../../lib/i18n";
+import { blogPosts } from "../../../../lib/blog";
+import { getLocalizedBlogPost } from "../../../../lib/blogPostContentCopy";
+import { isSupportedLocale, supportedLocales, type SupportedLocale } from "../../../../lib/i18n";
+import { buildArticleMetadata } from "../../../../lib/seo";
 
 export function generateStaticParams() {
   return supportedLocales.flatMap((locale) =>
@@ -15,8 +17,9 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
-  const post = getBlogPostBySlug(slug);
+  const { locale, slug } = await params;
+  const routeLocale = isSupportedLocale(locale) ? (locale as SupportedLocale) : undefined;
+  const post = routeLocale ? getLocalizedBlogPost(slug, routeLocale) : null;
 
   if (!post) {
     return {
@@ -24,10 +27,19 @@ export async function generateMetadata({
     };
   }
 
-  return {
+  return buildArticleMetadata({
     title: `${post.title} | Astrology Today`,
     description: post.excerpt,
-  };
+    pathname: `/blog/${slug}`,
+    locale: routeLocale,
+    images: [post.coverImage],
+    authors: ["Mario Sbardella"],
+    publishedTime: post.publishedTime,
+    modifiedTime: post.modifiedTime,
+    section: post.section,
+    tags: post.keywords,
+    keywords: post.keywords,
+  });
 }
 
 export default async function LocaleBlogPostPage({
@@ -37,7 +49,7 @@ export default async function LocaleBlogPostPage({
 }) {
   const { locale, slug } = await params;
 
-  if (!isSupportedLocale(locale) || !getBlogPostBySlug(slug)) {
+  if (!isSupportedLocale(locale) || !getLocalizedBlogPost(slug, locale)) {
     notFound();
   }
 

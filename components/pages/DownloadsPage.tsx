@@ -6,6 +6,7 @@ import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
+import { getDownloadsCopy } from "../../lib/downloadsCopy";
 import { SHOW_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
 
@@ -173,6 +174,7 @@ export default function DownloadsPage({
   locale?: SupportedLocale;
 }) {
   const copy = getHomeCopy(locale);
+  const downloadsCopy = getDownloadsCopy(locale);
   const [debuggerVisible, setDebuggerVisible] = useState(false);
   const [debugTarget, setDebugTarget] = useState<DownloadsDebugTarget>("card");
   const [debugState, setDebugState] = useState<DownloadsDebugState>(DEFAULT_DEBUG);
@@ -484,7 +486,7 @@ export default function DownloadsPage({
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads"), active: true },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog") },
   ];
@@ -605,7 +607,7 @@ export default function DownloadsPage({
                   transformOrigin: "top left",
                 }}
               >
-                <h1>DOWNLOADS</h1>
+                <h1>{downloadsCopy.title}</h1>
               </div>
 
               <div
@@ -652,7 +654,7 @@ export default function DownloadsPage({
                         }}
                       >
                         <div className="downloads-subscriber-lock-icon">🔒</div>
-                        <p className="downloads-subscriber-lock-kicker">Locked Library</p>
+                        <p className="downloads-subscriber-lock-kicker">{downloadsCopy.lockedLibrary}</p>
                       </div>
                       <h2>
                         <span
@@ -661,7 +663,7 @@ export default function DownloadsPage({
                             transform: `translate(${debugState.lockFor.x}px, ${debugState.lockFor.y}px) scale(${debugState.lockFor.scale})`,
                           }}
                         >
-                          For
+                          {downloadsCopy.subscribersOnly[0]}
                         </span>
                         <span
                           className="downloads-lock-line"
@@ -669,7 +671,7 @@ export default function DownloadsPage({
                             transform: `translate(${debugState.lockSubscribers.x}px, ${debugState.lockSubscribers.y}px) scale(${debugState.lockSubscribers.scale})`,
                           }}
                         >
-                          Subscribers
+                          {downloadsCopy.subscribersOnly[1]}
                         </span>
                         <span
                           className="downloads-lock-line"
@@ -677,7 +679,7 @@ export default function DownloadsPage({
                             transform: `translate(${debugState.lockOnly.x}px, ${debugState.lockOnly.y}px) scale(${debugState.lockOnly.scale})`,
                           }}
                         >
-                          Only
+                          {downloadsCopy.subscribersOnly[2]}
                         </span>
                       </h2>
                       <p
@@ -687,7 +689,7 @@ export default function DownloadsPage({
                           transformOrigin: "center top",
                         }}
                       >
-                        Download access will unlock here once subscriber access is connected.
+                        {downloadsCopy.lockedCopy}
                       </p>
                     </div>
                   </div>
@@ -723,7 +725,7 @@ export default function DownloadsPage({
                     />
                   </span>
                 </span>
-                <span className="home-lifespace-card-caption">DOWNLOAD LIFESPACE 1.0</span>
+                <span className="home-lifespace-card-caption">{downloadsCopy.lifespaceCta}</span>
               </a>
             </aside>
           </div>

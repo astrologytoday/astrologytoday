@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import UpgradeToAtPlusPage from "../../../components/pages/UpgradeToAtPlusPage";
-import { isSupportedLocale } from "../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../lib/i18n";
+import { getUpgradeToAtPlusCopy } from "../../../lib/upgradeToAtPlusCopy";
+import { buildPageMetadata } from "../../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Upgrade to AT+ | Astrology Today",
-  description: "Share what you want to see in AstrologyToday+.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const copy = getUpgradeToAtPlusCopy(locale);
+
+  return buildPageMetadata({
+    title: copy.metadataTitle,
+    description: copy.metadataDescription,
+    pathname: "/upgrade-to-at-plus",
+    locale,
+  });
+}
 
 export default async function LocaleUpgradeToAtPlusPage({
   params,

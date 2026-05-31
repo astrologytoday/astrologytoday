@@ -1,8 +1,26 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import LifespacePrivacyPolicyPage from "../../../components/pages/LifespacePrivacyPolicyPage";
-import { isSupportedLocale } from "../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../lib/i18n";
+import { getLifespacePrivacyPolicyCopy } from "../../../lib/lifespacePrivacyPolicyCopy";
+import { buildPageMetadata } from "../../../lib/seo";
 
-export { metadata } from "../../../components/pages/LifespacePrivacyPolicyPage";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const copy = getLifespacePrivacyPolicyCopy(locale);
+
+  return buildPageMetadata({
+    title: copy.metadataTitle,
+    description: copy.metadataDescription,
+    pathname: "/lifespace-privacy-policy",
+    locale,
+    images: ["/lifespace-app-icon.png"],
+  });
+}
 
 export default async function LocaleLifespacePrivacyPolicyPage({
   params,

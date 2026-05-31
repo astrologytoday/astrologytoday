@@ -7,18 +7,12 @@ import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { getHomeCopy } from "../../lib/copy";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+import { getPricingCopy, type PricingPlanCopy } from "../../lib/pricingCopy";
 
-type Plan = {
-  id: "client" | "specialist" | "master";
-  level: string;
-  title: string;
-  price: string;
-  description: string;
-  includes: string[];
-  note?: string;
-};
+type PlanId = "client" | "specialist" | "master";
+type Plan = PricingPlanCopy & { id: PlanId };
 
-const DIRECT_CHECKOUT_LINKS: Partial<Record<Plan["id"], string>> = {
+const DIRECT_CHECKOUT_LINKS: Partial<Record<PlanId, string>> = {
   specialist: "https://square.link/u/xf8FVWTH",
   master: "https://square.link/u/zq8NPY6J",
 };
@@ -28,71 +22,28 @@ const PRICING_CANVAS_WIDTH = 1760;
 const PRICING_CANVAS_OFFSET_X = 0;
 const PRICING_CANVAS_OFFSET_Y = 16;
 
-const plans: Plan[] = [
-  {
-    id: "client",
-    level: "Level 1",
-    title: "Client Subscription",
-    price: "$21.99/month",
-    description:
-      "For personal growth, therapeutic support, and self-help purposes.",
-    includes: [
-      "LIFESPACE Web App",
-      "Monthly or bi-weekly counselling",
-      "Personalized Astrological Report (1)",
-      "Access to the Client Portal",
-    ],
-  },
-  {
-    id: "specialist",
-    level: "Level 2",
-    title: "Specialist Subscription",
-    price: "$39.99/month",
-    description:
-      "For astrologers and therapists using LIFESPACE with clients. This plan gives clients access to the LIFESPACE App while allowing the specialist to review client wellness analytics for the client side for pattern identification.",
-    includes: [
-      "LIFESPACE Web App",
-      "LIFESPACE for Therapists",
-      "Access to the Therapist Portal",
-      "Easy and secure client payments",
-    ],
-    note: "*For Psychologists, Psychiatrists, or Therapists",
-  },
-  {
-    id: "master",
-    level: "Level 3",
-    title: "Master Subscription",
-    price: "$59.99/month",
-    description:
-      "For advanced professionals and researchers who want full access to AstrologyToday’s therapeutic, astrological, and analytical tools.",
-    includes: [
-      "LIFESPACE Web App",
-      "LIFESPACE for Therapists",
-      "Astrology Weather+",
-      "Relationship Calculator",
-      "Access to the Therapist Portal",
-      "Easy and secure client payments",
-      "24/7 IT and customer support",
-    ],
-    note: "*For Astrologers or Researchers",
-  },
-];
-
 export default function PricingPage({
   locale = defaultLocale,
 }: {
   locale?: SupportedLocale;
 }) {
   const copy = getHomeCopy(locale);
+  const pricingCopy = getPricingCopy(locale);
   const router = useRouter();
-  const [selectedPlan, setSelectedPlan] = useState<Plan["id"]>("client");
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>("client");
+
+  const plans: Plan[] = [
+    { id: "client", ...pricingCopy.plans.client },
+    { id: "specialist", ...pricingCopy.plans.specialist },
+    { id: "master", ...pricingCopy.plans.master },
+  ];
 
   const sidebarLinks = [
     { label: copy.nav.home, href: withLocale(locale, "/") },
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing"), active: true },
     { label: copy.nav.blog, href: withLocale(locale, "/blog") },
   ];
@@ -142,18 +93,16 @@ export default function PricingPage({
               />
 
               <header className="pricing-hero">
-                <p className="pricing-kicker">Memberships</p>
-                <h1>Choose a plan</h1>
+                <p className="pricing-kicker">{pricingCopy.kicker}</p>
+                <h1>{pricingCopy.heroTitle}</h1>
                 <p className="pricing-subtitle">
-                  AstrologyToday memberships are an alternative to traditional psychotherapy
-                  ranging from self-help to 1-on-1 counselling with trained astrologers and
-                  spiritually informed therapists.
+                  {pricingCopy.heroSubtitle}
                 </p>
               </header>
 
               <section className="pricing-selector" aria-labelledby="pricing-selector-title">
                 <h2 id="pricing-selector-title" className="pricing-selector-title">
-                  Subscription Selector
+                  {pricingCopy.selectorTitle}
                 </h2>
                 <div className="pricing-plan-grid" role="radiogroup" aria-label="Subscription plans">
                   {plans.map((plan) => {
@@ -183,7 +132,7 @@ export default function PricingPage({
 
                           <div className="pricing-plan-divider" />
 
-                          <p className="pricing-plan-includes-title">Includes</p>
+                          <p className="pricing-plan-includes-title">{pricingCopy.includesTitle}</p>
                           <ul className="pricing-plan-includes">
                             {plan.includes.map((item) => (
                               <li key={item}>{item}</li>
@@ -198,11 +147,7 @@ export default function PricingPage({
                 </div>
 
                 <div className="pricing-legal">
-                  Memberships are billed monthly and may be cancelled at any time. AstrologyToday
-                  services are intended for personal growth, education, spiritual insight, and
-                  therapeutic support. AstrologyToday does not replace emergency medical care, crisis
-                  support, or legally required healthcare services. Some professional plans may
-                  require approval before full access activation.
+                  {pricingCopy.legal}
                 </div>
 
                 <div className="pricing-next-wrap">
@@ -221,7 +166,7 @@ export default function PricingPage({
                       }
                     }}
                   >
-                    Next
+                    {pricingCopy.next}
                   </button>
                 </div>
               </section>

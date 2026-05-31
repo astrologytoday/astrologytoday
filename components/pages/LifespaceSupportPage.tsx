@@ -4,43 +4,39 @@ import Link from "next/link";
 import { type FormEvent, useState } from "react";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
+import { getLifespaceSupportCopy, type SupportTypeId } from "../../lib/lifespaceSupportCopy";
 
 const LEGAL_CANVAS_SCALE = 0.71;
 const LEGAL_CANVAS_WIDTH = 1760;
 const LEGAL_CANVAS_OFFSET_X = 0;
 const LEGAL_CANVAS_OFFSET_Y = 16;
 
-const SUPPORT_TYPES = [
-  "Bug Report",
-  "Account Help",
-  "Billing Question",
-  "Feature Request",
-  "General Support",
-] as const;
+const SUPPORT_TYPE_ORDER: SupportTypeId[] = ["bug", "account", "billing", "feature", "general"];
 
 export default function LifespaceSupportPage({
   locale = defaultLocale,
 }: {
   locale?: SupportedLocale;
 }) {
+  const copy = getLifespaceSupportCopy(locale);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [supportType, setSupportType] = useState<(typeof SUPPORT_TYPES)[number]>("General Support");
+  const [supportType, setSupportType] = useState<SupportTypeId>("general");
   const [message, setMessage] = useState("");
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const subject = `LIFESPACE Support Form - ${supportType}`;
+    const subject = `${copy.subjectPrefix} - ${copy.supportTypeOptions[supportType]}`;
     const body = [
-      "LIFESPACE Support Form submission",
+      copy.bodyHeader,
       "",
-      `Name: ${name || "Not provided"}`,
-      `Email: ${email || "Not provided"}`,
-      `Support Type: ${supportType}`,
+      `${copy.bodyLabels.name}: ${name || copy.bodyLabels.notProvided}`,
+      `${copy.bodyLabels.email}: ${email || copy.bodyLabels.notProvided}`,
+      `${copy.bodyLabels.supportType}: ${copy.supportTypeOptions[supportType]}`,
       "",
-      "Message:",
-      message || "No message provided.",
+      `${copy.bodyLabels.message}:`,
+      message || copy.bodyLabels.noMessage,
     ].join("\n");
 
     window.location.href = `mailto:mariosbardella@protonmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -62,58 +58,53 @@ export default function LifespaceSupportPage({
         <section className="site-rules-shell">
           <section className="site-rules-document at-plus-form-card">
             <div className="site-rules-intro">
-              <h2 className="site-rules-legal-heading">LIFESPACE Support Form</h2>
-              <p>
-                Use this form if you ran into a problem with the app, have a billing or account
-                question, or just need help with something related to LIFESPACE.
-              </p>
-              <p>
-                When you submit, your default email app will open a ready-to-send support message
-                addressed to Mario.
-              </p>
+              <h2 className="site-rules-legal-heading">{copy.heading}</h2>
+              {copy.intro.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
             </div>
 
             <form className="at-plus-form" onSubmit={handleSubmit}>
               <label className="at-plus-field">
-                <span>Name</span>
+                <span>{copy.nameLabel}</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Your name"
+                  placeholder={copy.namePlaceholder}
                 />
               </label>
 
               <label className="at-plus-field">
-                <span>Email</span>
+                <span>{copy.emailLabel}</span>
                 <input
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="Your email"
+                  placeholder={copy.emailPlaceholder}
                 />
               </label>
 
               <label className="at-plus-field">
-                <span>What do you need help with?</span>
+                <span>{copy.supportTypeLabel}</span>
                 <select
                   value={supportType}
-                  onChange={(event) => setSupportType(event.target.value as (typeof SUPPORT_TYPES)[number])}
+                  onChange={(event) => setSupportType(event.target.value as SupportTypeId)}
                 >
-                  {SUPPORT_TYPES.map((option) => (
+                  {SUPPORT_TYPE_ORDER.map((option) => (
                     <option key={option} value={option}>
-                      {option}
+                      {copy.supportTypeOptions[option]}
                     </option>
                   ))}
                 </select>
               </label>
 
               <label className="at-plus-field">
-                <span>Describe the issue or question</span>
+                <span>{copy.messageLabel}</span>
                 <textarea
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Tell us what happened, what you were trying to do, and anything else that would help us support you."
+                  placeholder={copy.messagePlaceholder}
                   rows={9}
                   required
                 />
@@ -121,10 +112,10 @@ export default function LifespaceSupportPage({
 
               <div className="at-plus-actions">
                 <button type="submit" className="at-plus-submit">
-                  Send Support Email
+                  {copy.submitLabel}
                 </button>
-                <Link href={withLocale(locale, "/lifespace")} className="site-rules-home-link">
-                  Return to LIFESPACE
+                <Link href="/lifespace" className="site-rules-home-link">
+                  {copy.returnLabel}
                 </Link>
               </div>
             </form>

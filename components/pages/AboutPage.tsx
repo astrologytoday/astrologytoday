@@ -6,6 +6,7 @@ import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
+import { getAboutCopy } from "../../lib/aboutCopy";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
 import { defaultLocale, type SupportedLocale, withLocale } from "../../lib/i18n";
@@ -103,27 +104,6 @@ const ABOUT_DEFAULT_DEBUG: AboutDebugState = {
   },
 };
 
-const aboutBullets = [
-  "Major strengths and weaknesses",
-  "Emotional patterns",
-  "Career insights",
-  "Parenting guidance",
-  "Love and sex style",
-];
-
-const aboutParagraphs = [
-  "Astrology has been used for thousands of years as part of healing traditions to help people make sense of their bodies, their minds, and the deeper patterns of their lives. Astroanalysis is not a fortune-telling technique or a fixed lens of fate.",
-  "An astrological consultation is a dialogue between two people in which fundamental truths are uncovered about a person’s life, allowing them to move forward with greater clarity, direction, and self-understanding.",
-  "As human beings, we each contain a unique set of energies. Learning more about those energies can help us better shape how we manifest them in the physical world to achieve our hopes and desires. Astrological therapy can help you identify what those energies are, how they affect you, and how they are currently playing a role in your career and relationships.",
-  "The astrologers of Astrology Today are committed to the study of astrology, with a comprehensive understanding of each of the twelve signs, their planetary placements, their powers, and how they interact. Personal character must also be taken into account when making a summary analysis.",
-  "Every astroanalysis begins with the Sun Sign, which represents the basic character. Normally, this is all that is given. The lost art of astroanalysis lies in being able to synthesize the results of each of the twelve signs as they are positioned among the planets, while also incorporating house placements.",
-  "Put another way, it is obvious that if you know your basic character traits and potentialities, you will be in a much better position to **assert your talents, correct your shortcomings, exploit your natural possibilities, and bring greater harmony into your relationships with others,** in short, to live a richer and more meaningful life.",
-  "Frequently, when doing astroanalysis, you will notice that an individual’s character clashes with his or her personality. This can help you understand aggressive and contradictory behavior patterns that would otherwise be baffling. With this new insight, you will be able to **improve relationships between partners, co-workers, or friends,** generally reducing friction between those you live with or work around.",
-  "Perhaps most importantly, **children can be encouraged along positive lines** by their parents and guided toward a future that provides full scope for their natural abilities and aptitudes. Sometimes a parent will have very harmonious astrology with two or more of their children, while another child becomes the black sheep of the family. However, this may be due to astrological differences rather than character flaws or behavioral issues.",
-  "**Severe mental health challenges may also be better understood and prevented from worsening by understanding astrological influences.**",
-  "It may help the skeptic to know that modern astrology does not suggest that the planets themselves rule our destinies. The planets are dynamic parts of the electromagnetic field in which we exist. Their constantly changing angular positions to the Earth and to each other are understood astrologically to correlate with distinct changes in human and cosmic affairs.",
-];
-
 function renderHighlightedText(
   text: string,
   keyPrefix: string,
@@ -156,6 +136,7 @@ export default function AboutPage({
   locale?: SupportedLocale;
 }) {
   const copy = getHomeCopy(locale);
+  const aboutCopy = getAboutCopy(locale);
   const [debuggerVisible, setDebuggerVisible] = useState(false);
   const [debugTarget, setDebugTarget] = useState<AboutDebugTarget>("pageLogo");
   const [debugState, setDebugState] = useState<AboutDebugState>(ABOUT_DEFAULT_DEBUG);
@@ -537,7 +518,7 @@ export default function AboutPage({
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about"), active: true },
-    { label: copy.nav.lifespace, href: withLocale(locale, "/lifespace") },
+    { label: copy.nav.lifespace, href: "/lifespace" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog") },
   ];
@@ -703,7 +684,7 @@ export default function AboutPage({
                         transformOrigin: "left top",
                       }}
                     >
-                      What Is Astroanalysis?
+                      {aboutCopy.heroTitle}
                     </h1>
                   </div>
                 </header>
@@ -720,7 +701,7 @@ export default function AboutPage({
                       } as CSSProperties
                     }
                   >
-                    {aboutParagraphs.slice(0, 2).map((paragraph, index) => (
+                    {aboutCopy.intro.map((paragraph, index) => (
                       <p key={`intro-${index}`}>
                         {renderHighlightedText(paragraph, `intro-${index}`, {
                           glowAmount: debugState.glowText.amount,
@@ -730,10 +711,10 @@ export default function AboutPage({
                     ))}
 
                     <div className="about-benefits-section">
-                      <p className="about-benefits-lead">Some of these insights include:</p>
+                      <p className="about-benefits-lead">{aboutCopy.benefitsLead}</p>
                       <div className="about-benefits-card">
                         <div className="about-benefits-grid">
-                          {aboutBullets.map((item) => (
+                          {aboutCopy.benefits.map((item) => (
                             <div key={item} className="about-benefit-item">
                               {item}
                             </div>
@@ -742,7 +723,7 @@ export default function AboutPage({
                       </div>
                     </div>
 
-                    {aboutParagraphs.slice(2).map((paragraph, index) => (
+                    {aboutCopy.body.map((paragraph, index) => (
                       <p key={`body-${index}`}>
                         {renderHighlightedText(paragraph, `body-${index}`, {
                           glowAmount: debugState.glowText.amount,
@@ -761,7 +742,7 @@ export default function AboutPage({
                         transformOrigin: "center center",
                       }}
                     >
-                      Get Your Astroanalysis
+                      {aboutCopy.cta}
                     </Link>
                   </div>
                 </section>

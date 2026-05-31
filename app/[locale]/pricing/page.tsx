@@ -1,13 +1,25 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PricingPage from "../../../components/pages/PricingPage";
-import { isSupportedLocale } from "../../../lib/i18n";
+import { isSupportedLocale, type SupportedLocale } from "../../../lib/i18n";
+import { getPricingCopy } from "../../../lib/pricingCopy";
+import { buildPageMetadata } from "../../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Pricing | Astrology Today",
-  description:
-    "Choose an Astrology Today membership plan for self-help, counselling, or professional tools.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: SupportedLocale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const pricingCopy = getPricingCopy(locale);
+
+  return buildPageMetadata({
+    title: pricingCopy.metaTitle,
+    description: pricingCopy.metaDescription,
+    pathname: "/pricing",
+    locale,
+  });
+}
 
 export default async function LocalePricingPage({
   params,
