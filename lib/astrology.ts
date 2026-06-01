@@ -89,3 +89,17 @@ export type AstrologyLocationOption = {
   longitude: number;
   timezone: string;
 };
+
+export type AstrologyPlanetaryClockPlanetKey =
+  | "sun"
+  | "moon"
+  | "mercury"
+  | "venus"
+  | "mars"
+  | "jupiter"
+  | "saturn";
+
+export type AstrologyPlanetaryClockPlacementsResponse = {
+  at: string;
+  placements: Record<AstrologyPlanetaryClockPlanetKey, AstrologyPlacement>;
+};

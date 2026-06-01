@@ -10,8 +10,6 @@ export default function RootDocument({
   lang: string;
   children: ReactNode;
 }) {
-  const adsenseClient = "ca-pub-1548886446795369";
-  const adsenseSrc = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}`;
   const localeBootstrap = `
     (function () {
       var supportedLocales = ${JSON.stringify(supportedLocales)};
@@ -55,9 +53,7 @@ export default function RootDocument({
 
   return (
     <html lang={lang} suppressHydrationWarning>
-      <head>
-        <script async src={adsenseSrc} crossOrigin="anonymous" />
-      </head>
+      <head />
       <body>
         <Script id="locale-preference-boot" strategy="beforeInteractive">
           {localeBootstrap}

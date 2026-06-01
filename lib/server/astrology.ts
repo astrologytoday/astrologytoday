@@ -9,6 +9,7 @@ import type {
   AstrologyCalculateResponse,
   AstrologyHousePlanetKey,
   AstrologyLocationOption,
+  AstrologyPlanetaryClockPlacementsResponse,
   AstrologyPlacement,
   AstrologySignName,
 } from "../astrology";
@@ -31,6 +32,16 @@ const PLANET_IDS = {
   neptune: swisseph.SE_NEPTUNE,
   pluto: swisseph.SE_PLUTO,
 } as const;
+
+const PLANETARY_CLOCK_PLANET_KEYS = [
+  "saturn",
+  "jupiter",
+  "mars",
+  "sun",
+  "venus",
+  "mercury",
+  "moon",
+] as const;
 
 const HOUSE_PLANET_KEYS: AstrologyHousePlanetKey[] = [
   "sun",
@@ -62,6 +73,12 @@ const SIGN_NAMES: AstrologySignName[] = [
 ];
 
 type RawLocationSearchResult = {
+  display_name?: string;
+  lat?: string;
+  lon?: string;
+};
+
+type RawReverseLocationResult = {
   display_name?: string;
   lat?: string;
   lon?: string;
@@ -153,6 +170,24 @@ function getJulianDayUT(date: string, time: string, timezone: string) {
   };
 }
 
+function getJulianDayUTFromUtcDate(date: Date) {
+  const julian = swisseph.swe_utc_to_jd(
+    date.getUTCFullYear(),
+    date.getUTCMonth() + 1,
+    date.getUTCDate(),
+    date.getUTCHours(),
+    date.getUTCMinutes(),
+    date.getUTCSeconds(),
+    swisseph.SE_GREG_CAL
+  );
+
+  if ("error" in julian) {
+    throw new Error(julian.error || "Swiss Ephemeris could not convert that time.");
+  }
+
+  return julian.julianDayUT;
+}
+
 function getMoonPlacementForUnknownBirthTime(date: string, timezone: string) {
   const startOfDay = getJulianDayUT(date, "00:00", timezone);
   const endOfDay = getJulianDayUT(date, "23:59", timezone);
@@ -224,6 +259,57 @@ export async function searchAstrologyLocations(query: string, limit = 5): Promis
       } satisfies AstrologyLocationOption;
     })
     .filter((item): item is AstrologyLocationOption => Boolean(item));
+}
+
+export async function reverseAstrologyLocation(latitude: number, longitude: number): Promise<AstrologyLocationOption> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    throw new Error("Invalid coordinates.");
+  }
+
+  const params = new URLSearchParams({
+    lat: String(latitude),
+    lon: String(longitude),
+    format: "jsonv2",
+    zoom: "10",
+    addressdetails: "1",
+  });
+
+  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+    headers: {
+      Accept: "application/json",
+      "Accept-Language": "en",
+      "User-Agent": "AstrologyToday/1.0 (contact@astrologytoday.ca)",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Reverse location lookup failed.");
+  }
+
+  const item = (await response.json()) as RawReverseLocationResult;
+  const resolvedLatitude = Number(item.lat ?? latitude);
+  const resolvedLongitude = Number(item.lon ?? longitude);
+  const label = item.display_name?.trim();
+
+  let timezone = "";
+  try {
+    timezone = tzLookup(latitude, longitude);
+  } catch {
+    timezone = "";
+  }
+
+  if (!label || Number.isNaN(resolvedLatitude) || Number.isNaN(resolvedLongitude) || !timezone) {
+    throw new Error("We couldn't resolve that current location.");
+  }
+
+  return {
+    label,
+    location: label,
+    latitude: resolvedLatitude,
+    longitude: resolvedLongitude,
+    timezone,
+  };
 }
 
 export async function calculateAstrologyPlacements(
@@ -328,5 +414,22 @@ export async function calculateAstrologyPlacements(
     },
     placements,
     houses: null,
+  };
+}
+
+export function calculatePlanetaryClockPlacements(atIso?: string): AstrologyPlanetaryClockPlacementsResponse {
+  const date = atIso ? new Date(atIso) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    throw new Error("Invalid planetary clock time.");
+  }
+
+  const julianDayUT = getJulianDayUTFromUtcDate(date);
+  const placements = Object.fromEntries(
+    PLANETARY_CLOCK_PLANET_KEYS.map((planetKey) => [planetKey, getPlanetPlacement(PLANET_IDS[planetKey], julianDayUT)])
+  ) as AstrologyPlanetaryClockPlacementsResponse["placements"];
+
+  return {
+    at: date.toISOString(),
+    placements,
   };
 }

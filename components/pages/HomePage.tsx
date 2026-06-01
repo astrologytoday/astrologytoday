@@ -19,7 +19,6 @@ import {
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
 import { upsertMailingListSignup } from "../../lib/firebase/lifespace";
-import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 
 type NavLink = {
@@ -1679,45 +1678,6 @@ export default function HomePage({
               ))}
             </nav>
 
-            <div
-              className={`home-ad-example-wrap${glowState.adExample > 0 ? " home-glow-animated" : ""}`}
-              style={{
-                transform: `translate(calc(-50% + ${adExampleDebug.x}px), ${adExampleDebug.y}px) scale(${adExampleDebug.scale})`,
-                transformOrigin: "top center",
-                filter: edgeDropGlow(glowState.adExample, "236, 248, 245", 1),
-              }}
-              onMouseDown={
-                SHOW_AD_DEBUGGERS
-                  ? (event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      setAdDragging({
-                        startX: event.clientX,
-                        startY: event.clientY,
-                        initialX: adExampleDebug.x,
-                        initialY: adExampleDebug.y,
-                      });
-                    }
-                  : undefined
-              }
-            >
-              <div
-                className="home-ad-example-card"
-                style={{
-                  width: `${adExampleWidth}px`,
-                  minHeight: `${adExampleHeight}px`,
-                }}
-              >
-                <GoogleAdSenseUnit
-                  adSlot="4962871033"
-                  className="home-ad-example-unit"
-                  style={{
-                    display: "block",
-                    minHeight: `${Math.max(180, adExampleHeight - 20)}px`,
-                  }}
-                />
-              </div>
-            </div>
           </div>
         </aside>
 

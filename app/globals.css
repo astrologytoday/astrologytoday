@@ -6757,6 +6757,19 @@ body {
   color: #5f4215;
 }
 
+.page-jump-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  display: block;
+}
+
+.page-jump-icon-svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
 .report-header {
   border-radius: 28px;
   padding: 28px 30px;
@@ -8843,6 +8856,10 @@ select {
   gap: 10px;
 }
 
+.summary-table {
+  margin-top: 0.8rem;
+}
+
 .summary-title-symbol {
   font-size: 1.05em;
   color: var(--accent);
@@ -8931,6 +8948,9 @@ select {
 
 .roots-card-heading-copy {
   text-align: center;
+  display: grid;
+  justify-items: center;
+  width: 100%;
 }
 
 .roots-card-intro,
@@ -9066,12 +9086,12 @@ select {
   grid-template-rows: auto auto auto;
   gap: 0.68rem;
   height: auto;
-  padding: 17px 18px 10px;
+  padding: 17px 18px 12px;
 }
 
 .clock-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: nowrap;
@@ -9263,9 +9283,10 @@ select {
   align-items: center;
   gap: 0.75rem;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: visible;
+  flex-wrap: nowrap;
   padding-bottom: 0.1rem;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
 }
 
 .houses-slot {
@@ -9293,11 +9314,13 @@ select {
   line-height: 1.25;
   white-space: nowrap;
   flex: 0 0 auto;
+  max-width: 100%;
 }
 
 .house-note-wrap {
   flex: 0 0 auto;
   padding-top: 0;
+  align-self: center;
 }
 
 .house-note-wrap .sticky-note-tab {
@@ -9371,6 +9394,41 @@ select {
   flex: 0 0 auto;
 }
 
+.clock-controls-location {
+  width: min(100%, 520px);
+  align-items: end;
+  gap: 0.85rem;
+}
+
+.clock-location-control {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.clock-location-search input {
+  min-height: 36px;
+}
+
+.clock-geolocate-button {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(98, 84, 66, 0.16);
+  background: rgba(255, 251, 245, 0.92);
+  color: var(--ink);
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.clock-geolocate-button:hover,
+.clock-geolocate-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(44, 31, 10, 0.08);
+  border-color: rgba(140, 103, 48, 0.26);
+}
+
 .clock-control {
   display: grid;
   gap: 0.25rem;
@@ -9429,6 +9487,42 @@ select {
   white-space: nowrap;
 }
 
+.clock-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
+}
+
+.clock-meta-card {
+  min-height: 64px;
+  display: grid;
+  gap: 0.2rem;
+  align-content: center;
+  padding: 0.72rem 0.85rem;
+  border-radius: 16px;
+  border: 1px solid rgba(98, 84, 66, 0.08);
+  background: rgba(255, 251, 245, 0.72);
+}
+
+.clock-meta-card span {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+}
+
+.clock-meta-card strong {
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.clock-manual-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 .clock-table {
   display: grid;
   border-radius: 18px;
@@ -9438,31 +9532,34 @@ select {
   background: rgba(255, 252, 246, 0.82);
 }
 
-.clock-table-split {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.clock-column {
-  display: grid;
-}
-
-.clock-column + .clock-column {
-  border-left: 1px solid rgba(98, 84, 66, 0.08);
+.clock-empty-state {
+  padding: 1rem 1.1rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .clock-row {
   display: grid;
-  grid-template-columns: 176px 46px minmax(0, 1fr);
+  grid-template-columns: 138px 20px 138px 78px minmax(0, 1fr);
   align-items: center;
   min-height: 40px;
   background: transparent;
 }
 
-.clock-column .clock-row:nth-child(even) {
+.clock-row.is-current {
+  background: rgba(239, 228, 189, 0.56);
+}
+
+.clock-row:nth-child(even) {
   background: rgba(252, 247, 239, 0.82);
 }
 
-.clock-column .clock-row + .clock-row {
+.clock-row.is-current:nth-child(even) {
+  background: rgba(239, 228, 189, 0.74);
+}
+
+.clock-row + .clock-row {
   border-top: 1px solid rgba(98, 84, 66, 0.08);
 }
 
@@ -9479,12 +9576,23 @@ select {
   font-size: 0.88rem;
 }
 
+.clock-time-separator {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-weight: 700;
+  padding: 0;
+  text-align: center;
+  transform: translateX(-5px);
+}
+
 .clock-planet {
   display: grid;
   place-items: center;
   min-height: 40px;
   font-size: 0.9rem;
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .clock-word {
@@ -9508,6 +9616,14 @@ select {
   color: var(--ink);
   font-size: 1rem;
   cursor: pointer;
+}
+
+.clock-mode-button-text {
+  width: auto;
+  min-width: 78px;
+  padding: 0 1rem;
+  font-size: 0.86rem;
+  font-weight: 700;
 }
 
 .clock-mode-button.is-active {
@@ -10045,21 +10161,30 @@ select {
     justify-content: stretch;
   }
 
+  .clock-controls-location {
+    width: 100%;
+  }
+
   .clock-header {
     display: grid;
   }
 
-  .clock-table-split {
+  .clock-meta-grid {
     grid-template-columns: 1fr;
-  }
-
-  .clock-column + .clock-column {
-    border-left: 0;
-    border-top: 1px solid rgba(98, 84, 66, 0.08);
   }
 
   .clock-row {
     grid-template-columns: 1fr;
+  }
+
+  .clock-time,
+  .clock-word {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
+  .clock-time-separator {
+    padding: 0.2rem 0;
   }
 
   .clock-planet {

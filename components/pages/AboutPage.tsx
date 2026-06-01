@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
-import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import { getAboutCopy } from "../../lib/aboutCopy";
 import { getHomeCopy } from "../../lib/copy";
 import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
@@ -610,45 +609,6 @@ export default function AboutPage({
                   </Link>
                 ))}
               </nav>
-              <div className="about-sidebar-ads">
-                <div
-                  className="about-sidebar-ad-wrap"
-                  style={{
-                    transform: `translate(calc(-50% + ${adDebug.x}px), ${adDebug.y}px)`,
-                  }}
-                  onMouseDown={
-                    SHOW_AD_DEBUGGERS
-                      ? (event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setAdDragging({
-                            startX: event.clientX,
-                            startY: event.clientY,
-                            initialX: adDebug.x,
-                            initialY: adDebug.y,
-                          });
-                        }
-                      : undefined
-                  }
-                >
-                  <div
-                    className="about-sidebar-ad-card"
-                    style={{
-                      width: `${adDebug.width}px`,
-                      minHeight: `${adDebug.height}px`,
-                    }}
-                  >
-                    <GoogleAdSenseUnit
-                      adSlot="8974268239"
-                      className="about-sidebar-ad-unit"
-                      style={{
-                        display: "block",
-                        minHeight: `${Math.max(180, adDebug.height - 20)}px`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
             </aside>
 
             <div className="about-main">

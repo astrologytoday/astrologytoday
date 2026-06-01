@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { formatInTimeZone } from "date-fns-tz";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as SunCalc from "suncalc";
 import type {
   AstrologyCalculateResponse,
   AstrologyHousePlanetKey,
   AstrologyLocationOption,
+  AstrologyPlanetaryClockPlacementsResponse,
   AstrologySignName,
 } from "../../lib/astrology";
 import {
@@ -74,6 +77,12 @@ type DistributionRow = {
   combined: number;
 };
 
+type HousesSnapshot = {
+  assignments: HouseAssignment[];
+  scopeNotes: ModalNotesMap;
+  expandedNotes: Record<string, boolean>;
+};
+
 type QualifierRow = {
   label: string;
   a: string;
@@ -93,6 +102,7 @@ type RootPowerMatch = RootPowerDefinition & {
 type DayOfWeek = "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
 type ClockMode = "day" | "night";
 type Meridiem = "AM" | "PM";
+type ClockOverrideMode = "auto" | "manual";
 type HousePlanet = "☉" | "☽" | "⥉" | "☿" | "♀" | "♂" | "♃" | "♄" | "♅" | "♆" | "♇";
 type HousePlacement = {
   sign: Sign | "";
@@ -157,6 +167,41 @@ type BirthDetails = {
   longitude: number | null;
   timezone: string;
 };
+
+type ClockLocation = {
+  label: string;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string;
+};
+
+type ClockLocationStatus = {
+  kind: "idle" | "loading" | "success" | "error";
+  message: string;
+};
+
+type PlanetaryHourRow = {
+  id: string;
+  startTime: string;
+  endTime: string;
+  planet: Planet;
+  label: string;
+  phase: ClockMode;
+  isCurrent: boolean;
+};
+
+type PlanetaryHourSnapshot = {
+  weekday: DayOfWeek;
+  localDateLabel: string;
+  localTimeLabel: string;
+  sunriseLabel: string;
+  sunsetLabel: string;
+  currentHourLabel: string;
+  rows: PlanetaryHourRow[];
+};
+
+type ClockPlanetPlacementMap = Partial<Record<Planet, Sign>>;
 
 type SavedChartRecord = {
   id: string;
@@ -272,6 +317,19 @@ const ASTROLOGY_SIGN_TO_SYMBOL: Record<AstrologySignName, Sign> = {
   Capricorn: "♑︎",
   Aquarius: "♒︎",
   Pisces: "♓︎",
+};
+
+const PLANETARY_CLOCK_RESPONSE_TO_SYMBOL: Record<
+  keyof AstrologyPlanetaryClockPlacementsResponse["placements"],
+  Planet
+> = {
+  sun: "☉",
+  moon: "☽",
+  mercury: "☿",
+  venus: "♀",
+  mars: "♂",
+  jupiter: "♃",
+  saturn: "♄",
 };
 
 const PLANET_PROFILES: Record<Planet, PlanetProfile> = {
@@ -731,7 +789,8 @@ const PAGE_NAV_ITEMS = [
   { href: "#comparison-grid", symbol: "▤", label: "Comparison Grid" },
   { href: "#summaries", symbol: "☯", label: "Elements And Gender" },
   { href: "#roots-of-element", symbol: "◉", label: "Roots Of The Element" },
-  { href: "#houses", symbol: "⌂", label: "Houses" },
+  { href: "#houses", icon: "house", label: "Houses" },
+  { href: "https://www.astrologytoday.ca/", imageSrc: "/astrologytoday-emblem.png", label: "Astrology Today Home" },
 ] as const;
 
 function getSavedChartsStorageKey(usernameLower?: string | null) {
@@ -3360,6 +3419,85 @@ function formatClockTime(totalMinutes: number) {
   return `${hour12}:${String(minute).padStart(2, "0")} ${meridiem}`;
 }
 
+function formatAbsoluteClockTime(date: Date, timezone: string) {
+  return formatInTimeZone(date, timezone, "h:mm a")
+    .replace("AM", "A.M.")
+    .replace("PM", "P.M.");
+}
+
+function getLocalDateKey(date: Date, timezone: string) {
+  return formatInTimeZone(date, timezone, "yyyy-MM-dd");
+}
+
+function getNoonUtcForLocalDate(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+function shiftDateKey(dateKey: string, dayOffset: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const next = new Date(Date.UTC(year, month - 1, day + dayOffset, 12, 0, 0));
+  return formatInTimeZone(next, "UTC", "yyyy-MM-dd");
+}
+
+function getWeekdayForTimezone(date: Date, timezone: string): DayOfWeek {
+  const weekday = formatInTimeZone(date, timezone, "EEEE");
+  return DAYS_OF_WEEK.includes(weekday as DayOfWeek) ? (weekday as DayOfWeek) : "Sunday";
+}
+
+function getSolarTimesForDateKey(dateKey: string, latitude: number, longitude: number) {
+  const anchor = getNoonUtcForLocalDate(dateKey);
+  return SunCalc.getTimes(anchor, latitude, longitude);
+}
+
+function isValidDate(value: Date) {
+  return !Number.isNaN(value.getTime());
+}
+
+function buildTimedPlanetaryHourRows({
+  start,
+  end,
+  rowCount,
+  startIndex,
+  phase,
+  timezone,
+  now,
+}: {
+  start: Date;
+  end: Date;
+  rowCount: number;
+  startIndex: number;
+  phase: ClockMode;
+  timezone: string;
+  now: Date;
+}) {
+  const span = end.getTime() - start.getTime();
+  if (!isValidDate(start) || !isValidDate(end) || span <= 0) {
+    throw new Error("Sunrise calculation failed.");
+  }
+
+  const segment = span / rowCount;
+
+  return Array.from({ length: rowCount }, (_, index) => {
+    const rowStart = new Date(start.getTime() + segment * index);
+    const rowEnd = new Date(start.getTime() + segment * (index + 1));
+    const planet = PLANETARY_HOUR_ORDER[(startIndex + index) % PLANETARY_HOUR_ORDER.length];
+    const isCurrent =
+      now.getTime() >= rowStart.getTime() &&
+      (index === rowCount - 1 ? now.getTime() <= rowEnd.getTime() : now.getTime() < rowEnd.getTime());
+
+    return {
+      id: `${phase}-${rowStart.toISOString()}`,
+      startTime: formatAbsoluteClockTime(rowStart, timezone),
+      endTime: formatAbsoluteClockTime(rowEnd, timezone),
+      planet,
+      label: PLANETARY_HOUR_WORDS[planet],
+      phase,
+      isCurrent,
+    } satisfies PlanetaryHourRow;
+  });
+}
+
 function buildPlanetaryHourSequence(day: DayOfWeek, mode: ClockMode) {
   const dayRuler = DAY_RULERS[day];
   const startIndex = PLANETARY_HOUR_ORDER.indexOf(dayRuler);
@@ -3376,6 +3514,33 @@ function buildPlanetaryHourSequence(day: DayOfWeek, mode: ClockMode) {
 
 function buildHouseNoteKey(scope: string, houseIndex: number) {
   return `house-note-${scope}-${houseIndex}`;
+}
+
+function HouseSidebarIcon() {
+  return (
+    <svg
+      className="page-jump-icon-svg"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M4.75 10.25 12 4.75l7.25 5.5v8a1 1 0 0 1-1 1H5.75a1 1 0 0 1-1-1z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.75 19.25v-5a1 1 0 0 1 1-1h2.5a1 1 0 0 1 1 1v5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 function formatSavedTimestamp(value: string) {
@@ -3433,6 +3598,28 @@ function createDefaultBirthDetails(): BirthDetails {
     latitude: null,
     longitude: null,
     timezone: "",
+  };
+}
+
+function createDefaultClockLocation(): ClockLocation {
+  return {
+    label: "",
+    location: "",
+    latitude: null,
+    longitude: null,
+    timezone: "",
+  };
+}
+
+function normalizeClockLocation(value: unknown): ClockLocation {
+  if (!value || typeof value !== "object") return createDefaultClockLocation();
+  const source = value as Partial<ClockLocation>;
+  return {
+    label: typeof source.label === "string" ? source.label : "",
+    location: typeof source.location === "string" ? source.location : "",
+    latitude: typeof source.latitude === "number" ? source.latitude : null,
+    longitude: typeof source.longitude === "number" ? source.longitude : null,
+    timezone: typeof source.timezone === "string" ? source.timezone : "",
   };
 }
 
@@ -3937,10 +4124,18 @@ export default function LoveComputerPage() {
   const [houseAssignmentsB, setHouseAssignmentsB] = useState<HouseAssignment[]>(
     DEFAULT_HOUSE_ASSIGNMENTS.map((item) => ({ ...item }))
   );
+  const [clockOverrideMode, setClockOverrideMode] = useState<ClockOverrideMode>("auto");
+  const [clockLocation, setClockLocation] = useState<ClockLocation>(() => createDefaultClockLocation());
+  const [clockLocationStatus, setClockLocationStatus] = useState<ClockLocationStatus>({
+    kind: "idle",
+    message: "",
+  });
   const [clockDay, setClockDay] = useState<DayOfWeek>("Thursday");
   const [sunriseHour, setSunriseHour] = useState(6);
   const [sunriseMinute, setSunriseMinute] = useState(31);
   const [clockMode, setClockMode] = useState<ClockMode>("day");
+  const [clockNow, setClockNow] = useState(() => new Date());
+  const [clockPlanetPlacements, setClockPlanetPlacements] = useState<ClockPlanetPlacementMap>({});
   const [reportSkin, setReportSkin] = useState<"classic" | "teal">("classic");
   const [personAName, setPersonAName] = useState("Person A");
   const [personA, setPersonA] = useState<PlacementMap>(DEFAULT_A);
@@ -4043,6 +4238,53 @@ export default function LoveComputerPage() {
   }, [loginErrorMessage]);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setClockNow(new Date());
+    }, 30_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const clockPlanetPlacementFetchKey = formatInTimeZone(clockNow, "UTC", "yyyy-MM-dd-HH");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadClockPlanetPlacements = async () => {
+      try {
+        const response = await fetch(
+          `/api/astrology/planetary-clock?at=${encodeURIComponent(clockNow.toISOString())}`,
+          { signal: controller.signal }
+        );
+        const data = (await response.json()) as Partial<AstrologyPlanetaryClockPlacementsResponse> & {
+          error?: string;
+        };
+
+        if (!response.ok || !data.placements) {
+          throw new Error(data.error || "Planetary clock calculation failed.");
+        }
+
+        const nextPlacements: ClockPlanetPlacementMap = {};
+        for (const [planetKey, placement] of Object.entries(data.placements)) {
+          if (!placement) continue;
+          const symbol = PLANETARY_CLOCK_RESPONSE_TO_SYMBOL[
+            planetKey as keyof AstrologyPlanetaryClockPlacementsResponse["placements"]
+          ];
+          if (!symbol) continue;
+          nextPlacements[symbol] = ASTROLOGY_SIGN_TO_SYMBOL[placement.sign];
+        }
+        setClockPlanetPlacements(nextPlacements);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setClockPlanetPlacements({});
+      }
+    };
+
+    void loadClockPlanetPlacements();
+    return () => controller.abort();
+  }, [clockPlanetPlacementFetchKey]);
+
+  useEffect(() => {
     const storedA = window.localStorage.getItem(SYN_A_STORAGE_KEY);
     const storedB = window.localStorage.getItem(SYN_B_STORAGE_KEY);
     const storedNoteMarkerOffset = window.localStorage.getItem(NOTE_MARKER_STORAGE_KEY);
@@ -4084,11 +4326,21 @@ export default function LoveComputerPage() {
     if (storedClockCalculator) {
       try {
         const parsed = JSON.parse(storedClockCalculator) as {
+          overrideMode?: ClockOverrideMode;
+          location?: ClockLocation;
           day?: DayOfWeek;
           sunriseHour?: number;
           sunriseMinute?: number;
           mode?: ClockMode;
         };
+
+        if (parsed.overrideMode === "auto" || parsed.overrideMode === "manual") {
+          setClockOverrideMode(parsed.overrideMode);
+        }
+
+        if (parsed.location) {
+          setClockLocation(normalizeClockLocation(parsed.location));
+        }
 
         if (parsed.day && DAYS_OF_WEEK.includes(parsed.day)) {
           setClockDay(parsed.day);
@@ -4126,13 +4378,15 @@ export default function LoveComputerPage() {
     window.localStorage.setItem(
       CLOCK_CALCULATOR_STORAGE_KEY,
       JSON.stringify({
+        overrideMode: clockOverrideMode,
+        location: clockLocation,
         day: clockDay,
         sunriseHour,
         sunriseMinute,
         mode: clockMode,
       })
     );
-  }, [clockDay, sunriseHour, sunriseMinute, clockMode]);
+  }, [clockDay, sunriseHour, sunriseMinute, clockMode, clockLocation, clockOverrideMode]);
 
   useEffect(() => {
     if (!localStateReady || !authReady) return;
@@ -4352,15 +4606,213 @@ export default function LoveComputerPage() {
     getEnergyQualifier(genderB.final),
     getEnergyQualifier(genderCombined)
   );
-  const planetaryHourRows = useMemo(() => {
+  const manualPlanetaryHourRows = useMemo(() => {
     const baseMinutes = ((sunriseHour % 12) + (clockMode === "day" ? 0 : 12)) * 60 + sunriseMinute;
     const sequence = buildPlanetaryHourSequence(clockDay, clockMode);
 
     return sequence.map((entry, index) => ({
-      time: formatClockTime(baseMinutes + index * 60),
+      id: `${clockMode}-${baseMinutes + index * 60}`,
+      startTime: formatClockTime(baseMinutes + index * 60),
+      endTime: formatClockTime(baseMinutes + (index + 1) * 60),
+      phase: clockMode,
+      isCurrent: false,
       ...entry,
     }));
   }, [clockDay, clockMode, sunriseHour, sunriseMinute]);
+
+  const automaticPlanetaryHours = useMemo(() => {
+    if (clockOverrideMode === "manual") {
+      return {
+        snapshot: null as PlanetaryHourSnapshot | null,
+        error: "",
+      };
+    }
+
+    if (
+      clockLocation.latitude === null ||
+      clockLocation.longitude === null ||
+      !clockLocation.timezone.trim()
+    ) {
+      return {
+        snapshot: null as PlanetaryHourSnapshot | null,
+        error: "Enter a location or use your current location to calculate today’s planetary hours.",
+      };
+    }
+
+    try {
+      const timezone = clockLocation.timezone;
+      const todayKey = getLocalDateKey(clockNow, timezone);
+      const tomorrowKey = shiftDateKey(todayKey, 1);
+      const todaySolarTimes = getSolarTimesForDateKey(todayKey, clockLocation.latitude, clockLocation.longitude);
+      const tomorrowSolarTimes = getSolarTimesForDateKey(
+        tomorrowKey,
+        clockLocation.latitude,
+        clockLocation.longitude
+      );
+
+      if (
+        !isValidDate(todaySolarTimes.sunrise) ||
+        !isValidDate(todaySolarTimes.sunset) ||
+        !isValidDate(tomorrowSolarTimes.sunrise)
+      ) {
+        throw new Error("Sunrise calculation failed.");
+      }
+
+      const weekday = getWeekdayForTimezone(clockNow, timezone);
+      const dayStartIndex = PLANETARY_HOUR_ORDER.indexOf(DAY_RULERS[weekday]);
+      const dayRows = buildTimedPlanetaryHourRows({
+        start: todaySolarTimes.sunrise,
+        end: todaySolarTimes.sunset,
+        rowCount: 12,
+        startIndex: dayStartIndex,
+        phase: "day",
+        timezone,
+        now: clockNow,
+      });
+      const nightRows = buildTimedPlanetaryHourRows({
+        start: todaySolarTimes.sunset,
+        end: tomorrowSolarTimes.sunrise,
+        rowCount: 12,
+        startIndex: dayStartIndex + 12,
+        phase: "night",
+        timezone,
+        now: clockNow,
+      });
+
+      let currentRow = [...dayRows, ...nightRows].find((row) => row.isCurrent) ?? null;
+
+      if (!currentRow && clockNow.getTime() < todaySolarTimes.sunrise.getTime()) {
+        const yesterdayKey = shiftDateKey(todayKey, -1);
+        const yesterdaySolarTimes = getSolarTimesForDateKey(
+          yesterdayKey,
+          clockLocation.latitude,
+          clockLocation.longitude
+        );
+
+        if (isValidDate(yesterdaySolarTimes.sunset)) {
+          const yesterdayWeekday = getWeekdayForTimezone(getNoonUtcForLocalDate(yesterdayKey), timezone);
+          const yesterdayStartIndex = PLANETARY_HOUR_ORDER.indexOf(DAY_RULERS[yesterdayWeekday]);
+          currentRow =
+            buildTimedPlanetaryHourRows({
+              start: yesterdaySolarTimes.sunset,
+              end: todaySolarTimes.sunrise,
+              rowCount: 12,
+              startIndex: yesterdayStartIndex + 12,
+              phase: "night",
+              timezone,
+              now: clockNow,
+            }).find((row) => row.isCurrent) ?? null;
+        }
+      }
+
+      return {
+        snapshot: {
+          weekday,
+          localDateLabel: formatInTimeZone(clockNow, timezone, "EEEE, MMMM d, yyyy"),
+          localTimeLabel: formatAbsoluteClockTime(clockNow, timezone),
+          sunriseLabel: formatAbsoluteClockTime(todaySolarTimes.sunrise, timezone),
+          sunsetLabel: formatAbsoluteClockTime(todaySolarTimes.sunset, timezone),
+          currentHourLabel: currentRow
+            ? `${currentRow.planet} ${currentRow.label} · ${currentRow.startTime} - ${currentRow.endTime}`
+            : "Unable to determine the current planetary hour.",
+          rows: [...dayRows, ...nightRows],
+        } satisfies PlanetaryHourSnapshot,
+        error: "",
+      };
+    } catch {
+      return {
+        snapshot: null as PlanetaryHourSnapshot | null,
+        error: "Sunrise calculation failed for this location. Try manual override or choose another place.",
+      };
+    }
+  }, [clockLocation, clockNow, clockOverrideMode]);
+
+  const updateClockLocation = (next: ClockLocation) => {
+    setClockLocation(next);
+    if (clockLocationStatus.kind !== "idle") {
+      setClockLocationStatus({ kind: "idle", message: "" });
+    }
+  };
+
+  const useCurrentClockLocation = () => {
+    if (!navigator.geolocation) {
+      setClockLocationStatus({
+        kind: "error",
+        message: "Geolocation is not available in this browser. Enter a city manually instead.",
+      });
+      return;
+    }
+
+    setClockLocationStatus({
+      kind: "loading",
+      message: "Getting your current location…",
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (!timezone) {
+          setClockLocationStatus({
+            kind: "error",
+            message: "We could not determine your time zone from this device.",
+          });
+          return;
+        }
+
+        const latitude = Number(position.coords.latitude.toFixed(6));
+        const longitude = Number(position.coords.longitude.toFixed(6));
+
+        try {
+          const response = await fetch(
+            `/api/astrology/location-reverse?lat=${encodeURIComponent(String(latitude))}&lon=${encodeURIComponent(
+              String(longitude)
+            )}`
+          );
+          const data = (await response.json()) as { result?: AstrologyLocationOption; error?: string };
+
+          if (!response.ok || !data.result) {
+            throw new Error(data.error || "Reverse location lookup failed.");
+          }
+
+          updateClockLocation({
+            label: data.result.label,
+            location: data.result.location,
+            latitude: data.result.latitude,
+            longitude: data.result.longitude,
+            timezone: data.result.timezone || timezone,
+          });
+        } catch {
+          updateClockLocation({
+            label: `Current location`,
+            location: `Current location`,
+            latitude,
+            longitude,
+            timezone,
+          });
+        }
+
+        setClockNow(new Date());
+        setClockLocationStatus({
+          kind: "success",
+          message: "Location updated.",
+        });
+      },
+      (error) => {
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? "Location access was denied. Enter a city manually or allow geolocation."
+            : error.code === error.TIMEOUT
+              ? "Getting your current location timed out. Try again or enter a city manually."
+              : "We could not read your current location. Enter a city manually instead.";
+        setClockLocationStatus({ kind: "error", message });
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10_000,
+        maximumAge: 300_000,
+      }
+    );
+  };
 
   const debugBoxes = useMemo(
     () => buildSynastryDebugBoxes(synastryOverridesA, synastryOverridesB),
@@ -5074,6 +5526,10 @@ export default function LoveComputerPage() {
   };
 
   const handlePageJump = (href: string) => (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!href.startsWith("#")) {
+      return;
+    }
+
     event.preventDefault();
     resetSectionToggles();
 
@@ -5195,8 +5651,17 @@ export default function LoveComputerPage() {
               title={item.label}
               aria-label={item.label}
               onClick={handlePageJump(item.href)}
+              target={item.href.startsWith("#") ? undefined : "_self"}
             >
-              <span>{item.symbol}</span>
+              {"imageSrc" in item ? (
+                <img src={item.imageSrc} alt="" className="page-jump-logo" aria-hidden="true" />
+              ) : "icon" in item && item.icon === "house" ? (
+                <HouseSidebarIcon />
+              ) : "symbol" in item ? (
+                <span>{item.symbol}</span>
+              ) : (
+                <span />
+              )}
             </a>
           ))}
         </nav>
@@ -5283,6 +5748,15 @@ export default function LoveComputerPage() {
         <div className="report-top-tools">
           <CompatibilityTable />
           <ClockCalculatorCard
+            overrideMode={clockOverrideMode}
+            onOverrideModeChange={setClockOverrideMode}
+            location={clockLocation}
+            onLocationChange={updateClockLocation}
+            onUseCurrentLocation={useCurrentClockLocation}
+            locationStatus={clockLocationStatus}
+            automaticSnapshot={automaticPlanetaryHours.snapshot}
+            automaticError={automaticPlanetaryHours.error}
+            planetPlacements={clockPlanetPlacements}
             day={clockDay}
             onDayChange={setClockDay}
             sunriseHour={sunriseHour}
@@ -5291,7 +5765,7 @@ export default function LoveComputerPage() {
             onSunriseMinuteChange={setSunriseMinute}
             mode={clockMode}
             onModeChange={setClockMode}
-            rows={planetaryHourRows}
+            rows={manualPlanetaryHourRows}
           />
         </div>
       </section>
@@ -5301,9 +5775,8 @@ export default function LoveComputerPage() {
           <p className="eyebrow">Saved Charts</p>
           <h2>Local Archive</h2>
           <p>
-            Save any Primary or Comparison chart now, then load it back into either side later. This is
-            browser-local today, but the record structure is ready to migrate into account storage when
-            we add logins.
+            Save your Primary or Comparison charts to your personal archive, then return to them anytime
+            for future readings, notes, and relationship insights.
           </p>
           <p className="section-copy">{saveStatus}</p>
         </div>
@@ -5613,38 +6086,44 @@ export default function LoveComputerPage() {
 
           <section id="summaries" className="summary-grid">
         <SummaryCard
+          eyebrow="ELEMENTAL MAKEUP"
           title="Element"
-          copy="Weighted 90/10 across personal and generational planets. ASC is excluded."
+          copy=""
           rows={elementRows}
         />
         <SummaryCard
+          eyebrow="WEIGHTED MODALITY"
           title="Modality"
-          copy="Weighted with the same personal-versus-generational split. ASC is excluded."
+          copy=""
           rows={modalityRows}
         />
         <SummaryCard
+          eyebrow="SIGN POLARITY"
           title="Gender Expression"
-          copy="Final score = 65% astrological + 20% generation + 15% sex. ASC is excluded."
+          copy=""
           rows={genderRows}
         />
           </section>
 
           <section className="summary-grid summary-grid-secondary">
         <SummaryCard
+          eyebrow="ENERGY BALANCE"
           title="Yin Yang"
-          copy="Yin = water + earth. Yang = fire + air. Built from the same weighted element totals."
+          copy=""
           rows={yinYangRows}
           symbol="☯︎"
         />
         <QualifierCard
+          eyebrow="BASE NATURE"
           title="Nature"
-          copy="Based on each chart's highest element versus lowest element."
+          copy=""
           rows={natureRows}
           labels={["Partner A Nature", "Partner B Nature", "Relationship Nature"]}
         />
         <QualifierCard
+          eyebrow="OVERALL ENERGY"
           title="Energy"
-          copy="Built from the two most relevant gender-expression energies using your threshold rules."
+          copy=""
           rows={energyRows}
           labels={["Partner A Energy", "Partner B Energy", "Relationship Energy"]}
         />
@@ -6108,11 +6587,11 @@ function CompatibilityTable() {
     <section className="compatibility-card">
       <div className="section-heading compact">
         <div>
-          <p className="eyebrow">Spreadsheet Logic</p>
+          <p className="eyebrow">Star Matrix</p>
           <h2>Compatibility Table</h2>
         </div>
         <p className="section-copy">
-          This is the sign-to-sign matrix from your Excel sheet, translated into the site.
+          This is the sign-to-sign matrix used to determine astrological magnetism in relationships.
         </p>
       </div>
 
@@ -6183,11 +6662,13 @@ function CompatibilityTable() {
 }
 
 function SummaryCard({
+  eyebrow,
   title,
   copy,
   rows,
   symbol,
 }: {
+  eyebrow: string;
   title: string;
   copy: string;
   rows: DistributionRow[];
@@ -6195,12 +6676,12 @@ function SummaryCard({
 }) {
   return (
     <section className="summary-card">
-      <p className="eyebrow">{title}</p>
+      <p className="eyebrow">{eyebrow}</p>
       <h2>
         {symbol ? <span className="summary-title-symbol">{symbol}</span> : null}
         {title}
       </h2>
-      <p>{copy}</p>
+      {copy.trim() ? <p>{copy}</p> : null}
       <div className="summary-table">
         <div className="summary-head">Type</div>
         <div className="summary-head">Partner A</div>
@@ -6226,11 +6707,13 @@ function SummaryRow({ row }: { row: DistributionRow }) {
 }
 
 function QualifierCard({
+  eyebrow,
   title,
   copy,
   rows,
   labels,
 }: {
+  eyebrow: string;
   title: string;
   copy: string;
   rows: QualifierRow[];
@@ -6240,9 +6723,9 @@ function QualifierCard({
 
   return (
     <section className="summary-card">
-      <p className="eyebrow">{title}</p>
+      <p className="eyebrow">{eyebrow}</p>
       <h2>{title}</h2>
-      <p>{copy}</p>
+      {copy.trim() ? <p>{copy}</p> : null}
       <div className="qualifier-stack">
         <div className="qualifier-line">
           <span>{labels[0]}:</span>
@@ -6275,7 +6758,7 @@ function RootsOfPowerCard({
     <section id="roots-of-element" className="summary-card roots-card">
       <div className="roots-card-heading">
         <div className="roots-card-heading-copy">
-          <p className="eyebrow">Roots of the Element</p>
+          <p className="eyebrow">Zodiac Roots</p>
           <h2 className="roots-card-title">Roots of the Element</h2>
           <p className="roots-card-intro">
             A snapshot of where each chart draws power, loss, peace, pleasure, work, and change
@@ -6376,19 +6859,68 @@ function HousesCard({
 }) {
   const [clearFeedback, setClearFeedback] = useState<"idle" | "cleared">("idle");
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
-  const [lastClearedState, setLastClearedState] = useState<
-    Record<"a" | "b", { assignments: HouseAssignment[]; notes: ModalNotesMap; noteScope: string } | null>
-  >({
-    a: null,
-    b: null,
+  const [removeModeByTarget, setRemoveModeByTarget] = useState<Record<"a" | "b", boolean>>({
+    a: false,
+    b: false,
   });
-  const [redoStacks, setRedoStacks] = useState<Record<"a" | "b", Array<{ houseIndex: number; placement: HousePlacement }>>>({
+  const [undoHistoryByTarget, setUndoHistoryByTarget] = useState<Record<"a" | "b", HousesSnapshot[]>>({
+    a: [],
+    b: [],
+  });
+  const [redoHistoryByTarget, setRedoHistoryByTarget] = useState<Record<"a" | "b", HousesSnapshot[]>>({
     a: [],
     b: [],
   });
   const [expandedHouseNotes, setExpandedHouseNotes] = useState<Record<string, boolean>>({});
+  const scopeByTargetRef = useRef<Record<"a" | "b", string>>({
+    a: "",
+    b: "",
+  });
 
   const resetHouseAssignments = () => cloneHouseAssignments(DEFAULT_HOUSE_ASSIGNMENTS);
+  const houseNotePrefix = (scope: string) => `house-note-${scope}-`;
+  const captureScopeNotes = (scope: string) =>
+    Object.fromEntries(Object.entries(modalNotes).filter(([key]) => key.startsWith(houseNotePrefix(scope))));
+  const captureExpandedScopeNotes = (scope: string) =>
+    Object.fromEntries(Object.entries(expandedHouseNotes).filter(([key]) => key.startsWith(houseNotePrefix(scope))));
+  const createSnapshot = (scope: string): HousesSnapshot => ({
+    assignments: cloneHouseAssignments(houseAssignments),
+    scopeNotes: captureScopeNotes(scope),
+    expandedNotes: captureExpandedScopeNotes(scope),
+  });
+  const applySnapshot = (scope: string, snapshot: HousesSnapshot) => {
+    onClearHouseNotes(scope);
+    onRestoreHouseNotes(scope, snapshot.scopeNotes);
+    onHouseAssignmentsChange(cloneHouseAssignments(snapshot.assignments));
+    setExpandedHouseNotes((current) => ({
+      ...Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith(houseNotePrefix(scope)))),
+      ...snapshot.expandedNotes,
+    }));
+  };
+  const recordStructuralSnapshot = (scope: string) => {
+    const snapshot = createSnapshot(scope);
+    setUndoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [...current[target], snapshot],
+    }));
+    setRedoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [],
+    }));
+  };
+
+  useEffect(() => {
+    if (scopeByTargetRef.current[target] === noteScope) return;
+    scopeByTargetRef.current[target] = noteScope;
+    setUndoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [],
+    }));
+    setRedoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [],
+    }));
+  }, [noteScope, target]);
 
   const updatePlacement = (houseIndex: number, placementIndex: number, patch: Partial<HousePlacement>) => {
     const next = cloneHouseAssignments(houseAssignments);
@@ -6402,34 +6934,26 @@ function HousesCard({
   };
 
   const addPlacement = (houseIndex: number) => {
+    recordStructuralSnapshot(noteScope);
     const next = cloneHouseAssignments(houseAssignments);
     const current = next[houseIndex];
     if (!current || current.placements.length >= MAX_HOUSE_PLACEMENTS) return;
     const fallbackSign = current.placements.at(-1)?.sign || DEFAULT_HOUSE_ASSIGNMENTS[houseIndex].placements[0].sign;
     current.placements.push({ sign: fallbackSign, planet: "" });
-    setRedoStacks((currentRedoStacks) => ({
-      ...currentRedoStacks,
-      [target]: [],
-    }));
+    onHouseAssignmentsChange(next);
+  };
+
+  const removePlacement = (houseIndex: number) => {
+    recordStructuralSnapshot(noteScope);
+    const next = cloneHouseAssignments(houseAssignments);
+    const current = next[houseIndex];
+    if (!current || current.placements.length <= 1) return;
+    current.placements.pop();
     onHouseAssignmentsChange(next);
   };
 
   const executeClearPlacements = () => {
-    const scopedNotes = Object.fromEntries(
-      Object.entries(modalNotes).filter(([key]) => key.startsWith(`house-note-${noteScope}-`))
-    );
-    setLastClearedState((current) => ({
-      ...current,
-      [target]: {
-        assignments: cloneHouseAssignments(houseAssignments),
-        notes: scopedNotes,
-        noteScope,
-      },
-    }));
-    setRedoStacks((currentRedoStacks) => ({
-      ...currentRedoStacks,
-      [target]: [],
-    }));
+    recordStructuralSnapshot(noteScope);
     onClearHouseNotes(noteScope);
     onHouseAssignmentsChange(resetHouseAssignments());
     setExpandedHouseNotes((current) =>
@@ -6440,105 +6964,99 @@ function HousesCard({
       setClearFeedback("idle");
     }, 1200);
   };
+  const removeMode = removeModeByTarget[target];
+  const canUndo = undoHistoryByTarget[target].length > 0;
+  const canRedo = redoHistoryByTarget[target].length > 0;
 
-  const undoAddedPlacement = () => {
-    const lastClear = lastClearedState[target];
-    if (lastClear) {
-      onHouseAssignmentsChange(cloneHouseAssignments(lastClear.assignments));
-      onRestoreHouseNotes(lastClear.noteScope, lastClear.notes);
-      setLastClearedState((current) => ({
-        ...current,
-        [target]: null,
-      }));
-      return;
-    }
-
-    for (let houseIndex = houseAssignments.length - 1; houseIndex >= 0; houseIndex -= 1) {
-      const current = houseAssignments[houseIndex];
-      if (!current || current.placements.length <= 1) continue;
-      const next = cloneHouseAssignments(houseAssignments);
-      const removedPlacement = next[houseIndex].placements.pop();
-      if (!removedPlacement) return;
-      setRedoStacks((currentRedoStacks) => ({
-        ...currentRedoStacks,
-        [target]: [...currentRedoStacks[target], { houseIndex, placement: removedPlacement }],
-      }));
-      onHouseAssignmentsChange(next);
-      return;
-    }
-  };
-
-  const redoAddedPlacement = () => {
-    const redoEntry = redoStacks[target].at(-1);
-    if (!redoEntry) return;
-    const next = cloneHouseAssignments(houseAssignments);
-    const current = next[redoEntry.houseIndex];
-    if (!current || current.placements.length >= MAX_HOUSE_PLACEMENTS) return;
-    current.placements.push({ ...redoEntry.placement });
-    setRedoStacks((currentRedoStacks) => ({
-      ...currentRedoStacks,
-      [target]: currentRedoStacks[target].slice(0, -1),
+  const undoHouseStructure = () => {
+    const previousSnapshot = undoHistoryByTarget[target].at(-1);
+    if (!previousSnapshot) return;
+    const currentSnapshot = createSnapshot(noteScope);
+    setUndoHistoryByTarget((current) => ({
+      ...current,
+      [target]: current[target].slice(0, -1),
     }));
-    onHouseAssignmentsChange(next);
+    setRedoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [...current[target], currentSnapshot],
+    }));
+    applySnapshot(noteScope, previousSnapshot);
   };
 
-  const canUndoAddedPlacement =
-    Boolean(lastClearedState[target]) || houseAssignments.some((assignment) => assignment.placements.length > 1);
-  const canRedoAddedPlacement = redoStacks[target].length > 0;
+  const redoHouseStructure = () => {
+    const nextSnapshot = redoHistoryByTarget[target].at(-1);
+    if (!nextSnapshot) return;
+    const currentSnapshot = createSnapshot(noteScope);
+    setRedoHistoryByTarget((current) => ({
+      ...current,
+      [target]: current[target].slice(0, -1),
+    }));
+    setUndoHistoryByTarget((current) => ({
+      ...current,
+      [target]: [...current[target], currentSnapshot],
+    }));
+    applySnapshot(noteScope, nextSnapshot);
+  };
 
   return (
     <section id="houses" className="summary-card astro-tool-card">
-      <p className="eyebrow">Houses</p>
+      <p className="eyebrow">Life Domains</p>
       <h2>Houses</h2>
       <div className="houses-shell">
         <div className="houses-list">
           {HOUSE_COPY.map((label, index) => (
             <div key={label} className="houses-row">
               <div className="houses-number">{index + 1}</div>
+              {(() => {
+                const placements =
+                  houseAssignments[index]?.placements ?? DEFAULT_HOUSE_ASSIGNMENTS[index].placements;
+                const canRemovePlacement = placements.length > 1;
+                const canAddPlacement = placements.length < MAX_HOUSE_PLACEMENTS;
+
+                return (
+                  <>
               <div className="houses-slots">
-                {(houseAssignments[index]?.placements ?? DEFAULT_HOUSE_ASSIGNMENTS[index].placements).map(
-                  (placement, placementIndex) => (
-                    <div key={`${label}-${placementIndex}`} className="houses-slot">
-                      <select
-                        className="astro-tool-select houses-sign-select"
-                        value={placement.sign}
-                        onChange={(event) =>
-                          updatePlacement(index, placementIndex, { sign: event.target.value as Sign | "" })
-                        }
-                      >
-                        <option value="">N/A</option>
-                        {SIGNS.map((sign) => (
-                          <option key={sign} value={sign}>
-                            {sign} {SIGN_LABELS[sign]}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        className="astro-tool-select houses-planet-select"
-                        value={placement.planet}
-                        onChange={(event) =>
-                          updatePlacement(index, placementIndex, { planet: event.target.value as HousePlanet | "" })
-                        }
-                      >
-                        <option value="">N/A</option>
-                        {HOUSE_CARD_PLANETS.map((planet) => (
-                          <option key={planet} value={planet}>
-                            {planet}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )
-                )}
-                {(houseAssignments[index]?.placements.length ?? DEFAULT_HOUSE_ASSIGNMENTS[index].placements.length) <
-                MAX_HOUSE_PLACEMENTS ? (
+                {placements.map((placement, placementIndex) => (
+                  <div key={`${label}-${placementIndex}`} className="houses-slot">
+                    <select
+                      className="astro-tool-select houses-sign-select"
+                      value={placement.sign}
+                      onChange={(event) =>
+                        updatePlacement(index, placementIndex, { sign: event.target.value as Sign | "" })
+                      }
+                    >
+                      <option value="">N/A</option>
+                      {SIGNS.map((sign) => (
+                        <option key={sign} value={sign}>
+                          {sign} {SIGN_LABELS[sign]}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      className="astro-tool-select houses-planet-select"
+                      value={placement.planet}
+                      onChange={(event) =>
+                        updatePlacement(index, placementIndex, { planet: event.target.value as HousePlanet | "" })
+                      }
+                    >
+                      <option value="">N/A</option>
+                      {HOUSE_CARD_PLANETS.map((planet) => (
+                        <option key={planet} value={planet}>
+                          {planet}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+                {removeMode || canAddPlacement ? (
                   <button
                     type="button"
                     className="houses-add-button"
-                    onClick={() => addPlacement(index)}
-                    aria-label={`Add another placement to house ${index + 1}`}
+                    onClick={() => (removeMode ? removePlacement(index) : addPlacement(index))}
+                    aria-label={`${removeMode ? "Remove" : "Add"} ${removeMode ? "the last" : "another"} placement ${removeMode ? "from" : "to"} house ${index + 1}`}
+                    disabled={removeMode ? !canRemovePlacement : !canAddPlacement}
                   >
-                    +
+                    {removeMode ? "-" : "+"}
                   </button>
                 ) : null}
               </div>
@@ -6596,6 +7114,9 @@ function HousesCard({
                   </aside>
                 );
               })()}
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -6624,20 +7145,33 @@ function HousesCard({
             <button
               type="button"
               className="houses-undo-button"
-              onClick={undoAddedPlacement}
-              aria-label="Undo last added house field"
-              disabled={!canUndoAddedPlacement}
+              onClick={undoHouseStructure}
+              disabled={!canUndo}
+              aria-label="Undo the last house layout change"
             >
               ↶
             </button>
             <button
               type="button"
               className="houses-undo-button"
-              onClick={redoAddedPlacement}
-              aria-label="Redo last removed house field"
-              disabled={!canRedoAddedPlacement}
+              onClick={redoHouseStructure}
+              disabled={!canRedo}
+              aria-label="Redo the last undone house layout change"
             >
               ↷
+            </button>
+            <button
+              type="button"
+              className="houses-undo-button"
+              onClick={() =>
+                setRemoveModeByTarget((current) => ({
+                  ...current,
+                  [target]: !current[target],
+                }))
+              }
+              aria-label={removeMode ? "Switch houses buttons to add mode" : "Switch houses buttons to remove mode"}
+            >
+              {removeMode ? "+" : "x"}
             </button>
             <button
               type="button"
@@ -6673,6 +7207,15 @@ function HousesCard({
 }
 
 function ClockCalculatorCard({
+  overrideMode,
+  onOverrideModeChange,
+  location,
+  onLocationChange,
+  onUseCurrentLocation,
+  locationStatus,
+  automaticSnapshot,
+  automaticError,
+  planetPlacements,
   day,
   onDayChange,
   sunriseHour,
@@ -6683,6 +7226,15 @@ function ClockCalculatorCard({
   onModeChange,
   rows,
 }: {
+  overrideMode: ClockOverrideMode;
+  onOverrideModeChange: (next: ClockOverrideMode) => void;
+  location: ClockLocation;
+  onLocationChange: (next: ClockLocation) => void;
+  onUseCurrentLocation: () => void;
+  locationStatus: ClockLocationStatus;
+  automaticSnapshot: PlanetaryHourSnapshot | null;
+  automaticError: string;
+  planetPlacements: ClockPlanetPlacementMap;
   day: DayOfWeek;
   onDayChange: (next: DayOfWeek) => void;
   sunriseHour: number;
@@ -6691,87 +7243,242 @@ function ClockCalculatorCard({
   onSunriseMinuteChange: (next: number) => void;
   mode: ClockMode;
   onModeChange: (next: ClockMode) => void;
-  rows: { time: string; planet: Planet; label: string }[];
+  rows: PlanetaryHourRow[];
 }) {
-  const morningRows = rows.slice(0, 6);
-  const eveningRows = rows.slice(6, 12);
+  const [locationSuggestions, setLocationSuggestions] = useState<AstrologyLocationOption[]>([]);
+  const [locationSearchBusy, setLocationSearchBusy] = useState(false);
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false);
+
+  useEffect(() => {
+    if (overrideMode !== "auto") return;
+
+    const query = location.location.trim();
+    const hasResolvedLocation =
+      location.latitude !== null && location.longitude !== null && Boolean(location.timezone);
+
+    if (!locationSearchOpen && hasResolvedLocation) {
+      setLocationSuggestions([]);
+      setLocationSearchBusy(false);
+      return;
+    }
+
+    if (query.length < 2) {
+      setLocationSuggestions([]);
+      setLocationSearchBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setLocationSearchBusy(true);
+      try {
+        const response = await fetch(`/api/astrology/location-search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const data = (await response.json()) as { results?: AstrologyLocationOption[] };
+        if (!response.ok) {
+          throw new Error("Location search failed.");
+        }
+        setLocationSuggestions(data.results ?? []);
+        setLocationSearchOpen(true);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLocationSuggestions([]);
+      } finally {
+        setLocationSearchBusy(false);
+      }
+    }, 220);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [location, overrideMode, locationSearchOpen]);
+
+  const displayedRows =
+    overrideMode === "manual"
+      ? rows
+      : (automaticSnapshot?.rows.filter((row) => row.phase === mode) ?? []);
+  const clockStatusMessage =
+    locationStatus.message || (overrideMode === "auto" && automaticError ? automaticError : "");
+  const clockStatusKind =
+    locationStatus.message && locationStatus.kind !== "idle"
+      ? locationStatus.kind
+      : overrideMode === "auto" && automaticError
+        ? "error"
+        : "idle";
+  const visibleClockStatusMessage =
+    locationStatus.kind === "success" && !automaticError ? "" : clockStatusMessage;
+  const currentLocationLabel = location.label || location.location || "No location saved yet.";
+  const getClockPlanetGlyph = (planet: Planet) => {
+    const sign = planetPlacements[planet];
+    return sign ? `${sign} ${planet}` : planet;
+  };
 
   return (
     <section className="summary-card astro-tool-card clock-card">
       <div className="clock-header">
         <h2>Clock Calculator</h2>
-        <div className="clock-controls">
-          <label className="clock-control clock-control-day">
-            <span>Day</span>
-            <select
-              className="astro-tool-select clock-day-field"
-              value={day}
-              onChange={(event) => onDayChange(event.target.value as DayOfWeek)}
-            >
+        {overrideMode === "auto" ? (
+          <div className="clock-controls clock-controls-location">
+            <label className="clock-control clock-location-control">
+              <span>Location</span>
+              <div className="location-search-wrap clock-location-search">
+                <input
+                  type="text"
+                  value={location.location}
+                  onChange={(event) => {
+                    onLocationChange({
+                      ...location,
+                      label: event.target.value,
+                      location: event.target.value,
+                      latitude: null,
+                      longitude: null,
+                      timezone: "",
+                    });
+                    setLocationSearchOpen(true);
+                  }}
+                  onFocus={() => {
+                    if (locationSuggestions.length > 0) setLocationSearchOpen(true);
+                  }}
+                  placeholder="Enter city or town"
+                  autoComplete="off"
+                />
+                {locationSearchBusy ? <span className="location-search-status">Searching...</span> : null}
+                {locationSearchOpen && locationSuggestions.length > 0 ? (
+                  <div className="location-suggestions" role="listbox">
+                    {locationSuggestions.map((option) => (
+                      <button
+                        key={`${option.label}-${option.latitude}-${option.longitude}`}
+                        type="button"
+                        className="location-suggestion"
+                        onClick={() => {
+                          onLocationChange({
+                            label: option.label,
+                            location: option.location,
+                            latitude: option.latitude,
+                            longitude: option.longitude,
+                            timezone: option.timezone,
+                          });
+                          setLocationSuggestions([]);
+                          setLocationSearchOpen(false);
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </label>
+            <button type="button" className="clock-geolocate-button" onClick={onUseCurrentLocation}>
+              Use my current location
+            </button>
+          </div>
+        ) : (
+          <div className="clock-controls">
+            <label className="clock-control clock-control-day">
+              <span>Day</span>
+              <select
+                className="astro-tool-select clock-day-field"
+                value={day}
+                onChange={(event) => onDayChange(event.target.value as DayOfWeek)}
+              >
                 {DAYS_OF_WEEK.map((item) => (
                   <option key={item} value={item}>
                     {item.toUpperCase()}
                   </option>
                 ))}
               </select>
-          </label>
-          <div className="clock-control">
-            <span>Sunrise</span>
-            <div className="clock-time-selects">
-              <select
-                className="astro-tool-select clock-time-field clock-time-field-hour"
-                value={sunriseHour}
-                onChange={(event) => onSunriseHourChange(Number(event.target.value))}
-              >
+            </label>
+            <div className="clock-control">
+              <span>Sunrise</span>
+              <div className="clock-time-selects">
+                <select
+                  className="astro-tool-select clock-time-field clock-time-field-hour"
+                  value={sunriseHour}
+                  onChange={(event) => onSunriseHourChange(Number(event.target.value))}
+                >
                 {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
                   <option key={value} value={value}>
                     {value}
                   </option>
                 ))}
               </select>
-              <span className="clock-colon">:</span>
-              <select
-                className="astro-tool-select clock-time-field clock-time-field-minute"
-                value={sunriseMinute}
-                onChange={(event) => onSunriseMinuteChange(Number(event.target.value))}
-              >
+                <span className="clock-colon">:</span>
+                <select
+                  className="astro-tool-select clock-time-field clock-time-field-minute"
+                  value={sunriseMinute}
+                  onChange={(event) => onSunriseMinuteChange(Number(event.target.value))}
+                >
                 {Array.from({ length: 59 }, (_, index) => index + 1).map((value) => (
                   <option key={value} value={value}>
                     {String(value).padStart(2, "0")}
                   </option>
                 ))}
               </select>
-              <span className="clock-meridiem">A.M.</span>
+                <span className="clock-meridiem">A.M.</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
-      <div className="clock-table clock-table-split">
-        <div className="clock-column">
-          {morningRows.map((row) => (
-            <div key={`${mode}-${row.time}`} className="clock-row">
-              <span className="clock-time">{row.time}</span>
-              <span className="clock-planet">{row.planet}</span>
+      {overrideMode === "auto" ? (
+        <div className="clock-meta-grid">
+          <div className="clock-meta-card">
+            <span>Current Location</span>
+            <strong>{currentLocationLabel}</strong>
+          </div>
+          <div className="clock-meta-card">
+            <span>Local Date / Time</span>
+            <strong>
+              {automaticSnapshot ? `${automaticSnapshot.localDateLabel} · ${automaticSnapshot.localTimeLabel}` : "Waiting for a location"}
+            </strong>
+          </div>
+          <div className="clock-meta-card">
+            <span>Sunrise / Sunset</span>
+            <strong>
+              {automaticSnapshot
+                ? `${automaticSnapshot.sunriseLabel} · ${automaticSnapshot.sunsetLabel}`
+                : "Sunrise and sunset will appear here"}
+            </strong>
+          </div>
+          <div className="clock-meta-card">
+            <span>Current Planetary Hour</span>
+            <strong>{automaticSnapshot ? automaticSnapshot.currentHourLabel : "Waiting for a location"}</strong>
+          </div>
+        </div>
+      ) : (
+        <p className="clock-manual-copy">
+          Manual override is active. Use this only if automatic location-based sunrise calculation fails.
+        </p>
+      )}
+      {visibleClockStatusMessage ? (
+        <p className={`birth-form-status birth-form-status-${clockStatusKind}`}>{clockStatusMessage}</p>
+      ) : null}
+      <div className="clock-table">
+        {displayedRows.length > 0 ? (
+          displayedRows.map((row) => (
+            <div key={row.id} className={row.isCurrent ? "clock-row is-current" : "clock-row"}>
+              <span className="clock-time">{row.startTime}</span>
+              <span className="clock-time-separator">→</span>
+              <span className="clock-time">{row.endTime}</span>
+              <span className="clock-planet">{getClockPlanetGlyph(row.planet)}</span>
               <span className="clock-word">{row.label.toUpperCase()}</span>
             </div>
-          ))}
-        </div>
-        <div className="clock-column">
-          {eveningRows.map((row) => (
-            <div key={`${mode}-${row.time}`} className="clock-row">
-              <span className="clock-time">{row.time}</span>
-              <span className="clock-planet">{row.planet}</span>
-              <span className="clock-word">{row.label.toUpperCase()}</span>
-            </div>
-          ))}
-        </div>
+          ))
+        ) : (
+          <div className="clock-empty-state">
+            Choose a location to automatically calculate today&apos;s sunrise, sunset, and planetary hours.
+          </div>
+        )}
       </div>
       <div className="clock-mode-toggle">
         <button
           type="button"
           className={mode === "day" ? "clock-mode-button is-active" : "clock-mode-button"}
           onClick={() => onModeChange("day")}
-          aria-label="Show day hours"
+          aria-label="Show daytime planetary hours"
         >
           ☼
         </button>
@@ -6779,9 +7486,23 @@ function ClockCalculatorCard({
           type="button"
           className={mode === "night" ? "clock-mode-button is-active" : "clock-mode-button"}
           onClick={() => onModeChange("night")}
-          aria-label="Show night hours"
+          aria-label="Show nighttime planetary hours"
         >
           ☽
+        </button>
+        <button
+          type="button"
+          className={overrideMode === "auto" ? "clock-mode-button clock-mode-button-text is-active" : "clock-mode-button clock-mode-button-text"}
+          onClick={() => onOverrideModeChange("auto")}
+        >
+          Auto
+        </button>
+        <button
+          type="button"
+          className={overrideMode === "manual" ? "clock-mode-button clock-mode-button-text is-active" : "clock-mode-button clock-mode-button-text"}
+          onClick={() => onOverrideModeChange("manual")}
+        >
+          Manual
         </button>
       </div>
     </section>

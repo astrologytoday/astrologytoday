@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SiteFooter from "../shared/SiteFooter";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
-import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import { getHomeCopy } from "../../lib/copy";
 import { getServicesCopy } from "../../lib/servicesCopy";
 import { SHOW_AD_DEBUGGERS } from "../../lib/debug";
@@ -551,104 +550,6 @@ export default function ServicesPage({
                   </Link>
                 ))}
               </nav>
-              <div className="services-sidebar-ads">
-                <div
-                  className="services-sidebar-ad-wrap"
-                  style={{
-                    transform: `translate(calc(-50% + ${debugState.adOne.x}px), ${debugState.adOne.y}px)`,
-                  }}
-                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adOne") : undefined}
-                >
-                  <div
-                    className="services-sidebar-ad-card"
-                    style={{
-                      width: `${debugState.adOne.width}px`,
-                      minHeight: `${debugState.adOne.height}px`,
-                    }}
-                  >
-                    <GoogleAdSenseUnit
-                      adSlot="7724388444"
-                      className="services-sidebar-ad-unit"
-                      style={{
-                        display: "block",
-                        minHeight: `${Math.max(180, debugState.adOne.height - 20)}px`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className="services-sidebar-ad-wrap"
-                  style={{
-                    transform: `translate(calc(-50% + ${debugState.adTwo.x}px), calc(${debugState.adOne.height + 42}px + ${debugState.adTwo.y}px))`,
-                  }}
-                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adTwo") : undefined}
-                >
-                  <div
-                    className="services-sidebar-ad-card"
-                    style={{
-                      width: `${debugState.adTwo.width}px`,
-                      minHeight: `${debugState.adTwo.height}px`,
-                    }}
-                  >
-                    <GoogleAdSenseUnit
-                      adSlot="9065767574"
-                      className="services-sidebar-ad-unit"
-                      style={{
-                        display: "block",
-                        minHeight: `${Math.max(180, debugState.adTwo.height - 20)}px`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className="services-sidebar-ad-wrap"
-                  style={{
-                    transform: `translate(calc(-50% + ${debugState.adThree.x}px), calc(${debugState.adOne.height + debugState.adTwo.height + 84}px + ${debugState.adThree.y}px))`,
-                  }}
-                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adThree") : undefined}
-                >
-                  <div
-                    className="services-sidebar-ad-card"
-                    style={{
-                      width: `${debugState.adThree.width}px`,
-                      minHeight: `${debugState.adThree.height}px`,
-                    }}
-                  >
-                    <GoogleAdSenseUnit
-                      adSlot="5118783707"
-                      className="services-sidebar-ad-unit"
-                      style={{
-                        display: "block",
-                        minHeight: `${Math.max(180, debugState.adThree.height - 20)}px`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div
-                  className="services-sidebar-ad-wrap"
-                  style={{
-                    transform: `translate(calc(-50% + ${debugState.adFour.x}px), calc(${debugState.adOne.height + debugState.adTwo.height + debugState.adThree.height + 126}px + ${debugState.adFour.y}px))`,
-                  }}
-                  onMouseDown={SHOW_AD_DEBUGGERS ? startAdDrag("adFour") : undefined}
-                >
-                  <div
-                    className="services-sidebar-ad-card"
-                    style={{
-                      width: `${debugState.adFour.width}px`,
-                      minHeight: `${debugState.adFour.height}px`,
-                    }}
-                  >
-                    <GoogleAdSenseUnit
-                      adSlot="5259904412"
-                      className="services-sidebar-ad-unit"
-                      style={{
-                        display: "block",
-                        minHeight: `${Math.max(180, debugState.adFour.height - 20)}px`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
             </aside>
 
             <div className="services-main">
