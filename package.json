@@ -19,6 +19,11 @@
     "swisseph": "^0.5.17",
     "tz-lookup": "^6.1.25"
   },
+  "overrides": {
+    "swisseph": {
+      "node-gyp": "^11.2.0"
+    }
+  },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.1",
