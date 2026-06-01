@@ -111,7 +111,7 @@ const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
   "☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉",
   "☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽",
-  "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿",
+  "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿",
   "☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽",
   "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
   "☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽",

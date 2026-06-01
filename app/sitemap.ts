@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { blogPosts } from "../lib/blog";
-import { supportedLocales, withExplicitLocale } from "../lib/i18n";
+import { defaultLocale, supportedLocales, withExplicitLocale } from "../lib/i18n";
 import { SITE_URL } from "../lib/seo";
 
 const staticPaths = [
@@ -40,6 +40,8 @@ function buildAlternates(pathname: string) {
   };
 }
 
+const nonDefaultLocales = supportedLocales.filter((locale) => locale !== defaultLocale);
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
@@ -51,7 +53,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: pathname === "/" ? 1 : pathname === "/services" || pathname === "/pricing" || pathname === "/blog" ? 0.9 : 0.8,
       alternates: buildAlternates(pathname),
     },
-    ...supportedLocales.map((locale) => ({
+    ...nonDefaultLocales.map((locale) => ({
       url: toAbsoluteUrl(withExplicitLocale(locale, pathname)),
       lastModified: now,
       changeFrequency: (pathname === "/" ? "weekly" : "monthly") as SitemapChangeFrequency,
@@ -70,7 +72,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.8,
         alternates: buildAlternates(pathname),
       },
-      ...supportedLocales.map((locale) => ({
+      ...nonDefaultLocales.map((locale) => ({
         url: toAbsoluteUrl(withExplicitLocale(locale, pathname)),
         lastModified: now,
         changeFrequency: "monthly" as SitemapChangeFrequency,

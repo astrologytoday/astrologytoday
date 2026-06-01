@@ -14,12 +14,11 @@ import { SHOW_AD_DEBUGGERS, SHOW_DEBUGGERS } from "../../lib/debug";
 import {
   authenticateLifespaceAccount,
   getStoredLifespaceSession,
-  hashPassword,
   LIFESPACE_AUTH_EVENT,
   setStoredLifespaceSession,
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
-import { getWebAccountByUsername, upsertMailingListSignup } from "../../lib/firebase/lifespace";
+import { upsertMailingListSignup } from "../../lib/firebase/lifespace";
 import GoogleAdSenseUnit from "../shared/GoogleAdSenseUnit";
 import ScaledPageCanvas from "../shared/ScaledPageCanvas";
 
@@ -759,26 +758,14 @@ export default function HomePage({
     }
 
     const normalizedUsername = loginUsername.trim().toLowerCase();
-    const account = await getWebAccountByUsername(normalizedUsername);
-    if (!account) {
-      setLoginErrorMessage(copy.login.missingUsername);
-      return;
-    }
-
-    const passwordHash = await hashPassword(loginPassword);
-    if (passwordHash !== account.passwordHash) {
+    const session = await authenticateLifespaceAccount(loginUsername, loginPassword);
+    if (!session) {
       const nextAttempts = (wrongPasswordAttempts[normalizedUsername] ?? 0) + 1;
       setWrongPasswordAttempts((current) => ({
         ...current,
         [normalizedUsername]: nextAttempts,
       }));
       setLoginErrorMessage(nextAttempts >= 3 ? "Contact support" : "Wrong password");
-      return;
-    }
-
-    const session = await authenticateLifespaceAccount(loginUsername, loginPassword);
-    if (!session) {
-      setLoginErrorMessage(copy.login.missingUsername);
       return;
     }
 
@@ -1462,7 +1449,7 @@ export default function HomePage({
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
               <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
-              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
               <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
               <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
@@ -1474,7 +1461,7 @@ export default function HomePage({
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
               <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
-              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 07/08 ⋅ GEMINI MERCURY ⋅ ☿</span>
+              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
               <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
               <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
@@ -1756,11 +1743,6 @@ export default function HomePage({
                   <Link
                     href={localizedHref("/love-computer")}
                     className="primary-link"
-                    onClick={(event) => {
-                      if (displayLifespaceSession) return;
-                      event.preventDefault();
-                      setLoginErrorMessage("Subscription required");
-                    }}
                   >
                     {copy.hero.relationshipCalculator}
                   </Link>

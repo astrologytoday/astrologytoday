@@ -102,7 +102,7 @@ export type LifespaceSharedSnapshot = {
 export type LifespaceWebAccount = {
   username: string;
   usernameLower: string;
-  passwordHash: string;
+  passwordHash?: string;
   recoveryEmail: string;
   linkedCode: string;
   createdAt?: Date | null;

@@ -60,6 +60,10 @@ export function withLocale(locale: SupportedLocale | undefined, href: string) {
 }
 
 export function withExplicitLocale(locale: SupportedLocale, href: string) {
+  if (locale === defaultLocale) {
+    return href;
+  }
+
   if (
     href.startsWith("http://") ||
     href.startsWith("https://") ||

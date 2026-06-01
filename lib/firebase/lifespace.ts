@@ -271,7 +271,7 @@ export async function getWebAccountByCode(code: string) {
 export async function createWebAccount(account: {
   username: string;
   usernameLower: string;
-  passwordHash: string;
+  passwordHash?: string;
   recoveryEmail: string;
   linkedCode: string;
 }) {
@@ -289,15 +289,20 @@ export async function createWebAccount(account: {
     throw new Error("That app user code is already connected to another account.");
   }
 
-  await setDoc(accountRef, {
+  const payload: Record<string, unknown> = {
     username: account.username,
     usernameLower: account.usernameLower,
-    passwordHash: account.passwordHash,
     recoveryEmail: account.recoveryEmail,
     linkedCode: account.linkedCode,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-  });
+  };
+
+  if (typeof account.passwordHash === "string" && account.passwordHash.length > 0) {
+    payload.passwordHash = account.passwordHash;
+  }
+
+  await setDoc(accountRef, payload);
 
   return getWebAccountByUsername(account.usernameLower);
 }

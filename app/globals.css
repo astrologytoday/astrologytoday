@@ -3898,6 +3898,38 @@ h2 {
   font-size: 0.92rem;
 }
 
+.love-computer-auth-success {
+  color: #4f6c46;
+  font-size: 0.92rem;
+}
+
+.love-computer-auth-inline-link,
+.love-computer-auth-text-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.love-computer-auth-inline-link {
+  justify-self: end;
+  margin-top: -0.2rem;
+}
+
+.love-computer-auth-inline-link:hover,
+.love-computer-auth-text-link:hover {
+  text-decoration: underline;
+}
+
+.love-computer-auth-text-link-centered {
+  align-self: center;
+  text-align: center;
+}
+
 .love-computer-auth-button {
   border: 1px solid rgba(98, 84, 66, 0.16);
   border-radius: 999px;
@@ -3929,6 +3961,7 @@ h2 {
 .love-computer-auth-signup a:hover {
   text-decoration: underline;
 }
+
 
 .home-downloads-panel {
   padding: 18px;
@@ -6795,6 +6828,7 @@ body {
 .report-shell-teal .placement-input select,
 .report-shell-teal .placement-input input,
 .report-shell-teal .sex-row select,
+.report-shell-teal .location-search-wrap input,
 .report-shell-teal .upload-field input {
   border-color: rgba(19, 99, 97, 0.2);
 }
@@ -6839,6 +6873,48 @@ body {
   color: var(--muted);
 }
 
+.birth-form-block {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 18px;
+}
+
+.birth-grid {
+  display: grid;
+  gap: 10px;
+  align-items: center;
+}
+
+.birth-grid-date {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.75fr) minmax(0, 0.9fr);
+}
+
+.birth-grid-time {
+  grid-template-columns: minmax(0, 0.78fr) auto minmax(0, 0.78fr) minmax(0, 0.9fr);
+}
+
+.birth-time-separator {
+  font-weight: 700;
+  color: var(--ink);
+  align-self: center;
+  justify-self: center;
+}
+
+.birth-time-unknown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.birth-time-unknown input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .card-save-button {
   margin-top: 8px;
   border: 1px solid rgba(98, 84, 66, 0.18);
@@ -6874,6 +6950,99 @@ body {
   color: #9b2626;
   border-color: rgba(220, 38, 38, 0.28);
   box-shadow: 0 10px 20px rgba(153, 38, 38, 0.12);
+}
+
+.card-generate-button {
+  border: 1px solid rgba(98, 84, 66, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 251, 245, 0.92);
+  color: var(--ink);
+  padding: 11px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.card-generate-button:hover,
+.card-generate-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 18px rgba(44, 31, 10, 0.08);
+}
+
+.birth-form-status {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+}
+
+.birth-form-status-loading,
+.birth-form-status-idle {
+  color: var(--muted);
+}
+
+.birth-form-status-success {
+  color: #245b39;
+}
+
+.birth-form-status-error {
+  color: #9b2626;
+}
+
+.location-search-row {
+  position: relative;
+}
+
+.location-search-wrap {
+  position: relative;
+}
+
+.location-search-wrap input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(98, 84, 66, 0.18);
+  background: #fffdf8;
+  color: var(--ink);
+  padding: 10px 12px;
+}
+
+.location-search-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.location-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 8;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(98, 84, 66, 0.12);
+  background: rgba(255, 251, 245, 0.98);
+  box-shadow: 0 16px 28px rgba(44, 31, 10, 0.12);
+}
+
+.location-suggestion {
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.location-suggestion:hover,
+.location-suggestion:focus-visible {
+  background: rgba(251, 243, 220, 0.96);
 }
 
 .upload-field {
@@ -9795,6 +9964,16 @@ select {
 
   .placement-row {
     grid-template-columns: 1fr;
+  }
+
+  .birth-grid-date,
+  .birth-grid-time {
+    grid-template-columns: 1fr;
+  }
+
+  .birth-time-separator,
+  .location-search-status {
+    display: none;
   }
 
   .calibration-row {

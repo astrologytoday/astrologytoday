@@ -3,11 +3,23 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getLoveComputerCloudState, setLoveComputerCloudState } from "../../lib/firebase/lifespace";
+import type {
+  AstrologyCalculateResponse,
+  AstrologyHousePlanetKey,
+  AstrologyLocationOption,
+  AstrologySignName,
+} from "../../lib/astrology";
+import {
+  getLoveComputerCloudState,
+  getWebAccountByUsername,
+  setLoveComputerCloudState,
+} from "../../lib/firebase/lifespace";
 import {
   authenticateLifespaceAccount,
+  getFirebaseAuthErrorMessage,
   getStoredLifespaceSession,
   LIFESPACE_AUTH_EVENT,
+  requestPasswordReset,
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
 
@@ -80,6 +92,7 @@ type RootPowerMatch = RootPowerDefinition & {
 
 type DayOfWeek = "Sunday" | "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday";
 type ClockMode = "day" | "night";
+type Meridiem = "AM" | "PM";
 type HousePlanet = "☉" | "☽" | "⥉" | "☿" | "♀" | "♂" | "♃" | "♄" | "♅" | "♆" | "♇";
 type HousePlacement = {
   sign: Sign | "";
@@ -131,14 +144,29 @@ type TextImportResult = {
   warnings: string[];
 };
 
+type BirthDetails = {
+  month: string;
+  day: string;
+  year: string;
+  hour: string;
+  minute: string;
+  meridiem: Meridiem;
+  birthTimeKnown: boolean;
+  location: string;
+  latitude: number | null;
+  longitude: number | null;
+  timezone: string;
+};
+
 type SavedChartRecord = {
   id: string;
-  schemaVersion: 3;
+  schemaVersion: 4;
   storageScope: "local";
   profileName: string;
   sex: Sex;
   placements: PlacementMap;
   houses: HouseAssignment[];
+  birthDetails: BirthDetails | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -149,6 +177,15 @@ type SaveFlashState = {
 } | null;
 
 type ModalNotesMap = Record<string, string>;
+type CalculationStatus = {
+  kind: "idle" | "loading" | "success" | "error";
+  message: string;
+};
+
+type ResetPasswordStatus = {
+  kind: "idle" | "loading" | "success" | "error";
+  message: string;
+};
 
 const PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆"];
 const PLACEMENT_CARD_PLANETS: Array<Planet | "♇"> = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇"];
@@ -208,6 +245,21 @@ const TEXT_PLANET_TO_SYMBOL: Record<string, Planet | null> = {
 };
 
 const TEXT_SIGN_TO_SYMBOL: Record<string, Sign> = {
+  Aries: "♈︎",
+  Taurus: "♉︎",
+  Gemini: "♊︎",
+  Cancer: "♋︎",
+  Leo: "♌︎",
+  Virgo: "♍︎",
+  Libra: "♎︎",
+  Scorpio: "♏︎",
+  Sagittarius: "♐︎",
+  Capricorn: "♑︎",
+  Aquarius: "♒︎",
+  Pisces: "♓︎",
+};
+
+const ASTROLOGY_SIGN_TO_SYMBOL: Record<AstrologySignName, Sign> = {
   Aries: "♈︎",
   Taurus: "♉︎",
   Gemini: "♊︎",
@@ -676,11 +728,19 @@ const REPORT_SKIN_STORAGE_KEY = "love-computer-report-skin";
 const CLOCK_CALCULATOR_STORAGE_KEY = "love-computer-clock-calculator";
 const PAGE_NAV_ITEMS = [
   { href: "#placements", symbol: "✎", label: "Placements" },
-  { href: "#saved-charts", symbol: "◉", label: "Saved Charts" },
-  { href: "#imports", symbol: "+", label: "Import Reports" },
   { href: "#comparison-grid", symbol: "▤", label: "Comparison Grid" },
   { href: "#summaries", symbol: "☯", label: "Elements And Gender" },
+  { href: "#roots-of-element", symbol: "◉", label: "Roots Of The Element" },
+  { href: "#houses", symbol: "⌂", label: "Houses" },
 ] as const;
+
+function getSavedChartsStorageKey(usernameLower?: string | null) {
+  return usernameLower ? `${SAVED_CHARTS_STORAGE_KEY}:${usernameLower}` : SAVED_CHARTS_STORAGE_KEY;
+}
+
+function getModalNotesStorageKey(usernameLower?: string | null) {
+  return usernameLower ? `${MODAL_NOTES_STORAGE_KEY}:${usernameLower}` : MODAL_NOTES_STORAGE_KEY;
+}
 
 const ASTROSEEK_SYN_A_OVERRIDES: SynastryOverrideMap = {
   "☉": { dx: -21 / 700, dy: 9 / 1275, scale: 1.1 },
@@ -881,6 +941,21 @@ const MAX_HOUSE_PLACEMENTS = 4;
 const DEFAULT_HOUSE_ASSIGNMENTS: HouseAssignment[] = SIGNS.map((sign) => ({
   placements: [{ sign, planet: "" }],
 }));
+
+const AUTO_HOUSE_PLANET_ORDER: HousePlanet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇"];
+const AUTO_HOUSE_PLANET_SYMBOLS: Record<AstrologyHousePlanetKey, HousePlanet> = {
+  sun: "☉",
+  moon: "☽",
+  ascendant: "⥉",
+  mercury: "☿",
+  venus: "♀",
+  mars: "♂",
+  jupiter: "♃",
+  saturn: "♄",
+  uranus: "♅",
+  neptune: "♆",
+  pluto: "♇",
+};
 
 const DAYS_OF_WEEK: DayOfWeek[] = [
   "Sunday",
@@ -1227,6 +1302,29 @@ const DEFAULT_B: PlacementMap = {
   "♅": "♒︎",
   "♆": "♑︎",
 };
+
+const MONTH_OPTIONS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+
+const DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => String(index + 1));
+const MAX_BIRTH_YEAR = Math.max(new Date().getFullYear(), 2045);
+const YEAR_OPTIONS = Array.from({ length: MAX_BIRTH_YEAR - 1899 }, (_, index) =>
+  String(MAX_BIRTH_YEAR - index)
+);
+const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, "0"));
 
 const DISTRIBUTION_ORDER = {
   element: ["fire", "earth", "air", "water"] as const,
@@ -3322,11 +3420,49 @@ function mergeModalNoteMaps(localNotes: ModalNotesMap, remoteNotes: ModalNotesMa
   };
 }
 
+function createDefaultBirthDetails(): BirthDetails {
+  return {
+    month: "",
+    day: "",
+    year: "",
+    hour: "12",
+    minute: "00",
+    meridiem: "PM",
+    birthTimeKnown: true,
+    location: "",
+    latitude: null,
+    longitude: null,
+    timezone: "",
+  };
+}
+
+function normalizeBirthDetails(value: unknown): BirthDetails | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Partial<BirthDetails>;
+  const fallback = createDefaultBirthDetails();
+  const meridiem = source.meridiem === "AM" ? "AM" : source.meridiem === "PM" ? "PM" : fallback.meridiem;
+
+  return {
+    month: typeof source.month === "string" ? source.month : fallback.month,
+    day: typeof source.day === "string" ? source.day : fallback.day,
+    year: typeof source.year === "string" ? source.year : fallback.year,
+    hour: typeof source.hour === "string" ? source.hour : fallback.hour,
+    minute: typeof source.minute === "string" ? source.minute : fallback.minute,
+    meridiem,
+    birthTimeKnown: source.birthTimeKnown !== false,
+    location: typeof source.location === "string" ? source.location : fallback.location,
+    latitude: typeof source.latitude === "number" ? source.latitude : null,
+    longitude: typeof source.longitude === "number" ? source.longitude : null,
+    timezone: typeof source.timezone === "string" ? source.timezone : fallback.timezone,
+  };
+}
+
 function createSavedChartRecord(
   name: string,
   sex: Sex,
   placements: PlacementMap,
-  houses: HouseAssignment[]
+  houses: HouseAssignment[],
+  birthDetails: BirthDetails | null
 ): SavedChartRecord {
   const now = new Date().toISOString();
   const id =
@@ -3336,12 +3472,13 @@ function createSavedChartRecord(
 
   return {
     id,
-    schemaVersion: 3,
+    schemaVersion: 4,
     storageScope: "local",
     profileName: name.trim() || "Unnamed Chart",
     sex,
     placements: { ...placements },
     houses: cloneHouseAssignments(houses),
+    birthDetails: birthDetails ? { ...birthDetails } : null,
     createdAt: now,
     updatedAt: now,
   };
@@ -3412,12 +3549,13 @@ function normalizeHouseAssignments(value: unknown): HouseAssignment[] {
 function normalizeSavedChartRecords(records: Array<Partial<SavedChartRecord>>): SavedChartRecord[] {
   return records.map((record) => ({
     id: record.id ?? `chart-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    schemaVersion: 3 as const,
+    schemaVersion: 4 as const,
     storageScope: "local" as const,
     profileName: record.profileName?.trim() || "Unnamed Chart",
     sex: (record.sex === "female" ? "female" : "male") as Sex,
     placements: { ...createEmptyPlacementMap(), ...(record.placements ?? {}) },
     houses: normalizeHouseAssignments(record.houses),
+    birthDetails: normalizeBirthDetails(record.birthDetails),
     createdAt: record.createdAt ?? new Date().toISOString(),
     updatedAt: record.updatedAt ?? record.createdAt ?? new Date().toISOString(),
   }));
@@ -3428,6 +3566,50 @@ function createEmptyPlacementMap(): PlacementMap {
     accumulator[planet] = "";
     return accumulator;
   }, {});
+}
+
+function createBlankHouseAssignments(): HouseAssignment[] {
+  return Array.from({ length: 12 }, () => ({
+    placements: [{ sign: "", planet: "" }],
+  }));
+}
+
+function buildHouseAssignmentsFromCalculation(result: AstrologyCalculateResponse): HouseAssignment[] {
+  if (!result.houses) {
+    return createBlankHouseAssignments();
+  }
+
+  return Array.from({ length: 12 }, (_, houseIndex) => {
+    const houseNumber = houseIndex + 1;
+    const entries: HousePlacement[] =
+      result.houses?.entries
+      .filter((entry) => entry.house === houseNumber)
+      .sort(
+        (left, right) =>
+          AUTO_HOUSE_PLANET_ORDER.indexOf(AUTO_HOUSE_PLANET_SYMBOLS[left.planet]) -
+          AUTO_HOUSE_PLANET_ORDER.indexOf(AUTO_HOUSE_PLANET_SYMBOLS[right.planet])
+      )
+      .map((entry) => ({
+        sign: ASTROLOGY_SIGN_TO_SYMBOL[entry.sign],
+        planet: AUTO_HOUSE_PLANET_SYMBOLS[entry.planet],
+      })) ?? [];
+
+    const cusp = result.houses?.cusps.find((item) => item.house === houseNumber);
+    if (cusp) {
+      const cuspSign = ASTROLOGY_SIGN_TO_SYMBOL[cusp.sign];
+      const alreadyRepresented = entries.some((entry) => entry.sign === cuspSign);
+      if (!alreadyRepresented && entries.length < MAX_HOUSE_PLACEMENTS) {
+        entries.push({
+          sign: cuspSign,
+          planet: "",
+        });
+      }
+    }
+
+    return {
+      placements: entries.length > 0 ? entries.slice(0, MAX_HOUSE_PLACEMENTS) : [{ sign: "", planet: "" }],
+    };
+  });
 }
 
 function isMirroredDuplicateCell(cell: GridCell) {
@@ -3737,8 +3919,15 @@ export default function LoveComputerPage() {
   const [authReady, setAuthReady] = useState(false);
   const [localStateReady, setLocalStateReady] = useState(false);
   const [cloudStateReady, setCloudStateReady] = useState(false);
+  const [cloudStateUsername, setCloudStateUsername] = useState<string | null>(null);
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetPasswordStatus, setResetPasswordStatus] = useState<ResetPasswordStatus>({
+    kind: "idle",
+    message: "",
+  });
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginErrorMessage, setLoginErrorMessage] = useState("");
   const [houseTarget, setHouseTarget] = useState<"a" | "b">("a");
@@ -3756,9 +3945,19 @@ export default function LoveComputerPage() {
   const [personAName, setPersonAName] = useState("Person A");
   const [personA, setPersonA] = useState<PlacementMap>(DEFAULT_A);
   const [personASex, setPersonASex] = useState<Sex>("male");
+  const [birthDetailsA, setBirthDetailsA] = useState<BirthDetails>(() => createDefaultBirthDetails());
+  const [calculationStatusA, setCalculationStatusA] = useState<CalculationStatus>({
+    kind: "idle",
+    message: "",
+  });
   const [personBName, setPersonBName] = useState("Person B");
   const [personB, setPersonB] = useState<PlacementMap>(DEFAULT_B);
   const [personBSex, setPersonBSex] = useState<Sex>("female");
+  const [birthDetailsB, setBirthDetailsB] = useState<BirthDetails>(() => createDefaultBirthDetails());
+  const [calculationStatusB, setCalculationStatusB] = useState<CalculationStatus>({
+    kind: "idle",
+    message: "",
+  });
   const [selectedCell, setSelectedCell] = useState<GridCell | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importStatus, setImportStatus] = useState("Upload an Astro-Seek synastry report to auto-fill the placements.");
@@ -3846,8 +4045,6 @@ export default function LoveComputerPage() {
   useEffect(() => {
     const storedA = window.localStorage.getItem(SYN_A_STORAGE_KEY);
     const storedB = window.localStorage.getItem(SYN_B_STORAGE_KEY);
-    const storedCharts = window.localStorage.getItem(SAVED_CHARTS_STORAGE_KEY);
-    const storedModalNotes = window.localStorage.getItem(MODAL_NOTES_STORAGE_KEY);
     const storedNoteMarkerOffset = window.localStorage.getItem(NOTE_MARKER_STORAGE_KEY);
     const storedReportSkin = window.localStorage.getItem(REPORT_SKIN_STORAGE_KEY);
     const storedClockCalculator = window.localStorage.getItem(CLOCK_CALCULATOR_STORAGE_KEY);
@@ -3874,24 +4071,6 @@ export default function LoveComputerPage() {
 
     if (storedA || storedB) {
       setCalibrationStatus("Saved calibration loaded from this browser.");
-    }
-
-    if (storedCharts) {
-      try {
-        const parsed = JSON.parse(storedCharts) as Array<Partial<SavedChartRecord>>;
-        setSavedCharts(normalizeSavedChartRecords(parsed));
-        setSaveStatus("Saved charts loaded from this browser.");
-      } catch {
-        window.localStorage.removeItem(SAVED_CHARTS_STORAGE_KEY);
-      }
-    }
-
-    if (storedModalNotes) {
-      try {
-        setModalNotes(JSON.parse(storedModalNotes) as ModalNotesMap);
-      } catch {
-        window.localStorage.removeItem(MODAL_NOTES_STORAGE_KEY);
-      }
     }
 
     if (storedNoteMarkerOffset) {
@@ -3956,44 +4135,104 @@ export default function LoveComputerPage() {
   }, [clockDay, sunriseHour, sunriseMinute, clockMode]);
 
   useEffect(() => {
-    if (!localStateReady) return;
+    if (!localStateReady || !authReady) return;
 
     if (!lifespaceSession?.usernameLower) {
+      setCloudStateUsername(null);
+      const guestChartsKey = getSavedChartsStorageKey();
+      const guestNotesKey = getModalNotesStorageKey();
+      const storedCharts = window.localStorage.getItem(guestChartsKey);
+      const storedModalNotes = window.localStorage.getItem(guestNotesKey);
+
+      if (storedCharts) {
+        try {
+          const parsed = JSON.parse(storedCharts) as Array<Partial<SavedChartRecord>>;
+          setSavedCharts(normalizeSavedChartRecords(parsed));
+          setSaveStatus("Saved charts loaded from this browser.");
+        } catch {
+          setSavedCharts([]);
+          window.localStorage.removeItem(guestChartsKey);
+        }
+      } else {
+        setSavedCharts([]);
+      }
+
+      if (storedModalNotes) {
+        try {
+          setModalNotes(JSON.parse(storedModalNotes) as ModalNotesMap);
+        } catch {
+          setModalNotes({});
+          window.localStorage.removeItem(guestNotesKey);
+        }
+      } else {
+        setModalNotes({});
+      }
+
       setCloudStateReady(false);
       return;
     }
 
+    setCloudStateReady(false);
+    setCloudStateUsername(null);
+    setSavedCharts([]);
+    setModalNotes({});
+
     let cancelled = false;
+    const targetUsername = lifespaceSession.usernameLower;
 
     const loadAccountLoveComputerData = async () => {
+      const accountChartsKey = getSavedChartsStorageKey(targetUsername);
+      const accountNotesKey = getModalNotesStorageKey(targetUsername);
+
       try {
-        const remoteState = await getLoveComputerCloudState(lifespaceSession.usernameLower);
+        const [remoteState, account] = await Promise.all([
+          getLoveComputerCloudState(targetUsername),
+          getWebAccountByUsername(targetUsername),
+        ]);
         if (cancelled) return;
 
-        const remoteCharts = normalizeSavedChartRecords(
+        const remoteChartsUnfiltered = normalizeSavedChartRecords(
           (remoteState?.savedCharts ?? []) as Array<Partial<SavedChartRecord>>
         );
+        const accountCreatedAt = account?.createdAt?.getTime() ?? null;
+        const remoteCharts =
+          accountCreatedAt === null
+            ? remoteChartsUnfiltered
+            : remoteChartsUnfiltered.filter((chart) => {
+                const chartCreatedAt = new Date(chart.createdAt).getTime();
+                return Number.isNaN(chartCreatedAt) || chartCreatedAt >= accountCreatedAt;
+              });
         const remoteNotes = remoteState?.modalNotes ?? {};
-        const mergedCharts = mergeSavedChartRecords(savedCharts, remoteCharts);
-        const mergedNotes = mergeModalNoteMaps(modalNotes, remoteNotes);
+        const nextCharts = remoteState ? remoteCharts : [];
+        const nextNotes = remoteState ? remoteNotes : {};
 
-        setSavedCharts(mergedCharts);
-        setModalNotes(mergedNotes);
-        window.localStorage.setItem(SAVED_CHARTS_STORAGE_KEY, JSON.stringify(mergedCharts));
-        window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(mergedNotes));
+        setSavedCharts(nextCharts);
+        setModalNotes(nextNotes);
+        window.localStorage.setItem(accountChartsKey, JSON.stringify(nextCharts));
+        window.localStorage.setItem(accountNotesKey, JSON.stringify(nextNotes));
+        setCloudStateUsername(targetUsername);
         setCloudStateReady(true);
+        setSaveStatus(
+          remoteState
+            ? `${nextCharts.length} saved ${nextCharts.length === 1 ? "chart" : "charts"} loaded for ${targetUsername}.`
+            : "No saved charts yet for this account."
+        );
 
-        const remoteChartsChanged = JSON.stringify(remoteCharts) !== JSON.stringify(mergedCharts);
-        const remoteNotesChanged = JSON.stringify(remoteNotes) !== JSON.stringify(mergedNotes);
-        if (remoteChartsChanged || remoteNotesChanged) {
-          await setLoveComputerCloudState(lifespaceSession.usernameLower, {
-            savedCharts: mergedCharts,
-            modalNotes: mergedNotes,
+        if (
+          remoteState &&
+          remoteCharts.length !== remoteChartsUnfiltered.length
+        ) {
+          await setLoveComputerCloudState(targetUsername, {
+            savedCharts: nextCharts,
+            modalNotes: nextNotes,
           });
         }
       } catch (error) {
         if (cancelled) return;
-        setCloudStateReady(true);
+        setSavedCharts([]);
+        setModalNotes({});
+        setCloudStateReady(false);
+        setCloudStateUsername(null);
         setSaveStatus(
           error instanceof Error
             ? `Account sync unavailable: ${error.message}`
@@ -4007,10 +4246,11 @@ export default function LoveComputerPage() {
     return () => {
       cancelled = true;
     };
-  }, [localStateReady, lifespaceSession?.usernameLower]);
+  }, [authReady, localStateReady, lifespaceSession?.usernameLower]);
 
   useEffect(() => {
     if (!cloudStateReady || !lifespaceSession?.usernameLower) return;
+    if (cloudStateUsername !== lifespaceSession.usernameLower) return;
 
     void setLoveComputerCloudState(lifespaceSession.usernameLower, {
       savedCharts,
@@ -4022,7 +4262,7 @@ export default function LoveComputerPage() {
           : "Account sync unavailable right now."
       );
     });
-  }, [cloudStateReady, lifespaceSession?.usernameLower, savedCharts, modalNotes]);
+  }, [cloudStateReady, cloudStateUsername, lifespaceSession?.usernameLower, savedCharts, modalNotes]);
 
   const visiblePlanets = useMemo(
     () => pickVisiblePlanets(showGenerationalPlanets),
@@ -4175,8 +4415,7 @@ export default function LoveComputerPage() {
       ...modalNotes,
       [selectedCellNoteKey]: value,
     };
-    setModalNotes(next);
-    window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(next));
+    persistModalNotes(next);
   };
 
   const updateModalNote = (key: string, value: string) => {
@@ -4184,16 +4423,14 @@ export default function LoveComputerPage() {
       ...modalNotes,
       [key]: value,
     };
-    setModalNotes(next);
-    window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(next));
+    persistModalNotes(next);
   };
 
   const clearHouseModalNotes = (scope: string) => {
     const next = Object.fromEntries(
       Object.entries(modalNotes).filter(([key]) => !key.startsWith(`house-note-${scope}-`))
     );
-    setModalNotes(next);
-    window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(next));
+    persistModalNotes(next);
   };
 
   const restoreHouseModalNotes = (scope: string, nextScopeNotes: ModalNotesMap) => {
@@ -4201,8 +4438,7 @@ export default function LoveComputerPage() {
       ...Object.fromEntries(Object.entries(modalNotes).filter(([key]) => !key.startsWith(`house-note-${scope}-`))),
       ...nextScopeNotes,
     };
-    setModalNotes(next);
-    window.localStorage.setItem(MODAL_NOTES_STORAGE_KEY, JSON.stringify(next));
+    persistModalNotes(next);
   };
 
   const selectedOverride =
@@ -4274,6 +4510,10 @@ export default function LoveComputerPage() {
     setIsImporting(true);
     setImportWarnings([]);
     setImportStatus(`Analyzing ${file.name}...`);
+    setBirthDetailsA(createDefaultBirthDetails());
+    setBirthDetailsB(createDefaultBirthDetails());
+    setCalculationStatusA({ kind: "idle", message: "" });
+    setCalculationStatusB({ kind: "idle", message: "" });
 
     try {
       const result = await parseAstroSeekSynastryFile(file, synastryOverridesA, synastryOverridesB);
@@ -4342,6 +4582,14 @@ export default function LoveComputerPage() {
     URL.revokeObjectURL(url);
   };
 
+  const persistModalNotes = (next: ModalNotesMap) => {
+    setModalNotes(next);
+    window.localStorage.setItem(
+      getModalNotesStorageKey(lifespaceSession?.usernameLower),
+      JSON.stringify(next)
+    );
+  };
+
   const handleAstroSeekUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -4368,6 +4616,10 @@ export default function LoveComputerPage() {
     setImportWarnings([]);
     setDebugImageUrl(null);
     setUploadedSynastryFile(null);
+    setBirthDetailsA(createDefaultBirthDetails());
+    setBirthDetailsB(createDefaultBirthDetails());
+    setCalculationStatusA({ kind: "idle", message: "" });
+    setCalculationStatusB({ kind: "idle", message: "" });
 
     try {
       const result = parseAstroSeekTextExport(textImportValue);
@@ -4389,7 +4641,10 @@ export default function LoveComputerPage() {
 
   const persistSavedCharts = (next: SavedChartRecord[]) => {
     setSavedCharts(next);
-    window.localStorage.setItem(SAVED_CHARTS_STORAGE_KEY, JSON.stringify(next));
+    window.localStorage.setItem(
+      getSavedChartsStorageKey(lifespaceSession?.usernameLower),
+      JSON.stringify(next)
+    );
   };
 
   const syncLoadedChartRecord = (
@@ -4399,6 +4654,7 @@ export default function LoveComputerPage() {
       sex: Sex;
       placements: PlacementMap;
       houses: HouseAssignment[];
+      birthDetails: BirthDetails | null;
     }
   ) => {
     if (!recordId) return;
@@ -4408,13 +4664,15 @@ export default function LoveComputerPage() {
     const existing = savedCharts[existingIndex];
     const nextPlacements = { ...updates.placements };
     const nextHouses = cloneHouseAssignments(updates.houses);
+    const nextBirthDetails = updates.birthDetails ? { ...updates.birthDetails } : null;
     const nextProfileName = updates.profileName.trim() || existing.profileName;
     const placementsChanged = JSON.stringify(existing.placements) !== JSON.stringify(nextPlacements);
     const housesChanged = JSON.stringify(existing.houses) !== JSON.stringify(nextHouses);
+    const birthDetailsChanged = JSON.stringify(existing.birthDetails ?? null) !== JSON.stringify(nextBirthDetails);
     const nameChanged = existing.profileName !== nextProfileName;
     const sexChanged = existing.sex !== updates.sex;
 
-    if (!placementsChanged && !housesChanged && !nameChanged && !sexChanged) return;
+    if (!placementsChanged && !housesChanged && !birthDetailsChanged && !nameChanged && !sexChanged) return;
 
     const updatedRecord: SavedChartRecord = {
       ...existing,
@@ -4422,6 +4680,7 @@ export default function LoveComputerPage() {
       sex: updates.sex,
       placements: nextPlacements,
       houses: nextHouses,
+      birthDetails: nextBirthDetails,
       updatedAt: new Date().toISOString(),
     };
 
@@ -4435,7 +4694,8 @@ export default function LoveComputerPage() {
     name: string,
     sex: Sex,
     placements: PlacementMap,
-    houses: HouseAssignment[]
+    houses: HouseAssignment[],
+    birthDetails: BirthDetails | null
   ) => {
     const normalizedName = name.trim().toLowerCase();
     const hasDuplicateName = savedCharts.some(
@@ -4455,7 +4715,7 @@ export default function LoveComputerPage() {
       return;
     }
 
-    const record = createSavedChartRecord(name, sex, placements, houses);
+    const record = createSavedChartRecord(name, sex, placements, houses, birthDetails);
     const next = [record, ...savedCharts];
     persistSavedCharts(next);
     if (target === "a") {
@@ -4479,7 +4739,8 @@ export default function LoveComputerPage() {
     name: string,
     sex: Sex,
     placements: PlacementMap,
-    houses: HouseAssignment[]
+    houses: HouseAssignment[],
+    birthDetails: BirthDetails | null
   ) => {
     const normalizedName = name.trim().toLowerCase();
     const now = new Date().toISOString();
@@ -4501,6 +4762,7 @@ export default function LoveComputerPage() {
         sex,
         placements: { ...placements },
         houses: nextHouses,
+        birthDetails: birthDetails ? { ...birthDetails } : existing.birthDetails,
         updatedAt: now,
       };
       const next = [...savedCharts];
@@ -4515,7 +4777,7 @@ export default function LoveComputerPage() {
       return true;
     }
 
-    const record = createSavedChartRecord(name, sex, placements, nextHouses);
+    const record = createSavedChartRecord(name, sex, placements, nextHouses, birthDetails);
     persistSavedCharts([record, ...savedCharts]);
     if (target === "a") {
       setLoadedChartIdA(record.id);
@@ -4541,12 +4803,16 @@ export default function LoveComputerPage() {
       setPersonASex(record.sex);
       setPersonA({ ...record.placements });
       setHouseAssignmentsA(normalizeHouseAssignments(record.houses));
+      setBirthDetailsA(record.birthDetails ? { ...record.birthDetails } : createDefaultBirthDetails());
+      setCalculationStatusA({ kind: "idle", message: "" });
     } else {
       setLoadedChartIdB(record.id);
       setPersonBName(record.profileName);
       setPersonBSex(record.sex);
       setPersonB({ ...record.placements });
       setHouseAssignmentsB(normalizeHouseAssignments(record.houses));
+      setBirthDetailsB(record.birthDetails ? { ...record.birthDetails } : createDefaultBirthDetails());
+      setCalculationStatusB({ kind: "idle", message: "" });
     }
     setSaveStatus(`${record.profileName} loaded into ${target === "a" ? "Primary" : "Comparison"} Chart.`);
   };
@@ -4595,6 +4861,141 @@ export default function LoveComputerPage() {
     }
   };
 
+  const handlePasswordReset = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmedEmail = resetEmail.trim().toLowerCase();
+
+    if (!trimmedEmail) {
+      setResetPasswordStatus({ kind: "error", message: "Enter your email address." });
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setResetPasswordStatus({ kind: "error", message: "Enter a valid email address." });
+      return;
+    }
+
+    setResetPasswordStatus({ kind: "loading", message: "Sending reset email..." });
+
+    try {
+      await requestPasswordReset(trimmedEmail);
+      setResetPasswordStatus({
+        kind: "success",
+        message: "If an account exists for that email, a password reset link has been sent.",
+      });
+    } catch (error) {
+      setResetPasswordStatus({
+        kind: "error",
+        message: getFirebaseAuthErrorMessage(
+          error,
+          error instanceof Error ? error.message : "Unable to send the reset email right now."
+        ),
+      });
+    }
+  };
+
+  const buildBirthDateString = (details: BirthDetails) => {
+    if (!details.month || !details.day || !details.year) return "";
+    const monthIndex = MONTH_OPTIONS.indexOf(details.month as (typeof MONTH_OPTIONS)[number]);
+    if (monthIndex < 0) return "";
+    return `${details.year}-${String(monthIndex + 1).padStart(2, "0")}-${details.day.padStart(2, "0")}`;
+  };
+
+  const buildBirthTimeString = (details: BirthDetails) => {
+    const hourNumber = Number(details.hour);
+    const minuteNumber = Number(details.minute);
+    if (!Number.isFinite(hourNumber) || !Number.isFinite(minuteNumber)) return undefined;
+    const hour24 = details.meridiem === "AM" ? (hourNumber % 12) : (hourNumber % 12) + 12;
+    return `${String(hour24).padStart(2, "0")}:${String(minuteNumber).padStart(2, "0")}`;
+  };
+
+  const applyCalculatedPlacements = (result: AstrologyCalculateResponse): PlacementMap => ({
+    ...createEmptyPlacementMap(),
+    "☉": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.sun.sign],
+    "☽": result.placements.moon ? ASTROLOGY_SIGN_TO_SYMBOL[result.placements.moon.sign] : "",
+    "⥉": result.placements.ascendant ? ASTROLOGY_SIGN_TO_SYMBOL[result.placements.ascendant.sign] : "",
+    "☿": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.mercury.sign],
+    "♀": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.venus.sign],
+    "♂": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.mars.sign],
+    "♃": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.jupiter.sign],
+    "♄": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.saturn.sign],
+    "♅": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.uranus.sign],
+    "♆": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.neptune.sign],
+    "♇": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.pluto.sign],
+  });
+
+  const runPlacementCalculation = async (
+    target: "a" | "b",
+    name: string,
+    details: BirthDetails,
+    setPlacements: (next: PlacementMap) => void,
+    setHouseAssignments: (next: HouseAssignment[]) => void,
+    setBirthDetails: (next: BirthDetails) => void,
+    setCalculationStatus: (next: CalculationStatus) => void
+  ) => {
+    const date = buildBirthDateString(details);
+    if (!date) {
+      setCalculationStatus({ kind: "error", message: "Choose a full birth date first." });
+      return;
+    }
+
+    if (!details.location.trim()) {
+      setCalculationStatus({ kind: "error", message: "Enter a birth city or town first." });
+      return;
+    }
+
+    if (details.birthTimeKnown && !buildBirthTimeString(details)) {
+      setCalculationStatus({ kind: "error", message: "Choose a valid birth time first." });
+      return;
+    }
+
+    setCalculationStatus({ kind: "loading", message: "Generating chart..." });
+
+    try {
+      const response = await fetch("/api/astrology/calculate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim() || "Unnamed Chart",
+          date,
+          time: details.birthTimeKnown ? buildBirthTimeString(details) : undefined,
+          location: details.location.trim(),
+          birthTimeKnown: details.birthTimeKnown,
+        }),
+      });
+
+      const data = (await response.json()) as AstrologyCalculateResponse | { error?: string };
+
+      if (!response.ok || !("placements" in data)) {
+        throw new Error(data && "error" in data && data.error ? data.error : "Chart generation failed.");
+      }
+
+      setPlacements(applyCalculatedPlacements(data));
+      setHouseAssignments(buildHouseAssignmentsFromCalculation(data));
+      setBirthDetails({
+        ...details,
+        location: data.birth.location,
+        latitude: data.birth.latitude,
+        longitude: data.birth.longitude,
+        timezone: data.birth.timezone,
+      });
+      setCalculationStatus({
+        kind: "success",
+        message: data.birth.birthTimeKnown
+          ? "Placements and houses generated. You can still edit any dropdown manually."
+          : "Placements generated with unknown birth time. Moon fills only if one sign is certain; ASC and houses remain ungenerated.",
+      });
+      setSaveStatus(`${data.name} placements generated for ${target === "a" ? "Primary" : "Comparison"} Chart.`);
+    } catch (error) {
+      setCalculationStatus({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Chart generation failed unexpectedly.",
+      });
+    }
+  };
+
   const hasAxisFocus = focusedRows.length > 0 || focusedCols.length > 0;
 
   useEffect(() => {
@@ -4603,8 +5004,9 @@ export default function LoveComputerPage() {
       sex: personASex,
       placements: personA,
       houses: houseAssignmentsA,
+      birthDetails: birthDetailsA,
     });
-  }, [loadedChartIdA, personAName, personASex, personA, houseAssignmentsA, savedCharts]);
+  }, [loadedChartIdA, personAName, personASex, personA, houseAssignmentsA, birthDetailsA, savedCharts]);
 
   useEffect(() => {
     syncLoadedChartRecord(loadedChartIdB, {
@@ -4612,8 +5014,9 @@ export default function LoveComputerPage() {
       sex: personBSex,
       placements: personB,
       houses: houseAssignmentsB,
+      birthDetails: birthDetailsB,
     });
-  }, [loadedChartIdB, personBName, personBSex, personB, houseAssignmentsB, savedCharts]);
+  }, [loadedChartIdB, personBName, personBSex, personB, houseAssignmentsB, birthDetailsB, savedCharts]);
   const hasRelationFocus = focusedRelations.length > 0;
   const hasFocusMode = hasAxisFocus || hasRelationFocus;
 
@@ -4689,32 +5092,89 @@ export default function LoveComputerPage() {
       <main className="love-computer-auth-shell">
         <section className="love-computer-auth-card">
           <h1>Relationship Calculator</h1>
-          <p>Log in to access the Relationship Calculator.</p>
-          <form className="love-computer-auth-form" onSubmit={handleProtectedLogin}>
-            <input
-              className="love-computer-auth-input"
-              type="text"
-              placeholder="Username"
-              aria-label="Username"
-              value={loginUsername}
-              onChange={(event) => setLoginUsername(event.target.value)}
-            />
-            <input
-              className="love-computer-auth-input"
-              type="password"
-              placeholder="Password"
-              aria-label="Password"
-              value={loginPassword}
-              onChange={(event) => setLoginPassword(event.target.value)}
-            />
-            {loginErrorMessage ? <p className="love-computer-auth-error">{loginErrorMessage}</p> : null}
-            <button type="submit" className="love-computer-auth-button" disabled={loginBusy}>
-              {loginBusy ? "Logging in..." : "Log In"}
-            </button>
-          </form>
-          <p className="love-computer-auth-signup">
-            Don&apos;t have an account? <Link href="/pricing">Sign up</Link>
-          </p>
+          {showResetPassword ? (
+            <>
+              <p>Enter your recovery email to reset your password.</p>
+              <form className="love-computer-auth-form" onSubmit={handlePasswordReset}>
+                <input
+                  className="love-computer-auth-input"
+                  type="email"
+                  placeholder="Recovery Email"
+                  aria-label="Recovery Email"
+                  value={resetEmail}
+                  onChange={(event) => setResetEmail(event.target.value)}
+                />
+                {resetPasswordStatus.message ? (
+                  <p
+                    className={
+                      resetPasswordStatus.kind === "success"
+                        ? "love-computer-auth-success"
+                        : "love-computer-auth-error"
+                    }
+                  >
+                    {resetPasswordStatus.message}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  className="love-computer-auth-button"
+                  disabled={resetPasswordStatus.kind === "loading"}
+                >
+                  {resetPasswordStatus.kind === "loading" ? "Sending..." : "Send Reset Email"}
+                </button>
+              </form>
+              <button
+                type="button"
+                className="love-computer-auth-text-link"
+                onClick={() => {
+                  setShowResetPassword(false);
+                  setResetPasswordStatus({ kind: "idle", message: "" });
+                }}
+              >
+                Back to Login
+              </button>
+            </>
+          ) : (
+            <>
+              <p>Log in to access the Relationship Calculator.</p>
+              <form className="love-computer-auth-form" onSubmit={handleProtectedLogin}>
+                <input
+                  className="love-computer-auth-input"
+                  type="text"
+                  placeholder="Username"
+                  aria-label="Username"
+                  value={loginUsername}
+                  onChange={(event) => setLoginUsername(event.target.value)}
+                />
+                <input
+                  className="love-computer-auth-input"
+                  type="password"
+                  placeholder="Password"
+                  aria-label="Password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                />
+                {loginErrorMessage ? <p className="love-computer-auth-error">{loginErrorMessage}</p> : null}
+                <button type="submit" className="love-computer-auth-button" disabled={loginBusy}>
+                  {loginBusy ? "Logging in..." : "Log In"}
+                </button>
+              </form>
+              <p className="love-computer-auth-signup">
+                Don&apos;t have an account? <Link href="sign-up">Sign up</Link>
+              </p>
+              <button
+                type="button"
+                className="love-computer-auth-text-link love-computer-auth-text-link-centered"
+                onClick={() => {
+                  setShowResetPassword(true);
+                  setLoginErrorMessage("");
+                  setResetPasswordStatus({ kind: "idle", message: "" });
+                }}
+              >
+                Forgot Password?
+              </button>
+            </>
+          )}
         </section>
       </main>
     );
@@ -4767,30 +5227,58 @@ export default function LoveComputerPage() {
           subtitle="Primary chart"
           name={personAName}
           sex={personASex}
+          birthDetails={birthDetailsA}
+          calculationStatus={calculationStatusA}
           showGenerational={showGenerationalPlanets}
           onNameChange={setPersonAName}
           values={personA}
           onSexChange={setPersonASex}
+          onBirthDetailsChange={setBirthDetailsA}
           onChange={setPersonA}
+          onGenerate={() =>
+            runPlacementCalculation(
+              "a",
+              personAName,
+              birthDetailsA,
+              setPersonA,
+              setHouseAssignmentsA,
+              setBirthDetailsA,
+              setCalculationStatusA
+            )
+          }
           saveFeedback={
             saveFlashState?.target === "a" ? saveFlashState.kind : null
           }
-          onSave={() => saveChart("a", personAName, personASex, personA, houseAssignmentsA)}
+          onSave={() => saveChart("a", personAName, personASex, personA, houseAssignmentsA, birthDetailsA)}
         />
         <PlacementCard
           title={personBName}
           subtitle="Comparison chart"
           name={personBName}
           sex={personBSex}
+          birthDetails={birthDetailsB}
+          calculationStatus={calculationStatusB}
           showGenerational={showGenerationalPlanets}
           onNameChange={setPersonBName}
           values={personB}
           onSexChange={setPersonBSex}
+          onBirthDetailsChange={setBirthDetailsB}
           onChange={setPersonB}
+          onGenerate={() =>
+            runPlacementCalculation(
+              "b",
+              personBName,
+              birthDetailsB,
+              setPersonB,
+              setHouseAssignmentsB,
+              setBirthDetailsB,
+              setCalculationStatusB
+            )
+          }
           saveFeedback={
             saveFlashState?.target === "b" ? saveFlashState.kind : null
           }
-          onSave={() => saveChart("b", personBName, personBSex, personB, houseAssignmentsB)}
+          onSave={() => saveChart("b", personBName, personBSex, personB, houseAssignmentsB, birthDetailsB)}
         />
         <div className="report-top-tools">
           <CompatibilityTable />
@@ -4890,68 +5378,6 @@ export default function LoveComputerPage() {
           ) : (
             <p className="section-copy">No saved charts yet. Use Save Chart on either card to start building your archive.</p>
           )}
-        </div>
-      </section>
-
-          <section id="imports" className="logic-card">
-        <div className="logic-copy">
-          <p className="eyebrow">Import Astro-Seek</p>
-          <h2>Report Upload</h2>
-          <p>
-            Upload an Astro-Seek synastry report and the parser will fill both partners from the
-            bottom comparison table.
-          </p>
-          <label className="upload-field">
-            <span>Astro-Seek Image</span>
-            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleAstroSeekUpload} />
-          </label>
-          <label className="upload-field">
-            <span>Astro-Seek Text Export</span>
-            <textarea
-              className="import-textarea"
-              value={textImportValue}
-              onChange={(event) => {
-                if (loadedChartIdA || loadedChartIdB) {
-                  detachImportFromLoadedCharts();
-                }
-                setTextImportValue(event.target.value);
-              }}
-              placeholder="Paste the Astro-Seek synastry text export here..."
-              rows={10}
-            />
-          </label>
-          <button type="button" className="import-action" onClick={handleTextImport}>
-            Import Pasted Text
-          </button>
-          <p className="import-status">{isImporting ? "Importing..." : importStatus}</p>
-          {importWarnings.length > 0 ? (
-            <ul className="import-warnings">
-              {importWarnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <div className="logic-copy">
-          <p className="eyebrow">Parser Strategy</p>
-          <h2>Import Instructions</h2>
-          <p>
-            Go to{" "}
-            <a
-              href="https://horoscopes.astro-seek.com/love-compatibility-calculator-horoscope-matching"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Astro-Seek
-            </a>{" "}
-            and enter birth information for Partner A and Partner B (or just Partner A if analyzing
-            a single person) then click "calculate compatibility." Find AI/GPT export on that page
-            and copy the values. Then, paste those values into the Astro-Seek Text Export field on
-            this page.
-          </p>
-          <p>
-            Astro-Seek Images not yet supported.
-          </p>
         </div>
       </section>
 
@@ -5388,11 +5814,15 @@ function PlacementCard({
   subtitle,
   name,
   sex,
+  birthDetails,
+  calculationStatus,
   showGenerational,
   values,
   onNameChange,
   onSexChange,
+  onBirthDetailsChange,
   onChange,
+  onGenerate,
   saveFeedback,
   onSave,
 }: {
@@ -5400,19 +5830,75 @@ function PlacementCard({
   subtitle: string;
   name: string;
   sex: Sex;
+  birthDetails: BirthDetails;
+  calculationStatus: CalculationStatus;
   showGenerational: boolean;
   values: PlacementMap;
   onNameChange: (next: string) => void;
   onSexChange: (next: Sex) => void;
+  onBirthDetailsChange: (next: BirthDetails) => void;
   onChange: (next: PlacementMap) => void;
+  onGenerate: () => void;
   saveFeedback: "saved" | "taken" | null;
   onSave: () => void;
 }) {
+  const [locationSuggestions, setLocationSuggestions] = useState<AstrologyLocationOption[]>([]);
+  const [locationSearchBusy, setLocationSearchBusy] = useState(false);
+  const [locationSearchOpen, setLocationSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const query = birthDetails.location.trim();
+    const hasResolvedLocation =
+      birthDetails.latitude !== null && birthDetails.longitude !== null && Boolean(birthDetails.timezone);
+
+    if (!locationSearchOpen && hasResolvedLocation) {
+      setLocationSuggestions([]);
+      setLocationSearchBusy(false);
+      return;
+    }
+
+    if (query.length < 2) {
+      setLocationSuggestions([]);
+      setLocationSearchBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setLocationSearchBusy(true);
+      try {
+        const response = await fetch(`/api/astrology/location-search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const data = (await response.json()) as { results?: AstrologyLocationOption[] };
+        if (!response.ok) {
+          throw new Error("Location search failed.");
+        }
+        setLocationSuggestions(data.results ?? []);
+        setLocationSearchOpen(true);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setLocationSuggestions([]);
+      } finally {
+        setLocationSearchBusy(false);
+      }
+    }, 220);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [birthDetails.location]);
+
+  const handleBirthDetailChange = (updates: Partial<BirthDetails>) => {
+    onBirthDetailsChange({ ...birthDetails, ...updates });
+  };
+
   return (
     <section className="placement-card">
       <p className="eyebrow">{subtitle}</p>
       <h2>{title}</h2>
-      <p className="card-copy">Leave Moon or ASC blank if birth time is unknown.</p>
+      <p className="card-copy">This app utilizes Swiss Ephemeris high-precision astronomical calculation engine.</p>
       <button
         type="button"
         className={`card-save-button${
@@ -5448,6 +5934,146 @@ function PlacementCard({
           <option value="female">Female</option>
         </select>
       </label>
+
+      <div className="birth-form-block">
+        <label className="sex-row">
+          <span>Birth Day</span>
+          <div className="birth-grid birth-grid-date">
+            <select value={birthDetails.month} onChange={(event) => handleBirthDetailChange({ month: event.target.value })}>
+              <option value="">Month</option>
+              {MONTH_OPTIONS.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+            <select value={birthDetails.day} onChange={(event) => handleBirthDetailChange({ day: event.target.value })}>
+              <option value="">Day</option>
+              {DAY_OPTIONS.map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+            <select value={birthDetails.year} onChange={(event) => handleBirthDetailChange({ year: event.target.value })}>
+              <option value="">Year</option>
+              {YEAR_OPTIONS.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          </div>
+        </label>
+
+        <label className="sex-row">
+          <span>Birth Time</span>
+          <div className="birth-grid birth-grid-time">
+            <select
+              value={birthDetails.hour}
+              disabled={!birthDetails.birthTimeKnown}
+              onChange={(event) => handleBirthDetailChange({ hour: event.target.value })}
+            >
+              {HOUR_OPTIONS.map((hour) => (
+                <option key={hour} value={hour}>
+                  {hour}
+                </option>
+              ))}
+            </select>
+            <span className="birth-time-separator">:</span>
+            <select
+              value={birthDetails.minute}
+              disabled={!birthDetails.birthTimeKnown}
+              onChange={(event) => handleBirthDetailChange({ minute: event.target.value })}
+            >
+              {MINUTE_OPTIONS.map((minute) => (
+                <option key={minute} value={minute}>
+                  {minute}
+                </option>
+              ))}
+            </select>
+            <select
+              value={birthDetails.meridiem}
+              disabled={!birthDetails.birthTimeKnown}
+              onChange={(event) => handleBirthDetailChange({ meridiem: event.target.value as Meridiem })}
+            >
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
+          <div className="birth-time-unknown">
+            <input
+              type="checkbox"
+              checked={!birthDetails.birthTimeKnown}
+              onChange={(event) =>
+                handleBirthDetailChange({
+                  birthTimeKnown: !event.target.checked,
+                  hour: "12",
+                  minute: "00",
+                  meridiem: "PM",
+                })
+              }
+            />
+            <span>Birth time unknown</span>
+          </div>
+        </label>
+
+        <label className="sex-row location-search-row">
+          <span>Birth City/Town</span>
+          <div className="location-search-wrap">
+            <input
+              type="text"
+              value={birthDetails.location}
+              onChange={(event) => {
+                handleBirthDetailChange({
+                  location: event.target.value,
+                  latitude: null,
+                  longitude: null,
+                  timezone: "",
+                });
+                setLocationSearchOpen(true);
+              }}
+              onFocus={() => {
+                if (locationSuggestions.length > 0) setLocationSearchOpen(true);
+              }}
+              placeholder="Enter city or town"
+              autoComplete="off"
+            />
+            {locationSearchBusy ? <span className="location-search-status">Searching...</span> : null}
+            {locationSearchOpen && locationSuggestions.length > 0 ? (
+              <div className="location-suggestions" role="listbox">
+                {locationSuggestions.map((option) => (
+                  <button
+                    key={`${option.label}-${option.latitude}-${option.longitude}`}
+                    type="button"
+                    className="location-suggestion"
+                    onClick={() => {
+                      onBirthDetailsChange({
+                        ...birthDetails,
+                        location: option.location,
+                        latitude: option.latitude,
+                        longitude: option.longitude,
+                        timezone: option.timezone,
+                      });
+                      setLocationSuggestions([]);
+                      setLocationSearchOpen(false);
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </label>
+
+        <button type="button" className="card-generate-button" onClick={onGenerate}>
+          {calculationStatus.kind === "loading" ? "Generating..." : "Generate Chart"}
+        </button>
+        {calculationStatus.message ? (
+          <p className={`birth-form-status birth-form-status-${calculationStatus.kind}`}>{calculationStatus.message}</p>
+        ) : null}
+      </div>
 
       <div className="placement-list">
         {PLACEMENT_CARD_PLANETS.filter((planet) =>
@@ -5646,7 +6272,7 @@ function RootsOfPowerCard({
   const personBRoots = buildRootsOfPowerMatches(personB);
 
   return (
-    <section className="summary-card roots-card">
+    <section id="roots-of-element" className="summary-card roots-card">
       <div className="roots-card-heading">
         <div className="roots-card-heading-copy">
           <p className="eyebrow">Roots of the Element</p>
@@ -5861,7 +6487,7 @@ function HousesCard({
   const canRedoAddedPlacement = redoStacks[target].length > 0;
 
   return (
-    <section className="summary-card astro-tool-card">
+    <section id="houses" className="summary-card astro-tool-card">
       <p className="eyebrow">Houses</p>
       <h2>Houses</h2>
       <div className="houses-shell">

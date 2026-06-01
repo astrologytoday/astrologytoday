@@ -3,11 +3,11 @@ import { notFound } from "next/navigation";
 import BlogPostPage from "../../../../components/pages/BlogPostPage";
 import { blogPosts } from "../../../../lib/blog";
 import { getLocalizedBlogPost } from "../../../../lib/blogPostContentCopy";
-import { isSupportedLocale, supportedLocales, type SupportedLocale } from "../../../../lib/i18n";
+import { defaultLocale, isSupportedLocale, supportedLocales, type SupportedLocale } from "../../../../lib/i18n";
 import { buildArticleMetadata } from "../../../../lib/seo";
 
 export function generateStaticParams() {
-  return supportedLocales.flatMap((locale) =>
+  return supportedLocales.filter((locale) => locale !== defaultLocale).flatMap((locale) =>
     blogPosts.map((post) => ({ locale, slug: post.slug })),
   );
 }

@@ -1,4 +1,5 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 function normalizeEnvString(value: string | undefined) {
@@ -34,4 +35,9 @@ export function getFirebaseApp(): FirebaseApp | null {
 export function getFirestoreDb() {
   const app = getFirebaseApp();
   return app ? getFirestore(app) : null;
+}
+
+export function getFirebaseAuth() {
+  const app = getFirebaseApp();
+  return app ? getAuth(app) : null;
 }
