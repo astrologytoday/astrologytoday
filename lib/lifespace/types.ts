@@ -105,6 +105,7 @@ export type LifespaceWebAccount = {
   passwordHash?: string;
   recoveryEmail: string;
   linkedCode: string;
+  lifespaceLinkedCode?: string;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 };

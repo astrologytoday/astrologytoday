@@ -8,6 +8,7 @@ import {
   getSharedLifespaceSnapshot,
   getUserProfile,
   getWebAccountByCode,
+  updateWebAccountCode,
 } from "../../lib/firebase/lifespace";
 import { isFirebaseConfigured } from "../../lib/firebase/config";
 import { getLifetimeModuleScores, getPriorityModules, getTodayScore } from "../../lib/lifespace/analytics";
@@ -20,6 +21,7 @@ import {
   type UserProfile,
 } from "../../lib/lifespace/types";
 import {
+  authenticateLifespaceAccount,
   getStoredLifespaceSession,
   hashPassword,
   LIFESPACE_AUTH_EVENT,
@@ -227,7 +229,7 @@ export default function LifeSpaceClientPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [debuggerVisible, setDebuggerVisible] = useState(false);
-  const [pageMode, setPageMode] = useState<LifespacePageMode>("construction");
+  const [pageMode, setPageMode] = useState<LifespacePageMode>("final");
   const [debuggerOffset, setDebuggerOffset] = useState({ x: 0, y: 0 });
   const [webSession, setWebSession] = useState<LifespaceWebSession | null>(null);
   const [sharedSnapshot, setSharedSnapshot] = useState<LifespaceSharedSnapshot | null>(null);
@@ -235,12 +237,14 @@ export default function LifeSpaceClientPage() {
   const [sharedSnapshotError, setSharedSnapshotError] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [verifiedCode, setVerifiedCode] = useState("");
-  const [authStep, setAuthStep] = useState<"code" | "setup">("code");
+  const [authStep, setAuthStep] = useState<"code" | "setup" | "link">("code");
   const [setupUsername, setSetupUsername] = useState("");
   const [confirmUsername, setConfirmUsername] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [linkUsername, setLinkUsername] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const debuggerDraggingRef = useRef<{
@@ -262,7 +266,9 @@ export default function LifeSpaceClientPage() {
         debuggerOffset?: { x?: number; y?: number };
       };
 
-      if (parsed.pageMode === "construction" || parsed.pageMode === "preview" || parsed.pageMode === "final") {
+      if (parsed.pageMode === "construction" || parsed.pageMode === "preview") {
+        setPageMode("final");
+      } else if (parsed.pageMode === "final") {
         setPageMode(parsed.pageMode);
       }
 
@@ -363,7 +369,9 @@ export default function LifeSpaceClientPage() {
   }, [activeUserId]);
 
   useEffect(() => {
-    const linkedCode = webSession?.linkedCode;
+    const linkedCode =
+      webSession?.lifespaceLinkedCode ||
+      (webSession?.linkedCode?.startsWith("LS-") ? webSession.linkedCode : "");
 
     if (pageMode !== "final" || !linkedCode) {
       setSharedSnapshot(null);
@@ -527,7 +535,32 @@ export default function LifeSpaceClientPage() {
         return;
       }
 
+      if (webSession?.usernameLower) {
+      const updatedAccount = await updateWebAccountCode(webSession.usernameLower, normalizedCode);
+      if (!updatedAccount) {
+        throw new Error("Unable to link that app user code.");
+      }
+
+      const nextSession = {
+        username: updatedAccount.username,
+        usernameLower: updatedAccount.usernameLower,
+        linkedCode: updatedAccount.linkedCode,
+        lifespaceLinkedCode: updatedAccount.lifespaceLinkedCode,
+      } satisfies LifespaceWebSession;
+
+        setStoredLifespaceSession(nextSession);
+        setWebSession(nextSession);
+        return;
+      }
+
       setVerifiedCode(normalizedCode);
+      setSetupUsername("");
+      setConfirmUsername("");
+      setSetupPassword("");
+      setConfirmPassword("");
+      setRecoveryEmail("");
+      setLinkUsername("");
+      setLinkPassword("");
       setAuthStep("setup");
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Unable to verify that app user code.");
@@ -570,7 +603,8 @@ export default function LifeSpaceClientPage() {
         usernameLower: trimmedUsername.toLowerCase(),
         passwordHash: await hashPassword(setupPassword),
         recoveryEmail: trimmedRecoveryEmail,
-        linkedCode: verifiedCode,
+        linkedCode: "",
+        lifespaceLinkedCode: verifiedCode,
       });
 
       if (!account) {
@@ -581,6 +615,7 @@ export default function LifeSpaceClientPage() {
         username: account.username,
         usernameLower: account.usernameLower,
         linkedCode: account.linkedCode,
+        lifespaceLinkedCode: account.lifespaceLinkedCode,
       } satisfies LifespaceWebSession;
 
       setStoredLifespaceSession(nextSession);
@@ -592,7 +627,53 @@ export default function LifeSpaceClientPage() {
     }
   }
 
-  const showDashboard = pageMode !== "final" || Boolean(webSession);
+  async function handleAccountLink() {
+    const trimmedUsername = linkUsername.trim();
+
+    if (!verifiedCode) {
+      setAuthError("Enter a valid app user code first.");
+      return;
+    }
+
+    if (!trimmedUsername || !linkPassword) {
+      setAuthError("Enter your username and password.");
+      return;
+    }
+
+    setAuthBusy(true);
+    setAuthError("");
+
+    try {
+      const session = await authenticateLifespaceAccount(trimmedUsername, linkPassword);
+      if (!session) {
+        setAuthError("That username and password do not match.");
+        return;
+      }
+
+      const updatedAccount = await updateWebAccountCode(session.usernameLower, verifiedCode);
+      if (!updatedAccount) {
+        throw new Error("Unable to link the account.");
+      }
+
+      const nextSession = {
+        username: updatedAccount.username,
+        usernameLower: updatedAccount.usernameLower,
+        linkedCode: updatedAccount.linkedCode,
+        lifespaceLinkedCode: updatedAccount.lifespaceLinkedCode,
+      } satisfies LifespaceWebSession;
+
+      setStoredLifespaceSession(nextSession);
+      setWebSession(nextSession);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Unable to link the account.");
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  const showDashboard =
+    pageMode !== "final" || sharedSnapshotStatus === "loading" || sharedSnapshotStatus === "ready";
+  const usernameTaken = authStep === "setup" && authError === "That username is already taken.";
 
   return (
     <main className="lifespace-home">
@@ -881,7 +962,7 @@ export default function LifeSpaceClientPage() {
                         </div>
                       </div>
                     </>
-                  ) : (
+                  ) : authStep === "setup" ? (
                     <>
                       <h1>Create username &amp; password</h1>
                       <p>{`Code accepted: ${verifiedCode}`}</p>
@@ -892,7 +973,25 @@ export default function LifeSpaceClientPage() {
                         <input className="lifespace-web-auth-input" type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Confirm password" aria-label="Confirm password" />
                         <input className="lifespace-web-auth-input" type="email" value={recoveryEmail} onChange={(event) => setRecoveryEmail(event.target.value)} placeholder="Recovery email" aria-label="Recovery email" />
                       </div>
-                      {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                      {authError ? (
+                        <div className="lifespace-web-auth-error-row">
+                          <p className="lifespace-web-auth-error">{authError}</p>
+                          {usernameTaken ? (
+                            <button
+                              type="button"
+                              className="lifespace-web-auth-inline-link"
+                              onClick={() => {
+                                setLinkUsername(setupUsername.trim());
+                                setLinkPassword("");
+                                setAuthError("");
+                                setAuthStep("link");
+                              }}
+                            >
+                              Login?
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
                       <div className="lifespace-web-auth-actions">
                         <button
                           type="button"
@@ -911,6 +1010,49 @@ export default function LifeSpaceClientPage() {
                           disabled={authBusy}
                         >
                           {authBusy ? "Creating..." : "Create account"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h1>Link your account</h1>
+                      <p>{`Code accepted: ${verifiedCode}`}</p>
+                      <div className="lifespace-web-auth-grid">
+                        <input
+                          className="lifespace-web-auth-input"
+                          value={linkUsername}
+                          onChange={(event) => setLinkUsername(event.target.value)}
+                          placeholder="Username"
+                          aria-label="Username"
+                        />
+                        <input
+                          className="lifespace-web-auth-input"
+                          type="password"
+                          value={linkPassword}
+                          onChange={(event) => setLinkPassword(event.target.value)}
+                          placeholder="Password"
+                          aria-label="Password"
+                        />
+                      </div>
+                      {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                      <div className="lifespace-web-auth-actions">
+                        <button
+                          type="button"
+                          className="lifespace-secondary-action"
+                          onClick={() => {
+                            setAuthStep("setup");
+                            setAuthError("");
+                          }}
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="button"
+                          className="lifespace-primary-action lifespace-web-auth-button"
+                          onClick={() => void handleAccountLink()}
+                          disabled={authBusy}
+                        >
+                          {authBusy ? "Logging in..." : "Login"}
                         </button>
                       </div>
                     </>

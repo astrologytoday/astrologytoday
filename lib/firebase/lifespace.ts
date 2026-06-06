@@ -128,12 +128,17 @@ function mapSharedSnapshot(code: string, data: DocumentData): LifespaceSharedSna
 }
 
 function mapWebAccount(data: DocumentData): LifespaceWebAccount {
+  const linkedCode = data.linkedCode ?? "";
+  const lifespaceLinkedCode =
+    data.lifespaceLinkedCode ?? (typeof linkedCode === "string" && linkedCode.startsWith("LS-") ? linkedCode : "");
+
   return {
     username: data.username ?? "",
     usernameLower: data.usernameLower ?? "",
     passwordHash: data.passwordHash ?? "",
     recoveryEmail: data.recoveryEmail ?? "",
-    linkedCode: data.linkedCode ?? "",
+    linkedCode,
+    lifespaceLinkedCode,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
   };
@@ -255,14 +260,25 @@ export async function getWebAccountByCode(code: string) {
   const normalizedCode = code.trim().toUpperCase();
   if (!normalizedCode) return null;
 
-  const accountQuery = query(
+  const lifespaceCodeQuery = query(
     collection(db, "lifespaceWebAccounts"),
-    where("linkedCode", "==", normalizedCode),
+    where("lifespaceLinkedCode", "==", normalizedCode),
     limit(1),
   );
 
-  const snapshot = await getDocs(accountQuery);
-  const match = snapshot.docs[0];
+  let snapshot = await getDocs(lifespaceCodeQuery);
+  let match = snapshot.docs[0];
+
+  if (!match) {
+    const legacyCodeQuery = query(
+      collection(db, "lifespaceWebAccounts"),
+      where("linkedCode", "==", normalizedCode),
+      limit(1),
+    );
+    snapshot = await getDocs(legacyCodeQuery);
+    match = snapshot.docs[0];
+  }
+
   if (!match) return null;
 
   return mapWebAccount(match.data());
@@ -273,7 +289,8 @@ export async function createWebAccount(account: {
   usernameLower: string;
   passwordHash?: string;
   recoveryEmail: string;
-  linkedCode: string;
+  linkedCode?: string;
+  lifespaceLinkedCode?: string;
 }) {
   const db = getFirestoreDb();
   if (!db) throw new Error("Firebase is not configured.");
@@ -284,19 +301,28 @@ export async function createWebAccount(account: {
     throw new Error("That username is already taken.");
   }
 
-  const linkedAccount = await getWebAccountByCode(account.linkedCode);
-  if (linkedAccount) {
-    throw new Error("That app user code is already connected to another account.");
+  if (account.lifespaceLinkedCode) {
+    const linkedAccount = await getWebAccountByCode(account.lifespaceLinkedCode);
+    if (linkedAccount) {
+      throw new Error("That app user code is already connected to another account.");
+    }
   }
 
   const payload: Record<string, unknown> = {
     username: account.username,
     usernameLower: account.usernameLower,
     recoveryEmail: account.recoveryEmail,
-    linkedCode: account.linkedCode,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
+
+  if (typeof account.linkedCode === "string" && account.linkedCode.length > 0) {
+    payload.linkedCode = account.linkedCode;
+  }
+
+  if (typeof account.lifespaceLinkedCode === "string" && account.lifespaceLinkedCode.length > 0) {
+    payload.lifespaceLinkedCode = account.lifespaceLinkedCode;
+  }
 
   if (typeof account.passwordHash === "string" && account.passwordHash.length > 0) {
     payload.passwordHash = account.passwordHash;
@@ -319,7 +345,7 @@ export async function updateWebAccountCode(usernameLower: string, linkedCode: st
   await setDoc(
     doc(db, "lifespaceWebAccounts", usernameLower),
     {
-      linkedCode: linkedCode.trim().toUpperCase(),
+      lifespaceLinkedCode: linkedCode.trim().toUpperCase(),
       updatedAt: serverTimestamp(),
     },
     { merge: true },

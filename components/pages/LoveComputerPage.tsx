@@ -6047,39 +6047,49 @@ export default function LoveComputerPage() {
             })}
           </div>
 
-          <div className="grid-focus-shortcuts">
-            <button
-              type="button"
-              className={
-                focusedRows.length === rows.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
-                focusedCols.length === cols.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
-                focusedRows.every((planet) => SUN_GROUP_PLANETS.includes(planet)) &&
-                focusedCols.every((planet) => SUN_GROUP_PLANETS.includes(planet))
-                  ? "focus-shortcut-button is-active"
-                  : "focus-shortcut-button"
-              }
-              onClick={() => toggleFocusGroup("sun")}
-              aria-label="Focus Sun, Venus, and Jupiter"
-              title="Focus Sun, Venus, and Jupiter"
+          <div className="grid-help-actions">
+            <div className="grid-focus-shortcuts">
+              <button
+                type="button"
+                className={
+                  focusedRows.length === rows.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
+                  focusedCols.length === cols.filter((planet) => SUN_GROUP_PLANETS.includes(planet)).length &&
+                  focusedRows.every((planet) => SUN_GROUP_PLANETS.includes(planet)) &&
+                  focusedCols.every((planet) => SUN_GROUP_PLANETS.includes(planet))
+                    ? "focus-shortcut-button is-active"
+                    : "focus-shortcut-button"
+                }
+                onClick={() => toggleFocusGroup("sun")}
+                aria-label="Focus Sun, Venus, and Jupiter"
+                title="Focus Sun, Venus, and Jupiter"
+              >
+                ☉
+              </button>
+              <button
+                type="button"
+                className={
+                  focusedRows.length === rows.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
+                  focusedCols.length === cols.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
+                  focusedRows.every((planet) => MOON_GROUP_PLANETS.includes(planet)) &&
+                  focusedCols.every((planet) => MOON_GROUP_PLANETS.includes(planet))
+                    ? "focus-shortcut-button is-active"
+                    : "focus-shortcut-button"
+                }
+                onClick={() => toggleFocusGroup("moon")}
+                aria-label="Focus Moon, Mars, and Saturn"
+                title="Focus Moon, Mars, and Saturn"
+              >
+                ☽
+              </button>
+            </div>
+            <a
+              className="comparison-help-link"
+              href="https://calendar.app.google/qSNBkgsXrR5ZgkTq8"
+              target="_blank"
+              rel="noreferrer"
             >
-              ☉
-            </button>
-            <button
-              type="button"
-              className={
-                focusedRows.length === rows.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
-                focusedCols.length === cols.filter((planet) => MOON_GROUP_PLANETS.includes(planet)).length &&
-                focusedRows.every((planet) => MOON_GROUP_PLANETS.includes(planet)) &&
-                focusedCols.every((planet) => MOON_GROUP_PLANETS.includes(planet))
-                  ? "focus-shortcut-button is-active"
-                  : "focus-shortcut-button"
-              }
-              onClick={() => toggleFocusGroup("moon")}
-              aria-label="Focus Moon, Mars, and Saturn"
-              title="Focus Moon, Mars, and Saturn"
-            >
-              ☽
-            </button>
+              Need help interpreting?
+            </a>
           </div>
         </div>
           </section>

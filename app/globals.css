@@ -1245,15 +1245,33 @@
 
 .pricing-plan-card {
   appearance: none;
-  display: flex;
+  -webkit-appearance: none;
+  position: relative;
+  display: block;
   flex: 1 1 0;
-  flex-direction: column;
   width: 100%;
   min-height: 47rem;
   padding: 0;
   text-align: left;
   border-radius: 34px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  overflow: visible;
+  cursor: pointer;
+  transition:
+    transform 180ms ease;
+}
+
+.pricing-plan-surface {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: inherit;
+  height: 100%;
   border: 1px solid rgba(220, 252, 246, 0.16);
+  border-radius: inherit;
   background:
     linear-gradient(180deg, rgba(62, 123, 129, 0.96), rgba(18, 72, 79, 0.96)),
     rgba(9, 58, 64, 0.54);
@@ -1261,9 +1279,7 @@
     0 24px 50px rgba(6, 28, 32, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  cursor: pointer;
   transition:
-    transform 180ms ease,
     border-color 180ms ease,
     box-shadow 180ms ease,
     background 180ms ease;
@@ -1272,13 +1288,18 @@
 .pricing-plan-card:hover,
 .pricing-plan-card:focus-visible {
   transform: translateY(-4px);
+  outline: none;
+}
+
+.pricing-plan-card:hover .pricing-plan-surface,
+.pricing-plan-card:focus-visible .pricing-plan-surface {
   border-color: rgba(234, 255, 250, 0.28);
   box-shadow:
     0 32px 62px rgba(6, 28, 32, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-.pricing-plan-card.is-selected {
+.pricing-plan-card.is-selected .pricing-plan-surface {
   border-color: rgba(228, 255, 250, 0.64);
   box-shadow:
     0 0 0 1px rgba(228, 255, 250, 0.18),
@@ -1288,7 +1309,10 @@
 }
 
 .pricing-plan-topbar {
-  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   min-height: 9.1rem;
   padding: 1.35rem 1.4rem 1.25rem;
   background:
@@ -1296,13 +1320,14 @@
     linear-gradient(135deg, rgba(188, 247, 241, 0.15), rgba(113, 214, 208, 0.08)),
     linear-gradient(120deg, rgba(31, 105, 112, 0.62), rgba(90, 157, 162, 0.56));
   border-bottom: 1px solid rgba(228, 255, 250, 0.12);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  flex-shrink: 0;
 }
 
-.pricing-plan-topbar > div {
-  position: absolute;
-  top: 1.35rem;
-  left: 1.4rem;
-  right: 4.2rem;
+.pricing-plan-heading {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pricing-plan-level {
@@ -1324,11 +1349,9 @@
 }
 
 .pricing-plan-indicator {
-  position: absolute;
-  top: 1.35rem;
-  right: 1.4rem;
   width: 1.7rem;
   height: 1.7rem;
+  flex: 0 0 1.7rem;
   border-radius: 999px;
   border: 1px solid rgba(228, 255, 250, 0.24);
   background: rgba(255, 255, 255, 0.06);
@@ -1352,6 +1375,7 @@
 .pricing-plan-body {
   display: grid;
   align-content: start;
+  flex: 1;
   gap: 1rem;
   padding: 1.35rem 1.4rem 1.5rem;
 }
@@ -7271,6 +7295,35 @@ body {
   margin-top: 0.2rem;
 }
 
+.lifespace-web-auth-error-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+.lifespace-web-auth-error-row .lifespace-web-auth-error {
+  margin-top: 0;
+}
+
+.lifespace-web-auth-inline-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: rgba(236, 250, 246, 0.92);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.lifespace-web-auth-inline-link:hover,
+.lifespace-web-auth-inline-link:focus-visible {
+  color: #ffffff;
+}
+
 @keyframes lifespace-fade-in {
   from {
     opacity: 0;
@@ -8821,6 +8874,26 @@ select {
   display: flex;
   gap: 10px;
   flex-shrink: 0;
+}
+
+.grid-help-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.comparison-help-link {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.comparison-help-link:hover,
+.comparison-help-link:focus-visible {
+  color: var(--ink);
 }
 
 .grid-action-row {

@@ -1707,7 +1707,7 @@ export default function HomePage({
                     {copy.hero.relationshipCalculator}
                   </Link>
                   <Link
-                    href={localizedHref("/pricing")}
+                    href="https://calendar.app.google/hXSfs9oYid9LXN5x6"
                     className="secondary-link"
                   >
                     {copy.hero.bookSession}

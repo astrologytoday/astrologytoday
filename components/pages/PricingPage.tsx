@@ -116,30 +116,35 @@ export default function PricingPage({
                         className={`pricing-plan-card${selected ? " is-selected" : ""}`}
                         onClick={() => setSelectedPlan(plan.id)}
                       >
-                        <div className="pricing-plan-topbar">
-                          <div>
-                            <p className="pricing-plan-level">{plan.level}</p>
-                            <h3>{plan.title}</h3>
+                        <div className="pricing-plan-surface">
+                          <div className="pricing-plan-topbar">
+                            <div className="pricing-plan-heading">
+                              <p className="pricing-plan-level">{plan.level}</p>
+                              <h3>{plan.title}</h3>
+                            </div>
+                            <span
+                              className={`pricing-plan-indicator${selected ? " is-selected" : ""}`}
+                              aria-hidden="true"
+                            >
+                              {selected ? "✓" : ""}
+                            </span>
                           </div>
-                          <span className={`pricing-plan-indicator${selected ? " is-selected" : ""}`}>
-                            {selected ? "✓" : ""}
-                          </span>
-                        </div>
 
-                        <div className="pricing-plan-body">
-                          <p className="pricing-plan-price">{plan.price}</p>
-                          <p className="pricing-plan-description">{plan.description}</p>
+                          <div className="pricing-plan-body">
+                            <p className="pricing-plan-price">{plan.price}</p>
+                            <p className="pricing-plan-description">{plan.description}</p>
 
-                          <div className="pricing-plan-divider" />
+                            <div className="pricing-plan-divider" />
 
-                          <p className="pricing-plan-includes-title">{pricingCopy.includesTitle}</p>
-                          <ul className="pricing-plan-includes">
-                            {plan.includes.map((item) => (
-                              <li key={item}>{item}</li>
-                            ))}
-                          </ul>
+                            <p className="pricing-plan-includes-title">{pricingCopy.includesTitle}</p>
+                            <ul className="pricing-plan-includes">
+                              {plan.includes.map((item) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
 
-                          {plan.note ? <p className="pricing-plan-note">{plan.note}</p> : null}
+                            {plan.note ? <p className="pricing-plan-note">{plan.note}</p> : null}
+                          </div>
                         </div>
                       </button>
                     );

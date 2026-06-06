@@ -17,6 +17,7 @@ export type LifespaceWebSession = {
   username: string;
   usernameLower: string;
   linkedCode: string;
+  lifespaceLinkedCode?: string;
 };
 
 function toHex(buffer: ArrayBuffer) {
@@ -58,11 +59,13 @@ export function getStoredLifespaceSession() {
     const raw = window.localStorage.getItem(LIFESPACE_WEB_SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<LifespaceWebSession>;
-    if (!parsed.username || !parsed.usernameLower || !parsed.linkedCode) return null;
+    if (!parsed.username || !parsed.usernameLower) return null;
+    if (!parsed.linkedCode && !parsed.lifespaceLinkedCode) return null;
     return {
       username: parsed.username,
       usernameLower: parsed.usernameLower,
-      linkedCode: parsed.linkedCode,
+      linkedCode: parsed.linkedCode ?? "",
+      lifespaceLinkedCode: parsed.lifespaceLinkedCode,
     } satisfies LifespaceWebSession;
   } catch {
     return null;
@@ -102,6 +105,7 @@ export async function authenticateLifespaceAccount(username: string, password: s
     username: account.username,
     usernameLower: account.usernameLower,
     linkedCode: account.linkedCode,
+    lifespaceLinkedCode: account.lifespaceLinkedCode,
   } satisfies LifespaceWebSession;
 
   setStoredLifespaceSession(session);
@@ -164,6 +168,7 @@ export async function refreshStoredLifespaceSession() {
     username: account.username,
     usernameLower: account.usernameLower,
     linkedCode: account.linkedCode,
+    lifespaceLinkedCode: account.lifespaceLinkedCode,
   } satisfies LifespaceWebSession;
 
   setStoredLifespaceSession(refreshed);

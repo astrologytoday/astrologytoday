@@ -33,18 +33,18 @@ const en: PricingPageCopy = {
   kicker: "Memberships",
   heroTitle: "Choose a plan",
   heroSubtitle:
-    "AstrologyToday memberships are an alternative to traditional psychotherapy ranging from self-help to 1-on-1 counselling with trained astrologers and spiritually informed therapists.",
+    "AstrologyToday memberships connect clients and practitioners through spiritually informed counselling, wellness tools, and secure client support portals.",
   selectorTitle: "Subscription Selector",
   includesTitle: "Includes",
   legal:
-    "Memberships are billed monthly and may be cancelled at any time. AstrologyToday services are intended for personal growth, education, spiritual insight, and therapeutic support. AstrologyToday does not replace emergency medical care, crisis support, or legally required healthcare services. Some professional plans may require approval before full access activation.",
+    "Memberships are billed monthly and may be cancelled at any time. AstrologyToday services are intended for personal growth, education, spiritual insight, and therapeutic support. AstrologyToday does not replace emergency medical care, crisis support, or healthcare services. Some professional plans may require approval before full access activation.",
   next: "Next",
   plans: {
     client: {
       level: "Level 1",
       title: "Client Subscription",
       price: "$21.99/month",
-      description: "For personal growth, therapeutic support, and self-help purposes.",
+      description: "For clients seeking personal growth and guided therapeutic support.",
       includes: [
         "LIFESPACE Web App",
         "Monthly or bi-weekly counselling",
@@ -57,7 +57,7 @@ const en: PricingPageCopy = {
       title: "Specialist Subscription",
       price: "$39.99/month",
       description:
-        "For astrologers and therapists using LIFESPACE with clients. This plan gives clients access to the LIFESPACE App while allowing the specialist to review client wellness analytics for the client side for pattern identification.",
+        "This plan includes access to therapist-exclusive web tools for reviewing client wellness analytics.",
       includes: [
         "LIFESPACE Web App",
         "LIFESPACE for Therapists",
@@ -71,17 +71,17 @@ const en: PricingPageCopy = {
       title: "Master Subscription",
       price: "$59.99/month",
       description:
-        "For advanced professionals and researchers who want full access to AstrologyToday’s therapeutic, astrological, and analytical tools.",
+        "This plan includes unlimited access to AstrologyToday's client base, educational resources, and therapeutic tools.",
       includes: [
         "LIFESPACE Web App",
         "LIFESPACE for Therapists",
-        "Astrology Weather+",
-        "Relationship Calculator",
         "Access to the Therapist Portal",
         "Easy and secure client payments",
+        "Unlimited access to resource library",
+        "Sales support and client referrals",
         "24/7 IT and customer support",
       ],
-      note: "*For Astrologers or Researchers",
+      note: "*For Astrologers or Merchants",
     },
   },
 };
