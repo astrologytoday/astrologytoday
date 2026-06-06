@@ -2169,7 +2169,13 @@ export default function HomePage({
                 <ul key={index}>
                   {column.map((item) => (
                     <li key={item.code}>
-                      <Link href={withExplicitLocale(item.code, "/")}>{item.label}</Link>
+                      <a
+                        href={`/api/locale?locale=${item.code}&returnTo=${encodeURIComponent(
+                          withExplicitLocale(item.code, "/")
+                        )}`}
+                      >
+                        {item.label}
+                      </a>
                     </li>
                   ))}
                 </ul>

@@ -61,6 +61,10 @@ export default function SiteFooter({
 }) {
   const copy = getHomeCopy(locale);
   const localizedHref = (href: string) => withLocale(locale, href);
+  const languageHref = (nextLocale: SupportedLocale) => {
+    const returnTo = withExplicitLocale(nextLocale, currentPath);
+    return `/api/locale?locale=${nextLocale}&returnTo=${encodeURIComponent(returnTo)}`;
+  };
   const footerColumns: FooterColumn[] = [
     {
       heading: copy.footer.discover,
@@ -139,7 +143,9 @@ export default function SiteFooter({
               <ul key={index}>
                 {column.map((item) => (
                   <li key={item.code}>
-                    <Link href={withExplicitLocale(item.code, currentPath)}>{item.label}</Link>
+                    <a href={languageHref(item.code)}>
+                      {item.label}
+                    </a>
                   </li>
                 ))}
               </ul>

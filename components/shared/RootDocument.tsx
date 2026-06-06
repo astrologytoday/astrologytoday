@@ -1,7 +1,11 @@
 import { Suspense, type ReactNode } from "react";
 import Script from "next/script";
 import LocalePreferenceSync from "./LocalePreferenceSync";
-import { LOCALE_PREFERENCE_KEY, defaultLocale, supportedLocales } from "../../lib/i18n";
+import {
+  LOCALE_PREFERENCE_KEY,
+  defaultLocale,
+  supportedLocales,
+} from "../../lib/i18n";
 
 export default function RootDocument({
   lang,
@@ -16,7 +20,6 @@ export default function RootDocument({
       var defaultLocale = ${JSON.stringify(defaultLocale)};
       var storageKey = ${JSON.stringify(LOCALE_PREFERENCE_KEY)};
       var pathname = window.location.pathname;
-      var search = window.location.search || "";
       var firstSegment = pathname.split("/")[1] || "";
       var localeFromPath = supportedLocales.indexOf(firstSegment) >= 0 ? firstSegment : null;
 
@@ -30,8 +33,22 @@ export default function RootDocument({
       }
 
       var storedLocale = null;
+      var cookiePrefix = storageKey + "=";
+      var cookieParts = document.cookie ? document.cookie.split(";") : [];
+      for (var index = 0; index < cookieParts.length; index += 1) {
+        var cookiePart = cookieParts[index].trim();
+        if (cookiePart.indexOf(cookiePrefix) === 0) {
+          storedLocale = decodeURIComponent(cookiePart.slice(cookiePrefix.length));
+          break;
+        }
+      }
+
       try {
-        storedLocale = window.localStorage.getItem(storageKey);
+        if (!storedLocale) {
+          storedLocale = window.localStorage.getItem(storageKey);
+        } else {
+          window.localStorage.setItem(storageKey, storedLocale);
+        }
       } catch (error) {}
 
       if (!storedLocale || supportedLocales.indexOf(storedLocale) === -1 || storedLocale === defaultLocale) {
@@ -42,8 +59,8 @@ export default function RootDocument({
       document.documentElement.lang = storedLocale;
 
       var targetPath = pathname === "/" ? "/" + storedLocale : "/" + storedLocale + pathname;
-      var targetHref = targetPath + search;
-      var currentHref = pathname + search;
+      var targetHref = targetPath + window.location.search + window.location.hash;
+      var currentHref = pathname + window.location.search + window.location.hash;
 
       if (targetHref !== currentHref) {
         window.location.replace(targetHref);
