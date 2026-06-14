@@ -20,6 +20,7 @@ import type {
   LifespaceLogEntry,
   LifespaceModule,
   LifespaceSharedSnapshot,
+  LifespaceTherapistClient,
   LifespaceWebAccount,
   UserProfile,
   YearSummary,
@@ -139,6 +140,7 @@ function mapWebAccount(data: DocumentData): LifespaceWebAccount {
     recoveryEmail: data.recoveryEmail ?? "",
     linkedCode,
     lifespaceLinkedCode,
+    therapistLinkedCode: data.therapistLinkedCode ?? "",
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
   };
@@ -282,6 +284,108 @@ export async function getWebAccountByCode(code: string) {
   if (!match) return null;
 
   return mapWebAccount(match.data());
+}
+
+export async function getWebAccountByTherapistCode(code: string) {
+  const db = getFirestoreDb();
+  if (!db) return null;
+
+  const normalizedCode = code.trim().toUpperCase();
+  if (!normalizedCode) return null;
+
+  const therapistCodeQuery = query(
+    collection(db, "lifespaceWebAccounts"),
+    where("therapistLinkedCode", "==", normalizedCode),
+    limit(1),
+  );
+  const snapshot = await getDocs(therapistCodeQuery);
+  const match = snapshot.docs[0];
+
+  return match ? mapWebAccount(match.data()) : null;
+}
+
+export async function getTherapistClients(usernameLower: string) {
+  const db = getFirestoreDb();
+  if (!db) return [];
+
+  const normalizedUsername = usernameLower.trim().toLowerCase();
+  if (!normalizedUsername) return [];
+
+  const snapshot = await getDocs(
+    query(
+      collection(db, "lifespaceWebAccounts", normalizedUsername, "therapistClients"),
+      orderBy("name"),
+    ),
+  );
+
+  return snapshot.docs.map((clientSnapshot) => {
+    const data = clientSnapshot.data();
+    return {
+      id: clientSnapshot.id,
+      name: data.name ?? "",
+      lifespaceLinkedCode: data.lifespaceLinkedCode ?? "",
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+    } satisfies LifespaceTherapistClient;
+  });
+}
+
+export async function addTherapistClient(
+  usernameLower: string,
+  client: {
+    name: string;
+    lifespaceLinkedCode: string;
+  },
+) {
+  const db = getFirestoreDb();
+  if (!db) throw new Error("Firebase is not configured.");
+
+  const normalizedUsername = usernameLower.trim().toLowerCase();
+  const normalizedName = client.name.trim();
+  const normalizedCode = client.lifespaceLinkedCode.trim().toUpperCase();
+
+  if (!normalizedUsername || !normalizedName || !normalizedCode.startsWith("LS-")) {
+    throw new Error("Enter a client name and valid LIFESPACE code.");
+  }
+
+  const sharedSnapshot = await getSharedLifespaceSnapshot(normalizedCode);
+  if (!sharedSnapshot || !sharedSnapshot.sharingEnabled) {
+    throw new Error("That LIFESPACE client code was not found or sharing is disabled.");
+  }
+
+  const clientRef = doc(
+    db,
+    "lifespaceWebAccounts",
+    normalizedUsername,
+    "therapistClients",
+    normalizedCode,
+  );
+  const existing = await getDoc(clientRef);
+
+  await setDoc(
+    clientRef,
+    {
+      name: normalizedName,
+      lifespaceLinkedCode: normalizedCode,
+      createdAt: existing.exists() ? existing.data().createdAt ?? serverTimestamp() : serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  );
+
+  const saved = await getDoc(clientRef);
+  if (!saved.exists()) {
+    throw new Error("Unable to save that client.");
+  }
+
+  const data = saved.data();
+  return {
+    id: saved.id,
+    name: data.name ?? normalizedName,
+    lifespaceLinkedCode: data.lifespaceLinkedCode ?? normalizedCode,
+    createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+  } satisfies LifespaceTherapistClient;
 }
 
 export async function createWebAccount(account: {

@@ -47,7 +47,7 @@ export default function WebsiteServicesPage({
 
             <div className="website-services-actions">
               <a
-                href="mailto:mariosbardella@protonmail.com?subject=Website%20Building%20Inquiry"
+                href="mailto:inquiries@mylifespace.ca?subject=Website%20Building%20Inquiry"
                 className="website-services-primary"
               >
                 {copy.primaryLabel}

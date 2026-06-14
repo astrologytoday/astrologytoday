@@ -106,6 +106,15 @@ export type LifespaceWebAccount = {
   recoveryEmail: string;
   linkedCode: string;
   lifespaceLinkedCode?: string;
+  therapistLinkedCode?: string;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
+};
+
+export type LifespaceTherapistClient = {
+  id: string;
+  name: string;
+  lifespaceLinkedCode: string;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 };

@@ -39,7 +39,7 @@ export default function LifespaceSupportPage({
       message || copy.bodyLabels.noMessage,
     ].join("\n");
 
-    window.location.href = `mailto:mariosbardella@protonmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:support@mylifespace.ca?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
@@ -114,7 +114,7 @@ export default function LifespaceSupportPage({
                 <button type="submit" className="at-plus-submit">
                   {copy.submitLabel}
                 </button>
-                <Link href="/lifespace" className="site-rules-home-link">
+                <Link href={withLocale(locale, "/")} className="site-rules-home-link">
                   {copy.returnLabel}
                 </Link>
               </div>

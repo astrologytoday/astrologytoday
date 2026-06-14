@@ -2,12 +2,16 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  addTherapistClient,
   createWebAccount,
   getLifespaceLogs,
   getSharedLifespaceSnapshot,
+  getTherapistClients,
   getUserProfile,
   getWebAccountByCode,
+  getWebAccountByTherapistCode,
   updateWebAccountCode,
 } from "../../lib/firebase/lifespace";
 import { isFirebaseConfigured } from "../../lib/firebase/config";
@@ -16,6 +20,7 @@ import {
   LIFESPACE_MODULE_LABELS,
   LIFESPACE_MODULES,
   type LifespaceSharedSnapshot,
+  type LifespaceTherapistClient,
   type LifespaceLogEntry,
   type LifespaceModule,
   type UserProfile,
@@ -40,26 +45,6 @@ type IconDockItem = {
 };
 
 const defaultUserId = process.env.NEXT_PUBLIC_LIFESPACE_DEFAULT_USER_ID ?? "";
-
-const moduleDescriptions: Record<LifespaceModule, string> = {
-  light: "Light tracks sunlight, brightness, and whether your day gives your nervous system enough clarity.",
-  innerWork:
-    "Inner Work covers prayer, reflection, meditation, and the quieter practices that keep you inwardly connected.",
-  fitness:
-    "Fitness reflects movement, exercise, and whether your body is being challenged enough to stay alive and responsive.",
-  eating:
-    "Eating measures whether your food choices are supporting recovery, energy, and long-term brain optimization.",
-  sensory:
-    "Sensory Health focuses on environment, overstimulation, and whether your physical surroundings are regulating or draining you.",
-  purpose:
-    "Purpose measures meaning, direction, and whether your actions still feel tied to the bigger life you want to build.",
-  activity:
-    "Activity tracks everyday engagement: whether you are participating in life instead of only enduring it.",
-  community:
-    "Community reflects closeness, belonging, outreach, and whether you are emotionally connected to other people.",
-  expression:
-    "Expression measures whether your creativity, style, and personality are actually making it into the world around you.",
-};
 
 const prescriptionCopy: Record<LifespaceModule, string> = {
   light: "Get at least 15 minutes of daylight and let natural light into the room early in the day.",
@@ -199,6 +184,14 @@ function PersonIcon() {
   );
 }
 
+function PlusIcon() {
+  return (
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <path d="M32 13v38M13 32h38" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function getBarTone(score: number) {
   if (score >= 80) return "high";
   if (score >= 55) return "mid";
@@ -214,13 +207,234 @@ function getStatusLabel(status: "idle" | "loading" | "ready" | "error") {
 
 function formatLifespaceCodeInput(value: string) {
   const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  const prefix = cleaned.startsWith("LS") ? "LS" : cleaned.slice(0, Math.min(2, cleaned.length));
-  const remainder = cleaned.startsWith("LS") ? cleaned.slice(2, 8) : cleaned.slice(2, 8);
+  const prefix = cleaned.slice(0, Math.min(2, cleaned.length));
+  const remainder = cleaned.slice(2, 8);
   if (!prefix) return "";
   return remainder ? `${prefix}-${remainder}` : prefix;
 }
 
+function TherapistPortal({
+  session,
+  onLogout,
+  onSelectClient,
+}: {
+  session: LifespaceWebSession;
+  onLogout: () => void;
+  onSelectClient: (client: LifespaceTherapistClient) => void;
+}) {
+  const [clients, setClients] = useState<LifespaceTherapistClient[]>([]);
+  const [clientsStatus, setClientsStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [clientsError, setClientsError] = useState("");
+  const [showAddClient, setShowAddClient] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [clientCode, setClientCode] = useState("");
+  const [clientFormError, setClientFormError] = useState("");
+  const [clientFormBusy, setClientFormBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadClients() {
+      setClientsStatus("loading");
+      setClientsError("");
+
+      try {
+        const nextClients = await getTherapistClients(session.usernameLower);
+        if (cancelled) return;
+        setClients(nextClients);
+        setClientsStatus("ready");
+      } catch (error) {
+        if (cancelled) return;
+        setClientsStatus("error");
+        setClientsError(error instanceof Error ? error.message : "Unable to load therapist clients.");
+      }
+    }
+
+    void loadClients();
+    return () => {
+      cancelled = true;
+    };
+  }, [session.usernameLower]);
+
+  async function handleAddClient() {
+    if (!clientName.trim() || !clientCode.trim()) {
+      setClientFormError("Enter the client's name and LIFESPACE code.");
+      return;
+    }
+
+    setClientFormBusy(true);
+    setClientFormError("");
+
+    try {
+      const savedClient = await addTherapistClient(session.usernameLower, {
+        name: clientName,
+        lifespaceLinkedCode: clientCode,
+      });
+      setClients((current) =>
+        [...current.filter((client) => client.id !== savedClient.id), savedClient].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+      );
+      setClientName("");
+      setClientCode("");
+      setShowAddClient(false);
+      setClientsStatus("ready");
+    } catch (error) {
+      setClientFormError(error instanceof Error ? error.message : "Unable to add that client.");
+    } finally {
+      setClientFormBusy(false);
+    }
+  }
+
+  return (
+    <section className="lifespace-shell therapist-portal-shell">
+      <section className="therapist-portal-panel">
+        <header className="therapist-portal-header">
+          <div>
+            <p className="eyebrow">LIFESPACE Therapist Portal</p>
+            <h1>Welcome, {session.username}</h1>
+            <p>Review connected clients, shared wellness signals, and the areas that may need attention.</p>
+          </div>
+          <div className="lifespace-topdock-actions">
+            <button
+              type="button"
+              className="lifespace-utility-button"
+              aria-label="Log out"
+              onClick={onLogout}
+            >
+              <PowerIcon />
+            </button>
+            <Link href="/" className="lifespace-brand-pill">
+              <img src="/lifespace-app-icon.png" alt="" aria-hidden="true" />
+              <span>Astrology Today</span>
+            </Link>
+          </div>
+        </header>
+
+        <section className="therapist-portal-overview">
+          <article className="therapist-portal-welcome-card">
+            <p className="eyebrow">Practice Overview</p>
+            <h2>Your therapist workspace is connected.</h2>
+            <p>
+              This first portal foundation recognizes your therapist code separately from client LIFESPACE codes.
+              Client invitations and shared dashboards can now be built into this workspace.
+            </p>
+            <span className="lifespace-status-chip status-ready">Therapist access active</span>
+          </article>
+
+          <article className="therapist-portal-stat-card">
+            <span>Connected clients</span>
+            <strong>{clients.length}</strong>
+            <p>
+              {clients.length === 0
+                ? "No clients have been connected to this therapist account yet."
+                : `${clients.length} client${clients.length === 1 ? "" : "s"} available in your directory.`}
+            </p>
+          </article>
+        </section>
+
+        <section className="therapist-portal-clients">
+          <div className="therapist-portal-clients-header">
+            <div>
+              <p className="eyebrow">Client Directory</p>
+              <h2>Your clients</h2>
+            </div>
+            <button
+              type="button"
+              className="therapist-add-client-button"
+              onClick={() => {
+                setShowAddClient((current) => !current);
+                setClientFormError("");
+              }}
+              aria-expanded={showAddClient}
+            >
+              <span><PlusIcon /></span>
+              Add Client
+            </button>
+          </div>
+
+          {showAddClient ? (
+            <div className="therapist-add-client-form">
+              <div>
+                <label htmlFor="therapist-client-name">Client name</label>
+                <input
+                  id="therapist-client-name"
+                  className="lifespace-web-auth-input"
+                  value={clientName}
+                  onChange={(event) => setClientName(event.target.value)}
+                  placeholder="Client name"
+                />
+              </div>
+              <div>
+                <label htmlFor="therapist-client-code">LIFESPACE code</label>
+                <input
+                  id="therapist-client-code"
+                  className="lifespace-web-auth-input"
+                  value={clientCode}
+                  onChange={(event) => setClientCode(formatLifespaceCodeInput(event.target.value))}
+                  placeholder="LS-XXXXXX"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  maxLength={9}
+                />
+              </div>
+              <button
+                type="button"
+                className="lifespace-primary-action"
+                onClick={() => void handleAddClient()}
+                disabled={clientFormBusy}
+              >
+                {clientFormBusy ? "Adding..." : "Add Client"}
+              </button>
+              {clientFormError ? <p className="lifespace-web-auth-error">{clientFormError}</p> : null}
+            </div>
+          ) : null}
+
+          {clientsStatus === "loading" ? <p className="lifespace-empty-note">Loading clients...</p> : null}
+          {clientsStatus === "error" ? <p className="lifespace-web-auth-error">{clientsError}</p> : null}
+          {clientsStatus === "ready" && clients.length === 0 ? (
+            <div className="therapist-portal-empty-state">
+              <span className="therapist-portal-empty-icon"><PersonIcon /></span>
+              <h3>No connected clients yet</h3>
+              <p>Add a client using the name you know them by and their shared LIFESPACE code.</p>
+            </div>
+          ) : null}
+          {clients.length > 0 ? (
+            <div className="therapist-client-directory">
+              {clients.map((client) => (
+                <button
+                  type="button"
+                  className="therapist-client-card"
+                  key={client.id}
+                  onClick={() => onSelectClient(client)}
+                >
+                  <span className="therapist-client-avatar"><PersonIcon /></span>
+                  <span>
+                    <strong>{client.name}</strong>
+                    <small>{client.lifespaceLinkedCode}</small>
+                  </span>
+                  <span className="therapist-client-open">Open dashboard</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      </section>
+
+      <footer className="lifespace-footer">
+        {footerLinks.map((item) => (
+          <a key={item} href="#" className="lifespace-footer-link">
+            {item}
+          </a>
+        ))}
+      </footer>
+    </section>
+  );
+}
+
 export default function LifeSpaceClientPage() {
+  const router = useRouter();
   const [activeUserId] = useState(defaultUserId);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [logs, setLogs] = useState<LifespaceLogEntry[]>([]);
@@ -232,6 +446,7 @@ export default function LifeSpaceClientPage() {
   const [pageMode, setPageMode] = useState<LifespacePageMode>("final");
   const [debuggerOffset, setDebuggerOffset] = useState({ x: 0, y: 0 });
   const [webSession, setWebSession] = useState<LifespaceWebSession | null>(null);
+  const [therapistClientView, setTherapistClientView] = useState<LifespaceTherapistClient | null>(null);
   const [sharedSnapshot, setSharedSnapshot] = useState<LifespaceSharedSnapshot | null>(null);
   const [sharedSnapshotStatus, setSharedSnapshotStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [sharedSnapshotError, setSharedSnapshotError] = useState("");
@@ -370,6 +585,7 @@ export default function LifeSpaceClientPage() {
 
   useEffect(() => {
     const linkedCode =
+      therapistClientView?.lifespaceLinkedCode ||
       webSession?.lifespaceLinkedCode ||
       (webSession?.linkedCode?.startsWith("LS-") ? webSession.linkedCode : "");
 
@@ -414,7 +630,7 @@ export default function LifeSpaceClientPage() {
     return () => {
       cancelled = true;
     };
-  }, [pageMode, webSession]);
+  }, [pageMode, therapistClientView, webSession]);
 
   const todayScore = useMemo(() => getTodayScore(logs), [logs]);
   const lifetimeScores = useMemo(() => getLifetimeModuleScores(logs), [logs]);
@@ -430,7 +646,13 @@ export default function LifeSpaceClientPage() {
       ? sharedSnapshot?.weakestModules?.slice(0, 3) ?? ["light", "fitness", "eating"]
       : prescriptionModules;
   const effectiveDashboardName =
-    pageMode === "final" ? webSession?.username || sharedSnapshot?.profileUsername || "User" : profile?.username || "User";
+    pageMode === "final"
+      ? therapistClientView?.name || webSession?.username || sharedSnapshot?.profileUsername || "User"
+      : profile?.username || "User";
+  const effectiveLifespaceCode =
+    therapistClientView?.lifespaceLinkedCode ||
+    webSession?.lifespaceLinkedCode ||
+    (webSession?.linkedCode?.startsWith("LS-") ? webSession.linkedCode : "");
   const effectiveStatus =
     pageMode === "final"
       ? sharedSnapshotStatus === "ready"
@@ -454,7 +676,6 @@ export default function LifeSpaceClientPage() {
     [effectiveLifetimeScores],
   );
 
-  const selectedModuleScore = effectiveLifetimeScores[selectedModule];
   const selectedModuleLabel =
     selectedModule === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[selectedModule];
   const weakestModule = rankedModules[0]?.module ?? "light";
@@ -523,6 +744,26 @@ export default function LifeSpaceClientPage() {
     setAuthError("");
 
     try {
+      if (normalizedCode.startsWith("TP-")) {
+        const therapistAccount = await getWebAccountByTherapistCode(normalizedCode);
+        if (!therapistAccount) {
+          setAuthError("That therapist code was not found.");
+          return;
+        }
+
+        const therapistSession = {
+          username: therapistAccount.username,
+          usernameLower: therapistAccount.usernameLower,
+          linkedCode: therapistAccount.linkedCode,
+          lifespaceLinkedCode: therapistAccount.lifespaceLinkedCode,
+          therapistLinkedCode: therapistAccount.therapistLinkedCode,
+        } satisfies LifespaceWebSession;
+
+        setStoredLifespaceSession(therapistSession);
+        setWebSession(therapistSession);
+        return;
+      }
+
       const snapshot = await getSharedLifespaceSnapshot(normalizedCode);
       if (!snapshot || !snapshot.sharingEnabled) {
         setAuthError("That app user code was not found.");
@@ -546,6 +787,7 @@ export default function LifeSpaceClientPage() {
         usernameLower: updatedAccount.usernameLower,
         linkedCode: updatedAccount.linkedCode,
         lifespaceLinkedCode: updatedAccount.lifespaceLinkedCode,
+        therapistLinkedCode: updatedAccount.therapistLinkedCode,
       } satisfies LifespaceWebSession;
 
         setStoredLifespaceSession(nextSession);
@@ -616,6 +858,7 @@ export default function LifeSpaceClientPage() {
         usernameLower: account.usernameLower,
         linkedCode: account.linkedCode,
         lifespaceLinkedCode: account.lifespaceLinkedCode,
+        therapistLinkedCode: account.therapistLinkedCode,
       } satisfies LifespaceWebSession;
 
       setStoredLifespaceSession(nextSession);
@@ -660,6 +903,7 @@ export default function LifeSpaceClientPage() {
         usernameLower: updatedAccount.usernameLower,
         linkedCode: updatedAccount.linkedCode,
         lifespaceLinkedCode: updatedAccount.lifespaceLinkedCode,
+        therapistLinkedCode: updatedAccount.therapistLinkedCode,
       } satisfies LifespaceWebSession;
 
       setStoredLifespaceSession(nextSession);
@@ -671,8 +915,26 @@ export default function LifeSpaceClientPage() {
     }
   }
 
+  function handleLogout() {
+    setStoredLifespaceSession(null);
+    setWebSession(null);
+    setTherapistClientView(null);
+    setSharedSnapshot(null);
+    setSharedSnapshotStatus("idle");
+    setSharedSnapshotError("");
+    setCodeInput("");
+    setAuthError("");
+    setAuthStep("code");
+    router.push("/");
+  }
+
   const showDashboard =
-    pageMode !== "final" || sharedSnapshotStatus === "loading" || sharedSnapshotStatus === "ready";
+    pageMode !== "final" ||
+    Boolean(therapistClientView) ||
+    sharedSnapshotStatus === "loading" ||
+    sharedSnapshotStatus === "ready";
+  const showTherapistPortal =
+    pageMode === "final" && Boolean(webSession?.therapistLinkedCode) && !therapistClientView;
   const usernameTaken = authStep === "setup" && authError === "That username is already taken.";
 
   return (
@@ -685,7 +947,16 @@ export default function LifeSpaceClientPage() {
         scale={LIFESPACE_CANVAS_SCALE}
         viewportClassName="lifespace-page-canvas-viewport"
       >
-        {showDashboard ? (
+        {showTherapistPortal && webSession ? (
+          <TherapistPortal
+            session={webSession}
+            onSelectClient={(client) => {
+              setTherapistClientView(client);
+              setSelectedModule("light");
+            }}
+            onLogout={handleLogout}
+          />
+        ) : showDashboard ? (
         <section
           className={`lifespace-shell ${pageMode === "construction" ? "lifespace-shell-under-construction" : ""}`.trim()}
           aria-hidden={pageMode === "construction"}
@@ -734,7 +1005,9 @@ export default function LifeSpaceClientPage() {
                   <p className="eyebrow">Dashboard Overview</p>
                   <div className="lifespace-title-row">
                     <h1>{effectiveDashboardName}&apos;s LIFESPACE</h1>
-                    <span className={`lifespace-status-chip status-${effectiveStatus}`}>{getStatusLabel(effectiveStatus)}</span>
+                    <span className={`lifespace-status-chip status-${effectiveStatus}`}>
+                      {effectiveLifespaceCode || getStatusLabel(effectiveStatus)}
+                    </span>
                   </div>
                   <p>
                     Your environment, habits, and inner life translated into a calmer, clearer wellness command center.
@@ -746,10 +1019,24 @@ export default function LifeSpaceClientPage() {
 
                 <div className="lifespace-topdock">
                   <div className="lifespace-topdock-actions">
-                    <button type="button" className="lifespace-utility-button" aria-label="Logout">
+                    <button
+                      type="button"
+                      className="lifespace-utility-button"
+                      aria-label="Log out"
+                      onClick={handleLogout}
+                    >
                       <PowerIcon />
                     </button>
-                    <button type="button" className="lifespace-utility-button" aria-label="User profile">
+                    <button
+                      type="button"
+                      className="lifespace-utility-button"
+                      aria-label={therapistClientView ? "Back to Therapist Portal" : "User profile"}
+                      onClick={() => {
+                        if (therapistClientView && webSession?.therapistLinkedCode) {
+                          setTherapistClientView(null);
+                        }
+                      }}
+                    >
                       <PersonIcon />
                     </button>
                     <Link href="/" className="lifespace-brand-pill">
@@ -812,9 +1099,9 @@ export default function LifeSpaceClientPage() {
               </section>
 
               <section className="lifespace-analytics-panel">
+                <p className="eyebrow lifespace-analytics-kicker">Main Analytics</p>
                 <div className="lifespace-section-heading">
                   <div>
-                    <p className="eyebrow">Main Analytics</p>
                     <h2>Lifetime module performance</h2>
                   </div>
                   <p>Tap any letter to inspect the module, compare patterns, and decide what deserves attention next.</p>
@@ -822,10 +1109,6 @@ export default function LifeSpaceClientPage() {
 
                 <div className="lifespace-analytics-grid">
                   <div className="lifespace-chart-card">
-                    <div className="lifespace-score-overlay" aria-label={`Today's score ${effectiveTodayScore} percent`}>
-                      <span>Today</span>
-                      <strong>{effectiveTodayScore}%</strong>
-                    </div>
                     <div className="lifespace-chart-grid">
                       <div className="lifespace-y-axis">
                         {[100, 75, 50, 25, 0].map((tick) => (
@@ -864,28 +1147,6 @@ export default function LifeSpaceClientPage() {
                     </div>
                   </div>
 
-                  <aside className="lifespace-module-popup">
-                    <div className="lifespace-module-card-top">
-                      <span className="lifespace-module-score">{selectedModuleScore}%</span>
-                      <span className={`lifespace-tone-pill tone-${getBarTone(selectedModuleScore)}`}>
-                        {selectedModuleScore >= 80 ? "Strong" : selectedModuleScore >= 55 ? "Building" : "Needs support"}
-                      </span>
-                    </div>
-                    <h2>{selectedModuleLabel}</h2>
-                    <p>{moduleDescriptions[selectedModule]}</p>
-
-                    <div className="lifespace-module-mini-list">
-                      {rankedModules.slice(0, 3).map(({ module, score }, index) => (
-                        <div key={module} className="lifespace-module-mini-row">
-                          <span className="lifespace-module-mini-rank">0{index + 1}</span>
-                          <span className="lifespace-module-mini-name">
-                            {module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}
-                          </span>
-                          <strong>{score}%</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </aside>
                 </div>
               </section>
             </div>
@@ -910,7 +1171,9 @@ export default function LifeSpaceClientPage() {
                     <h3>{module === "sensory" ? "Sensory Health" : LIFESPACE_MODULE_LABELS[module]}</h3>
                     <p>{prescriptionCopy[module]}</p>
                   </div>
-                  <div className="lifespace-priority-score">{effectiveLifetimeScores[module]}%</div>
+                  <div className="lifespace-priority-score">
+                    {Math.round(effectiveLifetimeScores[module])}%
+                  </div>
                 </article>
               ))}
             </div>
@@ -935,7 +1198,7 @@ export default function LifeSpaceClientPage() {
                       <div className="lifespace-web-auth-code-layout">
                         <div className="lifespace-web-auth-copy-block">
                           <h1>Enter app user code</h1>
-                          <p>Use the code from your LIFESPACE iPhone app to unlock your web dashboard.</p>
+                          <p>Use your LIFESPACE app code or therapist access code to unlock your web portal.</p>
                         </div>
                         <div className="lifespace-web-auth-form-block">
                           <input
@@ -943,7 +1206,7 @@ export default function LifeSpaceClientPage() {
                             value={codeInput}
                             onChange={(event) => setCodeInput(formatLifespaceCodeInput(event.target.value))}
                             placeholder="LS-XXXXXX"
-                            aria-label="Enter app user code"
+                            aria-label="Enter LIFESPACE or therapist code"
                             autoCapitalize="characters"
                             autoCorrect="off"
                             spellCheck={false}

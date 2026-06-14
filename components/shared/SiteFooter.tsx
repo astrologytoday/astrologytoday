@@ -73,7 +73,7 @@ export default function SiteFooter({
         { label: copy.footer.siteRules, href: "/site-rules" },
         {
           label: copy.footer.advertise,
-          href: "mailto:mariosbardella@protonmail.com?subject=Advertising%20With%20Astrology%20Today",
+          href: "mailto:inquiries@mylifespace.ca?subject=Advertising%20With%20Astrology%20Today",
         },
         {
           label: copy.footer.support,

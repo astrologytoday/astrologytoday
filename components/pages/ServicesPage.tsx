@@ -598,7 +598,7 @@ export default function ServicesPage({
                   <p>{servicesCopy.sections.couples.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
-                      href="mailto:mariosbardella@protonmail.com?subject=Relationship%20or%20Family%20Counseling%20Inquiry"
+                      href="mailto:inquiries@mylifespace.ca?subject=Relationship%20or%20Family%20Counseling%20Inquiry"
                       className="services-inline-cta-button"
                     >
                       {servicesCopy.sections.couples.cta}
@@ -622,7 +622,7 @@ export default function ServicesPage({
                   <p>{servicesCopy.sections.singles.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
-                      href="mailto:mariosbardella@protonmail.com?subject=Introspection%20Therapy%20Inquiry"
+                      href="mailto:inquiries@mylifespace.ca?subject=Introspection%20Therapy%20Inquiry"
                       className="services-inline-cta-button"
                     >
                       {servicesCopy.sections.singles.cta}
@@ -643,7 +643,7 @@ export default function ServicesPage({
                   <p>{servicesCopy.sections.reports.paragraphs[2]}</p>
                   <div className="services-inline-cta">
                     <a
-                      href="mailto:mariosbardella@protonmail.com?subject=Astrological%20Report%20Inquiry"
+                      href="mailto:inquiries@mylifespace.ca?subject=Astrological%20Report%20Inquiry"
                       className="services-inline-cta-button"
                     >
                       {servicesCopy.sections.reports.cta}
@@ -665,7 +665,7 @@ export default function ServicesPage({
                   <p>{servicesCopy.sections.peerSupport.paragraphs[3]}</p>
                   <div className="services-inline-cta">
                     <a
-                      href="mailto:mariosbardella@protonmail.com?subject=1-on-1%20Peer%20Support%20Inquiry"
+                      href="mailto:inquiries@mylifespace.ca?subject=1-on-1%20Peer%20Support%20Inquiry"
                       className="services-inline-cta-button"
                     >
                       {servicesCopy.sections.peerSupport.cta}

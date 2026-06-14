@@ -241,7 +241,7 @@ const footerColumns = [
       { label: "Site Rules", href: "/site-rules" },
       {
         label: "Advertise",
-        href: "mailto:mariosbardella@protonmail.com?subject=Advertising%20With%20Astrology%20Today",
+        href: "mailto:inquiries@mylifespace.ca?subject=Advertising%20With%20Astrology%20Today",
       },
       { label: "Support", href: "https://buymeacoffee.com/creationhealth" },
     ] satisfies FooterLink[],
@@ -352,7 +352,7 @@ export default function HomePage({
         { label: copy.footer.siteRules, href: "/site-rules" },
         {
           label: copy.footer.advertise,
-          href: "mailto:mariosbardella@protonmail.com?subject=Advertising%20With%20Astrology%20Today",
+          href: "mailto:inquiries@mylifespace.ca?subject=Advertising%20With%20Astrology%20Today",
         },
         {
           label: copy.footer.support,
@@ -1447,26 +1447,26 @@ export default function HomePage({
             <div ref={marqueeGroupRef} className="home-marquee-group">
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
+              <span>☽ ⋅ CANCER NEW MOON ⋅ 06/15 - 06/16 ⋅ CANCER NEW MOON ⋅ ☽</span>
               <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
+              <span>☽ ⋅ LEO MOON ⋅ 06/17 - 06/18 ⋅ LEO MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
+              <span>☽ ⋅ VIRGO MOON ⋅ 06/19 - 06/20 ⋅ VIRGO MOON ⋅ ☽</span>
               <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ TAURUS NEW MOON ⋅ 06/11 - 06/12 ⋅ TAURUS NEW MOON ⋅ ☽</span>
-              <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
+              <span>☽ ⋅ LIBRA MOON ⋅ 06/21 - 06/22 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀</span>
             </div>
             <div className="home-marquee-group" aria-hidden="true">
               <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
               <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ AQUARIUS MOON ⋅ 06/04 - 06/05 ⋅ AQUARIUS MOON ⋅ ☽</span>
+              <span>☽ ⋅ CANCER NEW MOON ⋅ 06/15 - 06/16 ⋅ CANCER NEW MOON ⋅ ☽</span>
               <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ PISCES MOON ⋅ 06/06 - 06/08 ⋅ PISCES MOON ⋅ ☽</span>
+              <span>☽ ⋅ LEO MOON ⋅ 06/17 - 06/18 ⋅ LEO MOON ⋅ ☽</span>
               <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ ARIES MOON ⋅ 06/09 - 06/10 ⋅ ARIES MOON ⋅ ☽</span>
+              <span>☽ ⋅ VIRGO MOON ⋅ 06/19 - 06/20 ⋅ VIRGO MOON ⋅ ☽</span>
               <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ TAURUS NEW MOON ⋅ 06/11 - 06/12 ⋅ TAURUS NEW MOON ⋅ ☽</span>
-              <span>♀ ⋅ CANCER VENUS ⋅ 05/19 - 06/12 ⋅ CANCER VENUS ⋅ ♀</span>
+              <span>☽ ⋅ LIBRA MOON ⋅ 06/21 - 06/22 ⋅ LIBRA MOON ⋅ ☽</span>
+              <span>♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀</span>
             </div>
           </div>
         </div>

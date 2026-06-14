@@ -75,6 +75,8 @@ export type AstrologyCalculateResponse = {
     uranus: AstrologyPlacement;
     neptune: AstrologyPlacement;
     pluto: AstrologyPlacement;
+    chiron: AstrologyPlacement | null;
+    lilith: AstrologyPlacement | null;
   };
   houses: {
     cusps: AstrologyHouseCusp[];

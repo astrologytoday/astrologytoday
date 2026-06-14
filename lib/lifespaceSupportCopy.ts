@@ -35,12 +35,11 @@ type LifespaceSupportCopy = {
 };
 
 const english: LifespaceSupportCopy = {
-  metadataTitle: "LIFESPACE Support | Astrology Today",
+  metadataTitle: "Support | Astrology Today",
   metadataDescription: "Get support for the LIFESPACE app, account questions, billing issues, and bug reports.",
-  heading: "LIFESPACE Support Form",
+  heading: "Support Form",
   intro: [
-    "Use this form if you ran into a problem with the app, have a billing or account question, or just need help with something related to LIFESPACE.",
-    "When you submit, your default email app will open a ready-to-send support message addressed to Mario.",
+    "Use this form if you ran into a problem with the app, have a billing or account question, or just need help with something related to LIFESPACE or Astrology Today.",
   ],
   nameLabel: "Name",
   namePlaceholder: "Your name",
@@ -58,7 +57,7 @@ const english: LifespaceSupportCopy = {
   messagePlaceholder:
     "Tell us what happened, what you were trying to do, and anything else that would help us support you.",
   submitLabel: "Send Support Email",
-  returnLabel: "Return to LIFESPACE",
+  returnLabel: "Return to Astrology Today",
   subjectPrefix: "LIFESPACE Support Form",
   bodyHeader: "LIFESPACE Support Form submission",
   bodyLabels: {

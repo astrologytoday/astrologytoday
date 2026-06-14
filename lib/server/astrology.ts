@@ -31,6 +31,8 @@ const PLANET_IDS = {
   uranus: swisseph.SE_URANUS,
   neptune: swisseph.SE_NEPTUNE,
   pluto: swisseph.SE_PLUTO,
+  chiron: swisseph.SE_CHIRON,
+  lilith: swisseph.SE_MEAN_APOG,
 } as const;
 
 const PLANETARY_CLOCK_PLANET_KEYS = [
@@ -188,22 +190,22 @@ function getJulianDayUTFromUtcDate(date: Date) {
   return julian.julianDayUT;
 }
 
-function getMoonPlacementForUnknownBirthTime(date: string, timezone: string) {
+function getPlacementForUnknownBirthTime(bodyId: number, date: string, timezone: string) {
   const startOfDay = getJulianDayUT(date, "00:00", timezone);
   const endOfDay = getJulianDayUT(date, "23:59", timezone);
   const midday = getJulianDayUT(date, "12:00", timezone);
 
-  const moonAtStart = getPlanetPlacement(PLANET_IDS.moon, startOfDay.julianDayUT);
-  const moonAtEnd = getPlanetPlacement(PLANET_IDS.moon, endOfDay.julianDayUT);
+  const placementAtStart = getPlanetPlacement(bodyId, startOfDay.julianDayUT);
+  const placementAtEnd = getPlanetPlacement(bodyId, endOfDay.julianDayUT);
 
-  if (moonAtStart.sign !== moonAtEnd.sign) {
+  if (placementAtStart.sign !== placementAtEnd.sign) {
     return null;
   }
 
-  const moonAtMidday = getPlanetPlacement(PLANET_IDS.moon, midday.julianDayUT);
+  const placementAtMidday = getPlanetPlacement(bodyId, midday.julianDayUT);
   return {
-    ...moonAtMidday,
-    sign: moonAtStart.sign,
+    ...placementAtMidday,
+    sign: placementAtStart.sign,
   };
 }
 
@@ -345,7 +347,9 @@ export async function calculateAstrologyPlacements(
 
   const placements: AstrologyCalculateResponse["placements"] = {
     sun: getPlanetPlacement(PLANET_IDS.sun, julianDayUT),
-    moon: birthTimeKnown ? getPlanetPlacement(PLANET_IDS.moon, julianDayUT) : getMoonPlacementForUnknownBirthTime(date, resolvedLocation.timezone),
+    moon: birthTimeKnown
+      ? getPlanetPlacement(PLANET_IDS.moon, julianDayUT)
+      : getPlacementForUnknownBirthTime(PLANET_IDS.moon, date, resolvedLocation.timezone),
     ascendant: null,
     mercury: getPlanetPlacement(PLANET_IDS.mercury, julianDayUT),
     venus: getPlanetPlacement(PLANET_IDS.venus, julianDayUT),
@@ -355,6 +359,12 @@ export async function calculateAstrologyPlacements(
     uranus: getPlanetPlacement(PLANET_IDS.uranus, julianDayUT),
     neptune: getPlanetPlacement(PLANET_IDS.neptune, julianDayUT),
     pluto: getPlanetPlacement(PLANET_IDS.pluto, julianDayUT),
+    chiron: birthTimeKnown
+      ? getPlanetPlacement(PLANET_IDS.chiron, julianDayUT)
+      : getPlacementForUnknownBirthTime(PLANET_IDS.chiron, date, resolvedLocation.timezone),
+    lilith: birthTimeKnown
+      ? getPlanetPlacement(PLANET_IDS.lilith, julianDayUT)
+      : getPlacementForUnknownBirthTime(PLANET_IDS.lilith, date, resolvedLocation.timezone),
   };
 
   if (birthTimeKnown) {

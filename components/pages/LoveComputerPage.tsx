@@ -42,7 +42,7 @@ type Sign =
   | "♑︎"
   | "♒︎"
   | "♓︎";
-type Sex = "male" | "female";
+type Sex = "male" | "female" | "intersex";
 type Element = "fire" | "earth" | "air" | "water";
 type Modality = "cardinal" | "fixed" | "mutable";
 type GenderCategory = "masculine" | "feminine" | "eunuch" | "hermaphrodite" | "virgin";
@@ -57,7 +57,8 @@ type RelationType =
 
 type GridViewMode = "couple" | "partner-a" | "partner-b";
 
-type PlacementMap = Partial<Record<Planet | "♇", Sign | "">>;
+type ChartBody = Planet | "♇" | "⚷" | "⚸";
+type PlacementMap = Partial<Record<ChartBody, Sign | "">>;
 
 type GridCell = {
   aPlanet: Planet;
@@ -198,6 +199,7 @@ type PlanetaryHourSnapshot = {
   sunriseLabel: string;
   sunsetLabel: string;
   currentHourLabel: string;
+  currentPhase: ClockMode | null;
   rows: PlanetaryHourRow[];
 };
 
@@ -233,7 +235,7 @@ type ResetPasswordStatus = {
 };
 
 const PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆"];
-const PLACEMENT_CARD_PLANETS: Array<Planet | "♇"> = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇"];
+const PLACEMENT_CARD_PLANETS: ChartBody[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇", "⚷", "⚸"];
 const HOUSE_PLANETS: HousePlanet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇"];
 const HOUSE_CARD_PLANETS: HousePlanet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄", "♅", "♆", "♇"];
 const PRIMARY_PLANETS: Planet[] = ["☉", "☽", "⥉", "☿", "♀", "♂", "♃", "♄"];
@@ -255,9 +257,11 @@ const PLANET_LABELS: Record<Planet, string> = {
   "♆": "Neptune",
 };
 
-const PLACEMENT_CARD_PLANET_LABELS: Record<Planet | "♇", string> = {
+const PLACEMENT_CARD_PLANET_LABELS: Record<ChartBody, string> = {
   ...PLANET_LABELS,
   "♇": "Pluto",
+  "⚷": "Chiron",
+  "⚸": "Lilith",
 };
 
 const HOUSE_PLANET_LABELS: Record<HousePlanet, string> = {
@@ -1378,8 +1382,9 @@ const MONTH_OPTIONS = [
 ] as const;
 
 const DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => String(index + 1));
+const MIN_BIRTH_YEAR = 1800;
 const MAX_BIRTH_YEAR = Math.max(new Date().getFullYear(), 2045);
-const YEAR_OPTIONS = Array.from({ length: MAX_BIRTH_YEAR - 1899 }, (_, index) =>
+const YEAR_OPTIONS = Array.from({ length: MAX_BIRTH_YEAR - MIN_BIRTH_YEAR + 1 }, (_, index) =>
   String(MAX_BIRTH_YEAR - index)
 );
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
@@ -1590,8 +1595,8 @@ function countsToPercentages(counts: Record<GenderCategory, number>) {
 
 function getSexDistribution(sex: Sex) {
   return {
-    masculine: sex === "male" ? 100 : 0,
-    feminine: sex === "female" ? 100 : 0,
+    masculine: sex === "male" ? 100 : sex === "intersex" ? 50 : 0,
+    feminine: sex === "female" ? 100 : sex === "intersex" ? 50 : 0,
     eunuch: 0,
     hermaphrodite: 0,
     virgin: 0,
@@ -1861,7 +1866,7 @@ function ModalDetail({
 }
 
 function getChipTone(sex: Sex) {
-  return sex === "male" ? "male" : "female";
+  return sex;
 }
 
 function getCardPlanetLabel(planet: Planet) {
@@ -1998,15 +2003,19 @@ function stripTerminalPunctuation(text: string) {
 }
 
 function getPossessivePronoun(sex: Sex) {
-  return sex === "male" ? "his" : "her";
+  return sex === "male" ? "his" : sex === "female" ? "her" : "their";
 }
 
 function getSubjectPronoun(sex: Sex) {
-  return sex === "male" ? "he" : "she";
+  return sex === "male" ? "he" : sex === "female" ? "she" : "they";
 }
 
 function getObjectPronoun(sex: Sex) {
-  return sex === "male" ? "him" : "her";
+  return sex === "male" ? "him" : sex === "female" ? "her" : "them";
+}
+
+function getSubjectVerb(sex: Sex, singular: string, plural: string) {
+  return sex === "intersex" ? plural : singular;
 }
 
 function replaceLastOccurrence(text: string, search: string, replacement: string) {
@@ -2068,7 +2077,7 @@ function getSoloSummaryInteractionText(cell: GridCell, name: string, sex: Sex) {
 
   const templates: Partial<Record<string, string>> = {
     "☉|☽": `${name}'s emotionality ${interaction} ${possessive} core self`,
-    "☉|⥉": `How ${name} is perceived ${interaction} how ${subject} really is`,
+    "☉|⥉": `How ${name} is perceived ${interaction} how ${subject} really ${getSubjectVerb(sex, "is", "are")}`,
     "☉|☿": `${name}'s mind ${interaction} ${possessive} ego`,
     "☉|♀": `${name}'s heart ${interaction} ${possessive} ego`,
     "☉|♂": `${name}'s drive ${interaction} ${possessive} ego`,
@@ -2087,11 +2096,11 @@ function getSoloSummaryInteractionText(cell: GridCell, name: string, sex: Sex) {
     "☿|♀": `${name}'s mind ${interaction} ${possessive} interests`,
     "☿|♂": `${name}'s mind ${interaction} ${possessive} drive`,
     "☿|♃": `${name}'s mind ${interaction} ${possessive} morality`,
-    "☿|♄": `${name}'s social strategy + how ${subject} copes`,
+    "☿|♄": `${name}'s social strategy + how ${subject} ${getSubjectVerb(sex, "copes", "cope")}`,
     "♀|♂": `${name}'s body ${interaction} ${possessive} heart`,
     "♀|♃": `${name}'s heart ${interaction} ${possessive} philosophy of life`,
     "♀|♄": `${name}'s heart ${interaction} ${possessive} rebellious side`,
-    "♂|♃": `${name}'s drive + how ${subject} seeks growth`,
+    "♂|♃": `${name}'s drive + how ${subject} ${getSubjectVerb(sex, "seeks", "seek")} growth`,
     "♂|♄": `How ${name} attracts the opposite sex`,
     "♃|♄": `How ${name} socializes`,
   };
@@ -2296,7 +2305,7 @@ function buildEvolvedSelfSection(placements: PlacementMap, name: string) {
     .map((entry) => entry.starseed as string);
 
   const tail = starseedLines.length > 0 ? ["", ...starseedLines] : [];
-  return ["EVOLVED SELF", ...orderedLines, ...tail].join("\n");
+  return [...orderedLines, ...tail].join("\n");
 }
 
 function formatQualifiedPlanetPhrase(sign: Sign, planet: Planet) {
@@ -2457,9 +2466,6 @@ function buildSoloSummarySection(name: string, placements: PlacementMap, sex: Se
 
   const chartSummaryBlock = buildChartSummarySection(placements);
   if (chartSummaryBlock) blocks.push(chartSummaryBlock);
-
-  const unevolvedSelfBlock = buildUnevolvedSelfSection(placements);
-  if (unevolvedSelfBlock) blocks.push(unevolvedSelfBlock);
 
   const evolvedSelfBlock = buildEvolvedSelfSection(placements, name);
   if (evolvedSelfBlock) blocks.push(evolvedSelfBlock);
@@ -3440,8 +3446,8 @@ function shiftDateKey(dateKey: string, dayOffset: number) {
   return formatInTimeZone(next, "UTC", "yyyy-MM-dd");
 }
 
-function getWeekdayForTimezone(date: Date, timezone: string): DayOfWeek {
-  const weekday = formatInTimeZone(date, timezone, "EEEE");
+function getWeekdayForDateKey(dateKey: string): DayOfWeek {
+  const weekday = formatInTimeZone(getNoonUtcForLocalDate(dateKey), "UTC", "EEEE");
   return DAYS_OF_WEEK.includes(weekday as DayOfWeek) ? (weekday as DayOfWeek) : "Sunday";
 }
 
@@ -3739,7 +3745,7 @@ function normalizeSavedChartRecords(records: Array<Partial<SavedChartRecord>>): 
     schemaVersion: 4 as const,
     storageScope: "local" as const,
     profileName: record.profileName?.trim() || "Unnamed Chart",
-    sex: (record.sex === "female" ? "female" : "male") as Sex,
+    sex: (record.sex === "female" || record.sex === "intersex" ? record.sex : "male") as Sex,
     placements: { ...createEmptyPlacementMap(), ...(record.placements ?? {}) },
     houses: normalizeHouseAssignments(record.houses),
     birthDetails: normalizeBirthDetails(record.birthDetails),
@@ -3749,8 +3755,8 @@ function normalizeSavedChartRecords(records: Array<Partial<SavedChartRecord>>): 
 }
 
 function createEmptyPlacementMap(): PlacementMap {
-  return PLANETS.reduce<PlacementMap>((accumulator, planet) => {
-    accumulator[planet] = "";
+  return PLACEMENT_CARD_PLANETS.reduce<PlacementMap>((accumulator, body) => {
+    accumulator[body] = "";
     return accumulator;
   }, {});
 }
@@ -4642,27 +4648,39 @@ export default function LoveComputerPage() {
     try {
       const timezone = clockLocation.timezone;
       const todayKey = getLocalDateKey(clockNow, timezone);
-      const tomorrowKey = shiftDateKey(todayKey, 1);
       const todaySolarTimes = getSolarTimesForDateKey(todayKey, clockLocation.latitude, clockLocation.longitude);
-      const tomorrowSolarTimes = getSolarTimesForDateKey(
-        tomorrowKey,
+
+      if (!isValidDate(todaySolarTimes.sunrise)) {
+        throw new Error("Sunrise calculation failed.");
+      }
+
+      const isBeforeSunrise = clockNow.getTime() < todaySolarTimes.sunrise.getTime();
+      const planetaryDateKey = isBeforeSunrise ? shiftDateKey(todayKey, -1) : todayKey;
+      const nextPlanetaryDateKey = shiftDateKey(planetaryDateKey, 1);
+      const planetarySolarTimes = getSolarTimesForDateKey(
+        planetaryDateKey,
+        clockLocation.latitude,
+        clockLocation.longitude
+      );
+      const nextPlanetarySolarTimes = getSolarTimesForDateKey(
+        nextPlanetaryDateKey,
         clockLocation.latitude,
         clockLocation.longitude
       );
 
       if (
-        !isValidDate(todaySolarTimes.sunrise) ||
-        !isValidDate(todaySolarTimes.sunset) ||
-        !isValidDate(tomorrowSolarTimes.sunrise)
+        !isValidDate(planetarySolarTimes.sunrise) ||
+        !isValidDate(planetarySolarTimes.sunset) ||
+        !isValidDate(nextPlanetarySolarTimes.sunrise)
       ) {
         throw new Error("Sunrise calculation failed.");
       }
 
-      const weekday = getWeekdayForTimezone(clockNow, timezone);
+      const weekday = getWeekdayForDateKey(planetaryDateKey);
       const dayStartIndex = PLANETARY_HOUR_ORDER.indexOf(DAY_RULERS[weekday]);
       const dayRows = buildTimedPlanetaryHourRows({
-        start: todaySolarTimes.sunrise,
-        end: todaySolarTimes.sunset,
+        start: planetarySolarTimes.sunrise,
+        end: planetarySolarTimes.sunset,
         rowCount: 12,
         startIndex: dayStartIndex,
         phase: "day",
@@ -4670,8 +4688,8 @@ export default function LoveComputerPage() {
         now: clockNow,
       });
       const nightRows = buildTimedPlanetaryHourRows({
-        start: todaySolarTimes.sunset,
-        end: tomorrowSolarTimes.sunrise,
+        start: planetarySolarTimes.sunset,
+        end: nextPlanetarySolarTimes.sunrise,
         rowCount: 12,
         startIndex: dayStartIndex + 12,
         phase: "night",
@@ -4679,31 +4697,7 @@ export default function LoveComputerPage() {
         now: clockNow,
       });
 
-      let currentRow = [...dayRows, ...nightRows].find((row) => row.isCurrent) ?? null;
-
-      if (!currentRow && clockNow.getTime() < todaySolarTimes.sunrise.getTime()) {
-        const yesterdayKey = shiftDateKey(todayKey, -1);
-        const yesterdaySolarTimes = getSolarTimesForDateKey(
-          yesterdayKey,
-          clockLocation.latitude,
-          clockLocation.longitude
-        );
-
-        if (isValidDate(yesterdaySolarTimes.sunset)) {
-          const yesterdayWeekday = getWeekdayForTimezone(getNoonUtcForLocalDate(yesterdayKey), timezone);
-          const yesterdayStartIndex = PLANETARY_HOUR_ORDER.indexOf(DAY_RULERS[yesterdayWeekday]);
-          currentRow =
-            buildTimedPlanetaryHourRows({
-              start: yesterdaySolarTimes.sunset,
-              end: todaySolarTimes.sunrise,
-              rowCount: 12,
-              startIndex: yesterdayStartIndex + 12,
-              phase: "night",
-              timezone,
-              now: clockNow,
-            }).find((row) => row.isCurrent) ?? null;
-        }
-      }
+      const currentRow = [...dayRows, ...nightRows].find((row) => row.isCurrent) ?? null;
 
       return {
         snapshot: {
@@ -4715,6 +4709,7 @@ export default function LoveComputerPage() {
           currentHourLabel: currentRow
             ? `${currentRow.planet} ${currentRow.label} · ${currentRow.startTime} - ${currentRow.endTime}`
             : "Unable to determine the current planetary hour.",
+          currentPhase: currentRow?.phase ?? null,
           rows: [...dayRows, ...nightRows],
         } satisfies PlanetaryHourSnapshot,
         error: "",
@@ -4726,6 +4721,11 @@ export default function LoveComputerPage() {
       };
     }
   }, [clockLocation, clockNow, clockOverrideMode]);
+
+  useEffect(() => {
+    if (clockOverrideMode !== "auto" || !automaticPlanetaryHours.snapshot?.currentPhase) return;
+    setClockMode(automaticPlanetaryHours.snapshot.currentPhase);
+  }, [automaticPlanetaryHours.snapshot?.currentPhase, clockOverrideMode]);
 
   const updateClockLocation = (next: ClockLocation) => {
     setClockLocation(next);
@@ -5374,6 +5374,8 @@ export default function LoveComputerPage() {
     "♅": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.uranus.sign],
     "♆": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.neptune.sign],
     "♇": ASTROLOGY_SIGN_TO_SYMBOL[result.placements.pluto.sign],
+    "⚷": result.placements.chiron ? ASTROLOGY_SIGN_TO_SYMBOL[result.placements.chiron.sign] : "",
+    "⚸": result.placements.lilith ? ASTROLOGY_SIGN_TO_SYMBOL[result.placements.lilith.sign] : "",
   });
 
   const runPlacementCalculation = async (
@@ -5435,9 +5437,7 @@ export default function LoveComputerPage() {
       });
       setCalculationStatus({
         kind: "success",
-        message: data.birth.birthTimeKnown
-          ? "Placements and houses generated. You can still edit any dropdown manually."
-          : "Placements generated with unknown birth time. Moon fills only if one sign is certain; ASC and houses remain ungenerated.",
+        message: "",
       });
       setSaveStatus(`${data.name} placements generated for ${target === "a" ? "Primary" : "Comparison"} Chart.`);
     } catch (error) {
@@ -5681,7 +5681,6 @@ export default function LoveComputerPage() {
                 </select>
               </label>
               <p>AstrologyToday.ca</p>
-              <p>Love Computer Prototype</p>
               <p>Version 1.0</p>
             </div>
       </section>
@@ -6387,7 +6386,6 @@ function PlacementCard({
     <section className="placement-card">
       <p className="eyebrow">{subtitle}</p>
       <h2>{title}</h2>
-      <p className="card-copy">This app utilizes Swiss Ephemeris high-precision astronomical calculation engine.</p>
       <button
         type="button"
         className={`card-save-button${
@@ -6421,6 +6419,7 @@ function PlacementCard({
         <select value={sex} onChange={(event) => onSexChange(event.target.value as Sex)}>
           <option value="male">Male</option>
           <option value="female">Female</option>
+          <option value="intersex">Intersex</option>
         </select>
       </label>
 
@@ -6566,7 +6565,9 @@ function PlacementCard({
 
       <div className="placement-list">
         {PLACEMENT_CARD_PLANETS.filter((planet) =>
-          planet === "♇" ? true : showGenerational || !GENERATIONAL_PLANETS.includes(planet)
+          planet === "♇" || planet === "⚷" || planet === "⚸"
+            ? true
+            : showGenerational || !GENERATIONAL_PLANETS.includes(planet)
         ).map((planet) => (
           <label key={planet} className="placement-row">
             <div className="planet-mark">
