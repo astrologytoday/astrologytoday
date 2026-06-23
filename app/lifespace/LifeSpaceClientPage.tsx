@@ -11,6 +11,7 @@ import {
   getTherapistClients,
   getUserProfile,
   getWebAccountByCode,
+  getWebAccountByUsername,
   getWebAccountByTherapistCode,
   updateWebAccountCode,
 } from "../../lib/firebase/lifespace";
@@ -27,9 +28,13 @@ import {
 } from "../../lib/lifespace/types";
 import {
   authenticateLifespaceAccount,
+  createEmailPasswordAuthAccount,
+  getFirebaseAuthErrorMessage,
   getStoredLifespaceSession,
   hashPassword,
   LIFESPACE_AUTH_EVENT,
+  requestLegacyCompatiblePasswordReset,
+  rollbackCurrentAuthAccount,
   setStoredLifespaceSession,
   type LifespaceWebSession,
 } from "../../lib/lifespace/webAuth";
@@ -452,7 +457,9 @@ export default function LifeSpaceClientPage() {
   const [sharedSnapshotError, setSharedSnapshotError] = useState("");
   const [codeInput, setCodeInput] = useState("");
   const [verifiedCode, setVerifiedCode] = useState("");
-  const [authStep, setAuthStep] = useState<"code" | "setup" | "link">("code");
+  const [authStep, setAuthStep] = useState<
+    "code" | "setup" | "login" | "recover"
+  >("code");
   const [setupUsername, setSetupUsername] = useState("");
   const [confirmUsername, setConfirmUsername] = useState("");
   const [setupPassword, setSetupPassword] = useState("");
@@ -460,6 +467,13 @@ export default function LifeSpaceClientPage() {
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [linkUsername, setLinkUsername] = useState("");
   const [linkPassword, setLinkPassword] = useState("");
+  const [loginShouldLinkCode, setLoginShouldLinkCode] = useState(false);
+  const [linkedAccountUsername, setLinkedAccountUsername] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState<"password" | "username">(
+    "password",
+  );
+  const [accountRecoveryEmail, setAccountRecoveryEmail] = useState("");
+  const [recoveryMessage, setRecoveryMessage] = useState("");
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const debuggerDraggingRef = useRef<{
@@ -772,7 +786,14 @@ export default function LifeSpaceClientPage() {
 
       const linkedAccount = await getWebAccountByCode(normalizedCode);
       if (linkedAccount) {
-        setAuthError("That app user code is already attached to another account.");
+        setVerifiedCode(normalizedCode);
+        setLinkUsername(linkedAccount.username);
+        setLinkPassword("");
+        setLoginShouldLinkCode(false);
+        setLinkedAccountUsername(linkedAccount.username);
+        setAccountRecoveryEmail("");
+        setRecoveryMessage("");
+        setAuthStep("login");
         return;
       }
 
@@ -803,6 +824,10 @@ export default function LifeSpaceClientPage() {
       setRecoveryEmail("");
       setLinkUsername("");
       setLinkPassword("");
+      setLoginShouldLinkCode(false);
+      setLinkedAccountUsername("");
+      setAccountRecoveryEmail("");
+      setRecoveryMessage("");
       setAuthStep("setup");
     } catch (error) {
       setAuthError(error instanceof Error ? error.message : "Unable to verify that app user code.");
@@ -839,12 +864,20 @@ export default function LifeSpaceClientPage() {
     setAuthBusy(true);
     setAuthError("");
 
+    let authAccountCreated = false;
+
     try {
+      await createEmailPasswordAuthAccount(
+        trimmedRecoveryEmail.toLowerCase(),
+        setupPassword,
+      );
+      authAccountCreated = true;
+
       const account = await createWebAccount({
         username: trimmedUsername,
         usernameLower: trimmedUsername.toLowerCase(),
         passwordHash: await hashPassword(setupPassword),
-        recoveryEmail: trimmedRecoveryEmail,
+        recoveryEmail: trimmedRecoveryEmail.toLowerCase(),
         linkedCode: "",
         lifespaceLinkedCode: verifiedCode,
       });
@@ -864,16 +897,24 @@ export default function LifeSpaceClientPage() {
       setStoredLifespaceSession(nextSession);
       setWebSession(nextSession);
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Unable to create the account.");
+      if (authAccountCreated) {
+        await rollbackCurrentAuthAccount();
+      }
+      setAuthError(
+        getFirebaseAuthErrorMessage(
+          error,
+          error instanceof Error ? error.message : "Unable to create the account.",
+        ),
+      );
     } finally {
       setAuthBusy(false);
     }
   }
 
-  async function handleAccountLink() {
+  async function handleAccountLogin() {
     const trimmedUsername = linkUsername.trim();
 
-    if (!verifiedCode) {
+    if (loginShouldLinkCode && !verifiedCode) {
       setAuthError("Enter a valid app user code first.");
       return;
     }
@@ -893,6 +934,20 @@ export default function LifeSpaceClientPage() {
         return;
       }
 
+      if (
+        linkedAccountUsername &&
+        session.usernameLower !== linkedAccountUsername.trim().toLowerCase()
+      ) {
+        setStoredLifespaceSession(null);
+        setAuthError("That username and password do not match this app user code.");
+        return;
+      }
+
+      if (!loginShouldLinkCode) {
+        setWebSession(session);
+        return;
+      }
+
       const updatedAccount = await updateWebAccountCode(session.usernameLower, verifiedCode);
       if (!updatedAccount) {
         throw new Error("Unable to link the account.");
@@ -909,7 +964,71 @@ export default function LifeSpaceClientPage() {
       setStoredLifespaceSession(nextSession);
       setWebSession(nextSession);
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Unable to link the account.");
+      setAuthError(
+        getFirebaseAuthErrorMessage(
+          error,
+          error instanceof Error ? error.message : "Unable to login.",
+        ),
+      );
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  function openAccountRecovery(mode: "password" | "username") {
+    setRecoveryMode(mode);
+    setAccountRecoveryEmail("");
+    setRecoveryMessage("");
+    setAuthError("");
+    setAuthStep("recover");
+  }
+
+  async function handleAccountRecovery() {
+    const normalizedEmail = accountRecoveryEmail.trim().toLowerCase();
+    const accountUsername = linkedAccountUsername || linkUsername.trim();
+
+    if (!normalizedEmail) {
+      setAuthError("Enter the recovery email connected to your account.");
+      return;
+    }
+
+    if (!accountUsername) {
+      setAuthError("Return to login and enter your username first.");
+      return;
+    }
+
+    setAuthBusy(true);
+    setAuthError("");
+    setRecoveryMessage("");
+
+    try {
+      const account = await getWebAccountByUsername(accountUsername);
+      const emailMatches =
+        account?.recoveryEmail.trim().toLowerCase() === normalizedEmail;
+
+      if (!account || !emailMatches) {
+        setRecoveryMessage(
+          "If that recovery email matches this account, recovery instructions will be available.",
+        );
+        return;
+      }
+
+      if (recoveryMode === "username") {
+        setRecoveryMessage(`Your username is ${account.username}.`);
+        return;
+      }
+
+      await requestLegacyCompatiblePasswordReset(normalizedEmail);
+      setRecoveryMessage(
+        "Password reset email sent. Check your inbox and junk folder for the reset link.",
+      );
+    } catch (error) {
+      setAuthError(
+        getFirebaseAuthErrorMessage(
+          error,
+          "Unable to start account recovery right now. Please try again.",
+        ),
+      );
     } finally {
       setAuthBusy(false);
     }
@@ -1246,8 +1365,11 @@ export default function LifeSpaceClientPage() {
                               onClick={() => {
                                 setLinkUsername(setupUsername.trim());
                                 setLinkPassword("");
+                                setLoginShouldLinkCode(true);
+                                setLinkedAccountUsername("");
+                                setRecoveryMessage("");
                                 setAuthError("");
-                                setAuthStep("link");
+                                setAuthStep("login");
                               }}
                             >
                               Login?
@@ -1276,10 +1398,14 @@ export default function LifeSpaceClientPage() {
                         </button>
                       </div>
                     </>
-                  ) : (
+                  ) : authStep === "login" ? (
                     <>
-                      <h1>Link your account</h1>
-                      <p>{`Code accepted: ${verifiedCode}`}</p>
+                      <h1>{loginShouldLinkCode ? "Link your account" : "Login"}</h1>
+                      <p>
+                        {loginShouldLinkCode
+                          ? `Code accepted: ${verifiedCode}`
+                          : "This app user code is already connected to an account. Login to continue."}
+                      </p>
                       <div className="lifespace-web-auth-grid">
                         <input
                           className="lifespace-web-auth-input"
@@ -1298,13 +1424,30 @@ export default function LifeSpaceClientPage() {
                         />
                       </div>
                       {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                      <div className="lifespace-web-auth-recovery-links">
+                        <button
+                          type="button"
+                          className="lifespace-web-auth-inline-link"
+                          onClick={() => openAccountRecovery("username")}
+                        >
+                          Forgot username?
+                        </button>
+                        <button
+                          type="button"
+                          className="lifespace-web-auth-inline-link"
+                          onClick={() => openAccountRecovery("password")}
+                        >
+                          Forgot password?
+                        </button>
+                      </div>
                       <div className="lifespace-web-auth-actions">
                         <button
                           type="button"
                           className="lifespace-secondary-action"
                           onClick={() => {
-                            setAuthStep("setup");
+                            setAuthStep(loginShouldLinkCode ? "setup" : "code");
                             setAuthError("");
+                            setRecoveryMessage("");
                           }}
                         >
                           Back
@@ -1312,10 +1455,65 @@ export default function LifeSpaceClientPage() {
                         <button
                           type="button"
                           className="lifespace-primary-action lifespace-web-auth-button"
-                          onClick={() => void handleAccountLink()}
+                          onClick={() => void handleAccountLogin()}
                           disabled={authBusy}
                         >
                           {authBusy ? "Logging in..." : "Login"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h1>
+                        {recoveryMode === "password"
+                          ? "Reset your password"
+                          : "Recover your username"}
+                      </h1>
+                      <p>
+                        Enter the recovery email connected to this account.
+                        {recoveryMode === "password"
+                          ? " We will email you a secure password reset link."
+                          : ""}
+                      </p>
+                      <div className="lifespace-web-auth-grid">
+                        <input
+                          className="lifespace-web-auth-input"
+                          type="email"
+                          value={accountRecoveryEmail}
+                          onChange={(event) => setAccountRecoveryEmail(event.target.value)}
+                          placeholder="Recovery email"
+                          aria-label="Recovery email"
+                        />
+                      </div>
+                      {authError ? <p className="lifespace-web-auth-error">{authError}</p> : null}
+                      {recoveryMessage ? (
+                        <p className="lifespace-web-auth-recovery-message">
+                          {recoveryMessage}
+                        </p>
+                      ) : null}
+                      <div className="lifespace-web-auth-actions">
+                        <button
+                          type="button"
+                          className="lifespace-secondary-action"
+                          onClick={() => {
+                            setAuthStep("login");
+                            setAuthError("");
+                            setRecoveryMessage("");
+                          }}
+                        >
+                          Back to login
+                        </button>
+                        <button
+                          type="button"
+                          className="lifespace-primary-action lifespace-web-auth-button"
+                          onClick={() => void handleAccountRecovery()}
+                          disabled={authBusy}
+                        >
+                          {authBusy
+                            ? "Checking..."
+                            : recoveryMode === "password"
+                              ? "Email reset link"
+                              : "Recover username"}
                         </button>
                       </div>
                     </>

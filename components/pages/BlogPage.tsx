@@ -109,15 +109,16 @@ type GalleryCard = {
 
 const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
-  "☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉",
-  "☽ ⋅ CANCER NEW MOON ⋅ 06/15 - 06/16 ⋅ CANCER NEW MOON ⋅ ☽",
+  "☉ ⋅ CANCER SUN ⋅ 06/21 - 07/22 ⋅ CANCER SUN ⋅ ☉",
+  "☽ ⋅ LIBRA MOON ⋅ 06/22 - 06/23 ⋅ LIBRA MOON ⋅ ☽",
   "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿",
-  "☽ ⋅ LEO MOON ⋅ 06/17 - 06/18 ⋅ LEO MOON ⋅ ☽",
+  "☽ ⋅ SCORPIO MOON ⋅ 06/24 - 06/25 ⋅ SCORPIO MOON ⋅ ☽",
   "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
-  "☽ ⋅ VIRGO MOON ⋅ 06/19 - 06/20 ⋅ VIRGO MOON ⋅ ☽",
+  "☽ ⋅ SAGITTARIUS FULL MOON ⋅ 06/26 - 06/28 ⋅ SAGITTARIUS FULL MOON ⋅ ☽",
   "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
-  "☽ ⋅ LIBRA MOON ⋅ 06/21 - 06/22 ⋅ LIBRA MOON ⋅ ☽",
+  "☽ ⋅ CAPRICORN FULL MOON ⋅ 06/29 - 07/01 ⋅ CAPRICORN FULL MOON ⋅ ☽",
   "♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀",
+  "♂ ⋅ GEMINI MARS ⋅ 06/28 - 08/10 ⋅ GEMINI MARS ⋅ ♂",
 ];
 
 function buildGalleryCards(locale: SupportedLocale): GalleryCard[] {
@@ -151,7 +152,7 @@ export default function BlogPage({
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about") },
-    { label: copy.nav.lifespace, href: "/lifespace" },
+    { label: copy.nav.lifespace, href: "https://mylifespace.ca/portal" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog"), active: true },
   ];

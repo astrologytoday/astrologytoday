@@ -202,9 +202,23 @@ const navLinksPrimary: NavLink[] = [
   { label: "Services", href: "/services" },
   { label: "Downloads", href: "/downloads" },
   { label: "About", href: "/about" },
-  { label: "LIFESPACE", href: "/lifespace" },
+  { label: "LIFESPACE", href: "https://mylifespace.ca/portal" },
   { label: "Pricing", href: "/pricing" },
   { label: "Blog", href: "/blog" },
+];
+
+const homeMarqueeItems = [
+  "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
+  "☉ ⋅ CANCER SUN ⋅ 06/21 - 07/22 ⋅ CANCER SUN ⋅ ☉",
+  "☽ ⋅ LIBRA MOON ⋅ 06/22 - 06/23 ⋅ LIBRA MOON ⋅ ☽",
+  "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿",
+  "☽ ⋅ SCORPIO MOON ⋅ 06/24 - 06/25 ⋅ SCORPIO MOON ⋅ ☽",
+  "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
+  "☽ ⋅ SAGITTARIUS FULL MOON ⋅ 06/26 - 06/28 ⋅ SAGITTARIUS FULL MOON ⋅ ☽",
+  "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
+  "☽ ⋅ CAPRICORN FULL MOON ⋅ 06/29 - 07/01 ⋅ CAPRICORN FULL MOON ⋅ ☽",
+  "♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀",
+  "♂ ⋅ GEMINI MARS ⋅ 06/28 - 08/10 ⋅ GEMINI MARS ⋅ ♂",
 ];
 
 const weeklyCards = [
@@ -340,7 +354,7 @@ export default function HomePage({
     { label: copy.nav.services, href: "/services" },
     { label: copy.nav.downloads, href: "/downloads" },
     { label: copy.nav.about, href: "/about" },
-    { label: copy.nav.lifespace, href: "/lifespace" },
+    { label: copy.nav.lifespace, href: "https://mylifespace.ca/portal" },
     { label: copy.nav.pricing, href: "/pricing" },
     { label: copy.nav.blog, href: "/blog" },
   ];
@@ -1445,28 +1459,14 @@ export default function HomePage({
         <div className="home-marquee-intro-track">
           <div className="home-marquee-track">
             <div ref={marqueeGroupRef} className="home-marquee-group">
-              <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
-              <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ CANCER NEW MOON ⋅ 06/15 - 06/16 ⋅ CANCER NEW MOON ⋅ ☽</span>
-              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ LEO MOON ⋅ 06/17 - 06/18 ⋅ LEO MOON ⋅ ☽</span>
-              <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ VIRGO MOON ⋅ 06/19 - 06/20 ⋅ VIRGO MOON ⋅ ☽</span>
-              <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ LIBRA MOON ⋅ 06/21 - 06/22 ⋅ LIBRA MOON ⋅ ☽</span>
-              <span>♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀</span>
+              {homeMarqueeItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
             </div>
             <div className="home-marquee-group" aria-hidden="true">
-              <span>♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅</span>
-              <span>☉ ⋅ GEMINI SUN ⋅ 05/21 - 06/20 ⋅ GEMINI SUN ⋅ ☉</span>
-              <span>☽ ⋅ CANCER NEW MOON ⋅ 06/15 - 06/16 ⋅ CANCER NEW MOON ⋅ ☽</span>
-              <span>☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿</span>
-              <span>☽ ⋅ LEO MOON ⋅ 06/17 - 06/18 ⋅ LEO MOON ⋅ ☽</span>
-              <span>♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃</span>
-              <span>☽ ⋅ VIRGO MOON ⋅ 06/19 - 06/20 ⋅ VIRGO MOON ⋅ ☽</span>
-              <span>♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂</span>
-              <span>☽ ⋅ LIBRA MOON ⋅ 06/21 - 06/22 ⋅ LIBRA MOON ⋅ ☽</span>
-              <span>♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀</span>
+              {homeMarqueeItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
             </div>
           </div>
         </div>

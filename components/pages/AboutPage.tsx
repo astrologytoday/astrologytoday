@@ -517,7 +517,7 @@ export default function AboutPage({
     { label: copy.nav.services, href: withLocale(locale, "/services") },
     { label: copy.nav.downloads, href: withLocale(locale, "/downloads") },
     { label: copy.nav.about, href: withLocale(locale, "/about"), active: true },
-    { label: copy.nav.lifespace, href: "/lifespace" },
+    { label: copy.nav.lifespace, href: "https://mylifespace.ca/portal" },
     { label: copy.nav.pricing, href: withLocale(locale, "/pricing") },
     { label: copy.nav.blog, href: withLocale(locale, "/blog") },
   ];

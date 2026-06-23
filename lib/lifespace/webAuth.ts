@@ -5,6 +5,7 @@ import {
   deleteUser,
   type AuthError,
   sendPasswordResetEmail,
+  signOut,
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { getWebAccountByUsername } from "../firebase/lifespace";
@@ -97,6 +98,21 @@ export async function authenticateLifespaceAccount(username: string, password: s
     } catch {
       const passwordHash = await hashPassword(password);
       if (passwordHash !== (account.passwordHash ?? "")) return null;
+
+      try {
+        await createUserWithEmailAndPassword(auth, account.recoveryEmail, password);
+      } catch (error) {
+        const code =
+          error && typeof error === "object" && "code" in error
+            ? (error as AuthError).code
+            : "";
+
+        if (code === "auth/email-already-in-use") {
+          return null;
+        }
+
+        throw error;
+      }
     }
   } else {
     const passwordHash = await hashPassword(password);
@@ -155,6 +171,32 @@ export async function requestPasswordReset(email: string) {
 
     throw error;
   }
+}
+
+export async function requestLegacyCompatiblePasswordReset(email: string) {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error("Firebase authentication is not configured.");
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const temporaryPassword = `${crypto.randomUUID()}Aa1!`;
+
+  try {
+    await createUserWithEmailAndPassword(auth, normalizedEmail, temporaryPassword);
+    await signOut(auth);
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? (error as AuthError).code
+        : "";
+
+    if (code !== "auth/email-already-in-use") {
+      throw error;
+    }
+  }
+
+  await requestPasswordReset(normalizedEmail);
 }
 
 export async function refreshStoredLifespaceSession() {
