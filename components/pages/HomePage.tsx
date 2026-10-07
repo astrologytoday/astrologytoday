@@ -1887,7 +1887,7 @@ export default function HomePage({
               onMouseDown={startDragTransform("app", appDebug)}
             >
               <a
-                href="https://testflight.apple.com/join/5jkdSs4A"
+                href="https://apps.apple.com/us/app/lifespace/id6756673545"
                 className="home-lifespace-card-cta"
                 target="_blank"
                 rel="noreferrer"

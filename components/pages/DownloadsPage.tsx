@@ -699,7 +699,7 @@ export default function DownloadsPage({
 
             <aside className="downloads-cta-column">
               <a
-                href="https://testflight.apple.com/join/5jkdSs4A"
+                href="https://apps.apple.com/us/app/lifespace/id6756673545"
                 className="home-lifespace-card-cta downloads-lifespace-card"
                 target="_blank"
                 rel="noreferrer"
