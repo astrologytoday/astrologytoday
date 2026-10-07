@@ -109,16 +109,15 @@ type GalleryCard = {
 
 const marqueeItems = [
   "♅ ⋅ URANUS ENTERS GEMINI 04/26 ⋅ ♅",
-  "☉ ⋅ CANCER SUN ⋅ 06/21 - 07/22 ⋅ CANCER SUN ⋅ ☉",
-  "☽ ⋅ LIBRA MOON ⋅ 06/22 - 06/23 ⋅ LIBRA MOON ⋅ ☽",
-  "☿ ⋅ CANCER MERCURY ⋅ 06/01 - 08/08 ⋅ CANCER MERCURY ⋅ ☿",
-  "☽ ⋅ SCORPIO MOON ⋅ 06/24 - 06/25 ⋅ SCORPIO MOON ⋅ ☽",
+  "☉ ⋅ LIBRA SUN ⋅ 09/23 - 10/23 ⋅ LIBRA SUN ⋅ ☉",
+  "☽ ⋅ VIRGO MOON ⋅ 10/07 - 10/08 ⋅ VIRGO MOON ⋅ ☽",
+  "☿ ⋅ SCORPIO MERCURY ⋅ 09/30 - 12/05 ⋅ SCORPIO MERCURY ⋅ ☿",
+  "☽ ⋅ LIBRA NEW MOON ⋅ 10/09 - 10/10 ⋅ LIBRA NEW MOON ⋅ ☽",
   "♃ ⋅ JUPITER ENTERS LEO 06/30 ⋅ ♃",
-  "☽ ⋅ SAGITTARIUS FULL MOON ⋅ 06/26 - 06/28 ⋅ SAGITTARIUS FULL MOON ⋅ ☽",
-  "♂ ⋅ TAURUS MARS ⋅ 05/18 - 06/27 ⋅ TAURUS MARS ⋅ ♂",
-  "☽ ⋅ CAPRICORN FULL MOON ⋅ 06/29 - 07/01 ⋅ CAPRICORN FULL MOON ⋅ ☽",
-  "♀ ⋅ LEO VENUS ⋅ 06/13 - 07/08 ⋅ LEO VENUS ⋅ ♀",
-  "♂ ⋅ GEMINI MARS ⋅ 06/28 - 08/10 ⋅ GEMINI MARS ⋅ ♂",
+  "☽ ⋅ SCORPIO MOON ⋅ 10/11- 10/13 ⋅ SCORPIO MOON ⋅ ☽",
+  "♂ ⋅ LEO MARS ⋅ 09/28 - 11/24 ⋅ LEO MARS ⋅ ♂",
+  "☽ ⋅ SAGITTARIUS MOON ⋅ 10/14 - 10/15 ⋅ SAGITTARIUS MOON ⋅ ☽",
+  "♀ ⋅ SCORPIO VENUS ⋅ 09/10 - 01/07 ⋅ SCORPIO VENUS ⋅ ♀",
 ];
 
 function buildGalleryCards(locale: SupportedLocale): GalleryCard[] {
