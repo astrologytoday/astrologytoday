@@ -18,7 +18,7 @@ export async function generateMetadata({
     description: blogCopy.metaDescription,
     pathname: "/blog",
     locale,
-    images: ["/june-2026-issue.png"],
+    images: ["/october-2026-issue.png"],
   });
 }
 

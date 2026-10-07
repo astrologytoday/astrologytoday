@@ -9,7 +9,7 @@ export const metadata: Metadata = buildPageMetadata({
   title: blogCopy.metaTitle,
   description: blogCopy.metaDescription,
   pathname: "/blog",
-  images: ["/june-2026-issue.png"],
+  images: ["/october-2026-issue.png"],
 });
 
 export default function BlogRoute() {

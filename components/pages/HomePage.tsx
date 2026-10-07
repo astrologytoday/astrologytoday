@@ -1735,8 +1735,8 @@ export default function HomePage({
                 }}
               >
                 <img
-                  src="/june-2026-issue.png"
-                  alt="April 2026 Astrological Report cover"
+                  src="/october-2026-issue.png"
+                  alt="October 2026 Astrological Report cover"
                   className="home-mock-magazine-image"
                 />
               </a>
